@@ -7,10 +7,8 @@ import com.tavuc.managers.SpaceManager;
 import com.tavuc.managers.InputManager;
 import com.tavuc.models.space.Moon;
 import com.tavuc.models.space.Planet;
-import com.tavuc.models.space.Projectile;
 import com.tavuc.models.space.Ship;
-import com.tavuc.models.space.LightCruiser;
-import com.tavuc.models.space.AttackShip;
+
 import com.tavuc.ui.screens.GScreen;
 import com.tavuc.ui.screens.GameScreen;
 import com.tavuc.ui.screens.SpaceScreen;
@@ -84,10 +82,7 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
     private Map<Integer, Ship> otherPlayerShips;
     private static final Gson gson = new Gson();
     
-    private Map<String, LightCruiser> activeCruisers;
-    private Map<String, AttackShip> activeAttackShips;
-    private List<FireEffect> activeFireEffects;
-    private List<Projectile> activeProjectiles;
+
 
     private double lastFetchGalaxyX = 0;
     private double lastFetchGalaxyY = 0;
@@ -135,10 +130,7 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         this.gameLoopTimer.start();
         this.otherPlayerShips = new HashMap<>();
         
-        this.activeCruisers = new HashMap<>();
-        this.activeAttackShips = new HashMap<>();
-        this.activeFireEffects = new ArrayList<>();
-        this.activeProjectiles = new ArrayList<>();
+  
         
         initializeStars();
         fetchInitialSystems();
@@ -229,41 +221,13 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             otherShip.draw(g2d);
         }
 
-        for (LightCruiser cruiser : activeCruisers.values()) {
-            cruiser.draw(g2d, 0, 0);
-        }
-
-        for (AttackShip attackShip : activeAttackShips.values()) {
-            attackShip.draw(g2d, 0, 0);
-        }
-
-        drawFireEffects(g2d);
-
-        for (Projectile projectile : activeProjectiles) {
-            projectile.draw(g2d, 0, 0); //TODO: UPDATE FOR REAL NON DUMMY 
-        }
 
         g2d.setTransform(originalTransform);
 
         drawPlanetArrows(g2d, camX, camY); 
     }
 
-    private void drawFireEffects(Graphics2D g2d) {
-        long currentTime = System.currentTimeMillis();
-        for (FireEffect effect : activeFireEffects) {
-            if (!effect.isExpired()) {
-                float alpha = 1.0f - (float)(currentTime - effect.startTime) / effect.duration;
-                g2d.setColor(new Color(1.0f, 0.2f, 0.2f, alpha));
-                g2d.setStroke(new BasicStroke(3.0f));
-                g2d.drawLine(effect.fromX, effect.fromY, effect.toX, effect.toY);
-                
-                int impactSize = (int)(10 * alpha);
-                g2d.fillOval(effect.toX - impactSize/2, effect.toY - impactSize/2, impactSize, impactSize);
-            }
-        }
-        activeFireEffects.removeIf(FireEffect::isExpired);
-    }
-
+  
     private void drawStars(Graphics2D g2d) {
         double parallaxFactor = 0.1;
 
@@ -321,13 +285,7 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         checkCollisions();
         fetchMorePlanetsIfNeeded(); 
 
-        for (int i = activeProjectiles.size() - 1; i >= 0; i--) {
-            Projectile p = activeProjectiles.get(i);
-            p.update(); 
-            if (!p.isActive()) { 
-                activeProjectiles.remove(i);
-            }
-        }
+
         repaint();
     }
 
@@ -358,79 +316,8 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         otherPlayerShips.remove(otherPlayerId);
     }
 
-    @Override
-    public void spawnCruiser(String entityId, int x, int y, float health, float maxHealth) {
-        LightCruiser cruiser = new LightCruiser(entityId, x, y, 160, 120);
-        cruiser.setHealth((int)health);
-        activeCruisers.put(entityId, cruiser);
-        System.out.println("SpacePanel: Spawned Light Cruiser " + entityId + " at (" + x + ", " + y + ")");
-    }
 
-    @Override
-    public void spawnAttackShip(String entityId, int x, int y, String parentId, int targetPlayerId) {
-        AttackShip attackShip = new AttackShip(entityId, x, y, 20, 15);
-        activeAttackShips.put(entityId, attackShip);
-        System.out.println("SpacePanel: Spawned Attack Ship " + entityId + " at (" + x + ", " + y + ") targeting player " + targetPlayerId);
-    }
-
-    @Override
-    public void updateCruiser(String entityId, int x, int y, float orientation, float health, float maxHealth, String aiState) {
-        LightCruiser cruiser = activeCruisers.get(entityId);
-        if (cruiser != null) {
-            cruiser.setX(x);
-            cruiser.setY(y);
-            cruiser.setOrientation(orientation);
-            cruiser.setHealth((int)health);
-        } else {
-            spawnCruiser(entityId, x, y, health, maxHealth);
-        }
-    }
-
-    @Override
-    public void updateAttackShip(String entityId, int x, int y, float orientation, float health, String aiState) {
-        AttackShip attackShip = activeAttackShips.get(entityId);
-        if (attackShip != null) {
-            attackShip.setX(x);
-            attackShip.setY(y);
-            attackShip.setOrientation(orientation);
-            attackShip.setHealth((int)health);
-        }
-    }
-
-    @Override
-    public void showAttackShipFire(String entityId, int targetPlayerId, int fromX, int fromY, int toX, int toY) {
-        FireEffect effect = new FireEffect(entityId, fromX, fromY, toX, toY);
-        activeFireEffects.add(effect);
-        System.out.println("SpacePanel: Attack Ship " + entityId + " fired at player " + targetPlayerId);
-    }
-
-    @Override
-    public void removeCruiser(String entityId) {
-        activeCruisers.remove(entityId);
-        System.out.println("SpacePanel: Removed Light Cruiser " + entityId);
-    }
-
-    @Override
-    public void removeAttackShip(String entityId) {
-        activeAttackShips.remove(entityId);
-        System.out.println("SpacePanel: Removed Attack Ship " + entityId);
-    }
-
-    @Override
-    public void spawnProjectile(String projectileId, int x, int y, int width, int height, float orientation, float speed, float damage, String firedBy) {
-
-        Projectile newProjectile = new Projectile(
-            projectileId, 
-            x, y, 
-            width, height, 
-            orientation, 
-            speed, 
-            firedBy,
-            2.5f 
-        );
-        activeProjectiles.add(newProjectile);
-        System.out.println("SpacePanel: Spawned projectile " + projectileId);
-    }
+  
 
     private void checkCollisions() {
         if (playerShip == null) return;

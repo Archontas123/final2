@@ -1,5 +1,0 @@
-#Player data
-#Fri May 30 13:16:27 EDT 2025
-id=5
-password=test9
-username=test92
