@@ -1,6 +1,5 @@
 package com.tavuc.models.space;
 
-import com.tavuc.models.space.Projectile; 
 
 public class PlayerShip extends BaseShip {
 
@@ -32,38 +31,7 @@ public class PlayerShip extends BaseShip {
         setPosition(newX, newY);
     }
 
-    @Override
-    public Projectile fire() {
-        if (canFire()) {
-            this.lastFireTime = System.currentTimeMillis();
-
-
-            float projectileStartX = getX() + (getWidth() / 2.0f) * (float)Math.cos(getOrientation());
-            float projectileStartY = getY() + (getHeight() / 2.0f) * (float)Math.sin(getOrientation());
-
-            float projectileSpeed = 600f; 
-            float lifetime = 2.5f; 
-            int projectileWidth = 6;
-            int projectileHeight = 6;
-
-            Projectile p = new Projectile(
-                java.util.UUID.randomUUID().toString(), 
-                (int)projectileStartX,
-                (int)projectileStartY,
-                projectileWidth,
-                projectileHeight,
-                getOrientation(),
-                projectileSpeed,
-                getProjectileDamage(), 
-                getEntityId(), 
-                lifetime
-            );
-            System.out.println("PlayerShip " + getEntityId() + " fired a projectile.");
-            return p;
-        }
-        return null;
-    }
-
+   
     public String getPlayerId() {
         return playerId;
     }

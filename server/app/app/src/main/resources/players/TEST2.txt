@@ -1,0 +1,8 @@
+#Player data
+#Tue Jun 03 17:54:23 EDT 2025
+id=2
+lastSpaceAngle=0.0872664600610733
+lastSpaceX=545.0
+lastSpaceY=812.0
+password=TEST2
+username=TEST2

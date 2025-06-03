@@ -24,8 +24,8 @@ public class Player extends Entity {
     private static final int PLAYER_BASE_HEIGHT = 80; 
     private static final int HAND_SIZE = 40; 
     private static final double MAX_SPEED = 5.0;
-    private static final double ACCELERATION_RATE = 0.2;
-    private static final double DECELERATION_RATE = 0.1;
+    private static final double ACCELERATION_RATE = 0.5;
+    private static final double DECELERATION_RATE = 0.3;
 
 
     /**

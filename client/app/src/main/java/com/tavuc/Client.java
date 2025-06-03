@@ -32,7 +32,9 @@ import com.tavuc.networking.models.ListGamesRequest;
 import com.tavuc.networking.models.ListGamesResponse;
 import com.tavuc.networking.models.LoginRequest;
 import com.tavuc.networking.models.LoginResponse;
-import com.tavuc.networking.models.PlayerUpdateBroadcast;
+import com.tavuc.networking.models.PlayerJoinedBroadcast;
+import com.tavuc.networking.models.PlayerLeftBroadcast;
+import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerUpdateRequest;
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.networking.models.RegisterRequest;
@@ -46,6 +48,8 @@ import com.tavuc.networking.models.RequestPlanetsAreaResponse;
 import com.tavuc.networking.models.ShipLeftBroadcast;
 import com.tavuc.networking.models.ShipUpdateBroadcast;
 import com.tavuc.networking.models.ShipUpdateRequest;
+import com.tavuc.networking.models.DummyUpdateBroadcast; // Added import
+import com.tavuc.networking.models.DummyRemovedBroadcast; // Added import
 import com.tavuc.ui.panels.GamePanel;
 import com.tavuc.ui.panels.ISpacePanel;
 import com.tavuc.ui.panels.SpacePanel;
@@ -290,6 +294,15 @@ public class Client {
 
         if (instance != null && resp != null && resp.success) {
             instance.setJoinedPlanetDetails(gameId, resp.planetName != null ? resp.planetName : planetName);
+            // Initialize or update WorldManager here
+            if (worldManager == null) {
+                worldManager = new WorldManager(gameId);
+                System.out.println("Client.joinPlanet: WorldManager initialized for game ID: " + gameId);
+            } else {
+                worldManager.setGameId(gameId);
+                worldManager.clearChunks(); // Clear data from any previous game
+                System.out.println("Client.joinPlanet: WorldManager reset for new game ID: " + gameId);
+            }
         }
         return jsonResponse; 
     }
@@ -427,7 +440,7 @@ public class Client {
             try {
                 String jsonFromServer;
                 while (socket != null && !socket.isClosed() && (jsonFromServer = in.readLine()) != null) {
-                    System.out.println("Server JSON: " + jsonFromServer); 
+                    //System.out.println("Server JSON: " + jsonFromServer); 
                     
                     String processedJson = jsonFromServer; 
                     if (jsonFromServer.startsWith("\"") && jsonFromServer.endsWith("\"")) {
@@ -482,10 +495,35 @@ public class Client {
                         }
                     } else {
                         switch (baseMsg.type) {
-                            case "PLAYER_UPDATE_BROADCAST":
-                                if (currentGamePanel != null) {
-                                    PlayerUpdateBroadcast event = gson.fromJson(processedJson, PlayerUpdateBroadcast.class); 
-                                    SwingUtilities.invokeLater(() -> currentGamePanel.processPlayerUpdate(event));
+                            case "PLAYER_MOVED_BROADCAST":
+                                if (worldManager != null) {
+                                    PlayerMovedBroadcast event = gson.fromJson(processedJson, PlayerMovedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.updatePlayer(event));
+                                } else if (currentGamePanel != null) { // Fallback or alternative handler
+                                    PlayerMovedBroadcast event = gson.fromJson(processedJson, PlayerMovedBroadcast.class);
+                                    // Assuming GamePanel might have a similar method or WorldManager is preferred
+                                    // currentGamePanel.processPlayerUpdate(event); // Or adapt as needed
+                                    System.out.println("Client: PLAYER_MOVED_BROADCAST received, currentGamePanel to handle (if worldManager is null)");
+                                }
+                                break;
+                            case "PLAYER_JOINED_BROADCAST":
+                                System.out.println("Listener: Received PLAYER_JOINED_BROADCAST. JSON: " + processedJson);
+                                if (worldManager != null) {
+                                    System.out.println("Listener: worldManager is NOT null. Processing PLAYER_JOINED_BROADCAST.");
+                                    PlayerJoinedBroadcast joinedEvent = gson.fromJson(processedJson, PlayerJoinedBroadcast.class);
+                                    System.out.println("Listener: Parsed PlayerJoinedBroadcast for player ID: " + joinedEvent.playerId + ", username: " + joinedEvent.username);
+                                    SwingUtilities.invokeLater(() -> {
+                                        System.out.println("Listener (invokeLater): Calling worldManager.addPlayer for " + joinedEvent.username);
+                                        worldManager.addPlayer(joinedEvent);
+                                    });
+                                } else {
+                                    System.err.println("Listener: worldManager IS NULL when PLAYER_JOINED_BROADCAST received. Cannot process. JSON: " + processedJson);
+                                }
+                                break;
+                            case "PLAYER_LEFT_BROADCAST":
+                                if (worldManager != null) {
+                                    PlayerLeftBroadcast leftEvent = gson.fromJson(processedJson, PlayerLeftBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.removePlayer(leftEvent.playerId));
                                 }
                                 break;
                             case "SHIP_UPDATE_BROADCAST":
@@ -515,85 +553,22 @@ public class Client {
                                  RequestPaletteResponse paletteResponse = gson.fromJson(processedJson, RequestPaletteResponse.class);
                                  processPlanetPaletteData(paletteResponse);
                                 break;
-                            case "CRUISER_SPAWNED_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    CruiserUpdateBroadcast event = gson.fromJson(processedJson, CruiserUpdateBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.spawnCruiser(event.entityId, event.x, event.y, event.health, event.maxHealth));
-                                }
-                                break;
-                            case "ATTACK_SHIP_SPAWNED_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    AttackShipUpdateBroadcast event = gson.fromJson(processedJson, AttackShipUpdateBroadcast.class);
-                                    int targetPlayerId = 0;
-                                    try {
-                                        if (event.targetPlayerId != null && !event.targetPlayerId.isEmpty()){
-                                            targetPlayerId = Integer.parseInt(event.targetPlayerId);
-                                        }
-                                    } catch (NumberFormatException e) {
-                                         System.err.println("Error parsing targetPlayerId for ATTACK_SHIP_SPAWNED_BROADCAST: " + event.targetPlayerId);
-                                    }
-                                    final int finalTargetPlayerId = targetPlayerId;
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.spawnAttackShip(event.entityId, event.x, event.y, event.parentCruiserId, finalTargetPlayerId));
-                                }
-                                break;
-                            case "CRUISER_UPDATE_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    CruiserUpdateBroadcast event = gson.fromJson(processedJson, CruiserUpdateBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.updateCruiser(event.entityId, event.x, event.y, event.orientation, event.health, event.maxHealth, event.aiState));
-                                }
-                                break;
-                            case "ATTACK_SHIP_UPDATE_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    AttackShipUpdateBroadcast event = gson.fromJson(processedJson, AttackShipUpdateBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.updateAttackShip(event.entityId, event.x, event.y, event.orientation, event.health, event.aiState));
-                                }
-                                break;
-                            case "ATTACK_SHIP_FIRE_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    AttackShipFireBroadcast event = gson.fromJson(processedJson, AttackShipFireBroadcast.class);
-                                    int targetPlayerId = 0;
-                                     try {
-                                        if (event.targetPlayerId != null && !event.targetPlayerId.isEmpty()){
-                                            targetPlayerId = Integer.parseInt(event.targetPlayerId);
-                                        }
-                                    } catch (NumberFormatException e) {
-                                         System.err.println("Error parsing targetPlayerId for ATTACK_SHIP_FIRE_BROADCAST: " + event.targetPlayerId);
-                                    }
-                                    final int finalTargetPlayerId = targetPlayerId;
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.showAttackShipFire(event.attackerId, finalTargetPlayerId, event.fromX, event.fromY, event.toX, event.toY));
-                                }
-                                break;
-                            case "CRUISER_DESTROYED_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    EntityRemovedBroadcast event = gson.fromJson(processedJson, EntityRemovedBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.removeCruiser(event.entityId));
-                                }
-                                break;
-                            case "ATTACK_SHIP_DESTROYED_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    EntityRemovedBroadcast event = gson.fromJson(processedJson, EntityRemovedBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.removeAttackShip(event.entityId));
-                                }
-                                break;
-                            case "PROJECTILE_SPAWNED_BROADCAST":
-                                if (currentSpacePanel != null) {
-                                    ProjectileSpawnedBroadcast projectileEvent = gson.fromJson(processedJson, ProjectileSpawnedBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.spawnProjectile(
-                                        projectileEvent.projectileId,
-                                        projectileEvent.x,
-                                        projectileEvent.y,
-                                        projectileEvent.width,
-                                        projectileEvent.height,
-                                        projectileEvent.orientation,
-                                        projectileEvent.speed,
-                                        projectileEvent.damage,
-                                        projectileEvent.firedBy
-                                    ));
-                                }
-                                break;
+                           
                             case "ERROR_MESSAGE":
                                 ErrorMessage errMsg = gson.fromJson(processedJson, ErrorMessage.class); 
                                 System.err.println("Listener: Received ERROR_MESSAGE from server: " + errMsg.errorMessageContent);
+                                break;
+                            case "DUMMY_UPDATE_BROADCAST":
+                                if (worldManager != null) {
+                                    DummyUpdateBroadcast dummyEvent = gson.fromJson(processedJson, DummyUpdateBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.updateDummy(dummyEvent.id, dummyEvent.x, dummyEvent.y));
+                                }
+                                break;
+                            case "DUMMY_REMOVED_BROADCAST":
+                                if (worldManager != null) {
+                                    DummyRemovedBroadcast dummyRemovedEvent = gson.fromJson(processedJson, DummyRemovedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.removeDummy(dummyRemovedEvent.id));
+                                }
                                 break;
                             default:
                                 System.out.println("Listener: Unhandled broadcast/async message type: " + baseMsg.type);

@@ -45,24 +45,37 @@ public class AuthManager {
      */
     private synchronized int getNextPlayerId() throws IOException {
         Path counterFilePath = Paths.get(ID_COUNTER_FILE);
-        int nextId = 1;
+        
+        Path parentDir = counterFilePath.getParent();
+        if (parentDir != null && !Files.exists(parentDir)) {
+            Files.createDirectories(parentDir);
+        }
 
-        try (BufferedReader reader = Files.newBufferedReader(counterFilePath)) {
-            String line = reader.readLine();
-            if (line != null && !line.trim().isEmpty()) {
-                try {
-                    nextId = Integer.parseInt(line.trim()) + 1;
-                } catch (NumberFormatException e) {
-                    System.err.println("Error parsing player ID counter from file: " + counterFilePath + ". Content: \"" + line + "\". Resetting to 1. Error: " + e.getMessage());
-                    nextId = 1;
+        int currentIdToAssign;
+        if (Files.exists(counterFilePath) && Files.size(counterFilePath) > 0) {
+            try (BufferedReader reader = Files.newBufferedReader(counterFilePath)) {
+                String line = reader.readLine();
+                if (line != null && !line.trim().isEmpty()) {
+                    try {
+                        int lastAssignedId = Integer.parseInt(line.trim());
+                        currentIdToAssign = lastAssignedId + 1;
+                    } catch (NumberFormatException e) {
+                        System.err.println("Error parsing player ID counter from file: " + counterFilePath.toAbsolutePath() + ". Content: \"" + line + "\". Resetting to 1. Error: " + e.getMessage());
+                        currentIdToAssign = 1; 
+                    }
+                } else {
+                    currentIdToAssign = 1; 
                 }
             }
+        } else {
+            currentIdToAssign = 1; 
         }
 
-        try (BufferedWriter writer = Files.newBufferedWriter(counterFilePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING)) {
-            writer.write(String.valueOf(nextId));
+        try (BufferedWriter writer = Files.newBufferedWriter(counterFilePath, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
+            writer.write(String.valueOf(currentIdToAssign));
         }
-        return nextId;
+        
+        return currentIdToAssign;
     }
 
     /**

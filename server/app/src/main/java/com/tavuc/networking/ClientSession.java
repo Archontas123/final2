@@ -26,7 +26,6 @@ import com.tavuc.models.planets.ColorPallete;
 import com.tavuc.models.planets.Game;
 import com.tavuc.models.planets.Tile;
 import com.tavuc.models.space.PlayerShip;
-import com.tavuc.models.space.Projectile;
 import com.tavuc.models.space.Ship;
 
 public class ClientSession implements Runnable {
@@ -384,11 +383,19 @@ public class ClientSession implements Runnable {
      * @param responseObject The object to serialize to JSON and send.
      */
     public void sendMessage(Object responseObject) {
+        String jsonToSend = gson.toJson(responseObject); // Serialize once
+        if (responseObject instanceof PlayerJoinedBroadcast) {
+            PlayerJoinedBroadcast pjb = (PlayerJoinedBroadcast) responseObject;
+            System.out.println("Session " + sessionId + ": Attempting to send PlayerJoinedBroadcast for player ID " + pjb.playerId + " (" + pjb.username + "). PrintWriter error state: " + (out == null ? "null" : out.checkError()));
+        }
+        
         if (out != null && !out.checkError()) {
-            String jsonToSend = gson.toJson(responseObject);
             out.println(jsonToSend);
+            if (responseObject instanceof PlayerJoinedBroadcast) {
+                 System.out.println("Session " + sessionId + ": Successfully sent PlayerJoinedBroadcast for player ID " + ((PlayerJoinedBroadcast)responseObject).playerId);
+            }
         } else {
-            System.err.println("Session " + sessionId + ": PrintWriter not available or in error state. Cannot send: " + gson.toJson(responseObject));
+            System.err.println("Session " + sessionId + ": PrintWriter not available or in error state. Cannot send: " + jsonToSend);
         }
     }
 
@@ -446,7 +453,6 @@ public class ClientSession implements Runnable {
                     playerToLogout.setLastSpaceY(currentShip.getY());
                     playerToLogout.setLastSpaceAngle(currentShip.getOrientation());
                     playerToLogout.save(); 
-                    System.out.println("Session " + sessionId + ": Saved ship position for player " + playerToLogout.getId() + " before logout from space.");
                 }
             }
             
@@ -567,8 +573,6 @@ public class ClientSession implements Runnable {
 
    
         if (this.currentGameService != null) {
-            System.out.println("Session " + sessionId + ": Received SHIP_UPDATE_REQUEST for player " + req.playerId + 
-                               " who is currently in game " + currentGameService.getGameId() + " (" + currentGameService.getPlanetName() + "). Ignoring update.");
             return; 
         }
 
@@ -595,14 +599,7 @@ public class ClientSession implements Runnable {
             return;
         }
 
-        Projectile projectile = playerShip.fire();
 
-        if (projectile != null) {
-            networkManager.addProjectile(projectile); 
 
-            System.out.println("Session " + sessionId + ": Player " + player.getId() + " (Ship: " + playerShip.getEntityId() + ") fired projectile " + projectile.getId());
-        } else {
-    
-        }
     }
 }

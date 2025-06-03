@@ -1,7 +1,6 @@
 package com.tavuc.models.space;
 
 import com.tavuc.models.GameObject;
-import com.tavuc.models.space.Projectile;
 
 public abstract class BaseShip extends GameObject {
 
@@ -101,7 +100,6 @@ public abstract class BaseShip extends GameObject {
         return projectileDamage;
     }
 
-    public abstract Projectile fire();
 
 
 }

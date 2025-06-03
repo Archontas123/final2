@@ -152,35 +152,33 @@ public class InputManager implements KeyListener {
             return; 
         }
 
-        if (upPressed || downPressed || leftPressed || rightPressed) {
+        boolean isActuallyMoving = false;
+        double targetAngle = player.getDirection(); 
+
+        if (upPressed && !downPressed) { 
+            if (leftPressed && !rightPressed) targetAngle = -Math.PI * 3.0 / 4.0; 
+            else if (rightPressed && !leftPressed) targetAngle = -Math.PI / 4.0;    
+            else targetAngle = -Math.PI / 2.0;                                  
+            isActuallyMoving = true;
+        } else if (downPressed && !upPressed) { 
+            if (leftPressed && !rightPressed) targetAngle = Math.PI * 3.0 / 4.0;  
+            else if (rightPressed && !leftPressed) targetAngle = Math.PI / 4.0;     
+            else targetAngle = Math.PI / 2.0;                                   
+            isActuallyMoving = true;
+        } 
+        else if (leftPressed && !rightPressed) { 
+            targetAngle = Math.PI; 
+            isActuallyMoving = true;
+        } else if (rightPressed && !leftPressed) { 
+            targetAngle = 0;       
+            isActuallyMoving = true;
+        }
+
+        if (isActuallyMoving) {
+            player.setDirection(targetAngle);
             player.setAcceleration(1.0);
         } else {
-            player.setAcceleration(0.0);
-        }
-
-        double targetAngle = 0;
-        boolean moving = false;
-
-        if (upPressed && !downPressed) {
-            targetAngle = -Math.PI / 2; 
-            moving = true;
-            if (leftPressed && !rightPressed) targetAngle -= Math.PI / 4; 
-            else if (rightPressed && !leftPressed) targetAngle += Math.PI / 4; 
-        } else if (downPressed && !upPressed) {
-            targetAngle = Math.PI / 2;
-            moving = true;
-            if (leftPressed && !rightPressed) targetAngle += Math.PI / 4; 
-            else if (rightPressed && !leftPressed) targetAngle -= Math.PI / 4; 
-        } else if (leftPressed && !rightPressed) {
-            targetAngle = Math.PI; 
-            moving = true;
-        } else if (rightPressed && !leftPressed) {
-            targetAngle = 0; 
-            moving = true;
-        }
-
-        if (moving) {
-            player.setDirection(targetAngle);
+            player.setAcceleration(0.0); 
         }
     }
 

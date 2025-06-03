@@ -119,13 +119,15 @@ public class LobbyManager {
         }
 
         Player player = session.getAuthenticatedPlayer();
+        System.out.println("LobbyManager: Player " + player.getUsername() + " (Session: " + session.getSessionId() + ") attempting to join game " + entityId + " (" + gameToJoin.getPlanetName() + ")");
         boolean added = gameToJoin.addPlayer(player, session);
 
         if (added) {
             sessiontoGame.put(session.getSessionId(), gameToJoin);
-            System.out.println("Player " + player.getUsername() + " (Session: " + session.getSessionId() + ") joined game " + entityId + " (" + gameToJoin.getPlanetName() + ")");
+            System.out.println("LobbyManager: Player " + player.getUsername() + " (Session: " + session.getSessionId() + ") successfully joined game " + entityId + " (" + gameToJoin.getPlanetName() + "). GameManager.addPlayer returned true.");
             return gameToJoin;
         } else {
+            System.err.println("LobbyManager: Failed to add player " + player.getUsername() + " to game " + entityId + ". GameManager.addPlayer returned false.");
             throw new GameJoinException("Failed to add player " + player.getUsername() + " to game " + entityId + ". The game might be full or an internal error occurred.");
         }
     }

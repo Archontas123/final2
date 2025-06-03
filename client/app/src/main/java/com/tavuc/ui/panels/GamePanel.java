@@ -39,7 +39,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     private Player player;
     private InputManager inputManager;
     private Timer gameLoopTimer;
-    private Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>();
+    // private Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Managed by WorldManager
     private Timer playerUpdateRequester;
     private WorldManager worldManager; 
 
@@ -60,8 +60,16 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         this.inputManager = InputManager.getInstance();
         this.inputManager.setPlayerTarget(this.player);
         this.inputManager.setControlTarget(InputManager.ControlTargetType.PLAYER);
-        this.worldManager = new WorldManager(gameId); 
-        Client.worldManager = this.worldManager; 
+        
+        // Use Client's WorldManager if available, otherwise create a new one
+        if (Client.worldManager != null && Client.worldManager.getGameId() == gameId) {
+            this.worldManager = Client.worldManager;
+            System.out.println("GamePanel: Using existing WorldManager from Client for game ID: " + gameId);
+        } else {
+            this.worldManager = new WorldManager(gameId);
+            Client.worldManager = this.worldManager; // Set it for the Client if we created it
+            System.out.println("GamePanel: Initialized new WorldManager for game ID: " + gameId);
+        }
 
         addKeyListener(this.inputManager);
         addMouseMotionListener(this);
@@ -79,12 +87,12 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             System.err.println("GamePanel: Error requesting initial planet palette: " + e.getMessage());
         }
 
-
+        /*
         playerUpdateRequester = new Timer(2000, e -> {
             try {
                 String response = Client.requestPlayers(this.gameId);
                 if (response != null && response.startsWith("PLAYERS_DATA")) {
-                    this.processServerMessage(response);
+                    // this.processServerMessage(response); // This logic is being moved/made redundant
                 } else if (response != null && response.startsWith("ERROR")) {
                     System.err.println("GamePanel Timer: Error response from requestPlayers: " + response);
                 }
@@ -93,6 +101,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             }
         });
         playerUpdateRequester.start();
+        */
     }
 
     /**
@@ -100,132 +109,12 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
      */
     public void stopGame() {
         if (gameLoopTimer != null) gameLoopTimer.stop();
-        if (playerUpdateRequester != null) playerUpdateRequester.stop();
+        // if (playerUpdateRequester != null) playerUpdateRequester.stop(); // Already commented out
         Client.currentGamePanel = null; 
     }
 
-    /**
-     * Processes messages received from the server.
-     * @param message The message from the server
-     */
-    public void processPlayerUpdate(com.tavuc.networking.models.PlayerUpdateBroadcast event) {
-        if (event.playerId.equals(String.valueOf(this.playerId))) {
-            return; 
-        }
-        Player otherP = otherPlayers.computeIfAbsent(Integer.parseInt(event.playerId), id -> new Player(id, "Player" + id)); 
-        otherP.setX((int)event.x);
-        otherP.setY((int)event.y);
-        otherP.setDx(event.dx);
-        otherP.setDy(event.dy);
-        otherP.setDirection(event.directionAngle);
-        repaint();
-    }
-
-    public void processServerMessage(String message) {
-        SwingUtilities.invokeLater(() -> {
-            String[] parts = message.split(" ", 3); 
-
-            if (parts.length < 1) return;
-            String command = parts[0];
-
-            if ("PLAYERS_DATA".equals(command)) {
-                if (parts.length < 3) return; 
-                String playersInfo = parts[2].trim(); 
-
-                Map<Integer, Player> currentUpdatePlayers = new ConcurrentHashMap<>();
-                if (playersInfo.isEmpty() || playersInfo.equals(" ") || playersInfo.equals("null")) { 
-                    System.out.println("PlayersInfo is empty, clearing otherPlayers.");
-                } else {
-                    String[] individualPlayersData = playersInfo.split(";");
-                    System.out.println("Split individualPlayersData count: " + individualPlayersData.length);
-
-                    for (String playerDataString : individualPlayersData) {
-                        System.out.println("Processing playerDataString: '" + playerDataString + "'");
-                        String[] pData = playerDataString.split(":");
-                        if (pData.length == 7) { 
-                            try {
-                                int pId = Integer.parseInt(pData[0]);
-                                String pUsername = pData[1];
-                                int pX = Integer.parseInt(pData[2]);
-                                int pY = Integer.parseInt(pData[3]);
-                                double pDx = Double.parseDouble(pData[4]);
-                                double pDy = Double.parseDouble(pData[5]);
-                                double pDirection = Double.parseDouble(pData[6]);
-
-                                if (pId == this.playerId) {
-      
-                                    System.out.println("Skipping self in PLAYERS_DATA for main attributes: " + pUsername + " (ID: " + pId + ")");
-                                  
-                                    continue; 
-                                }
-
-                                Player otherP = new Player(pId, pUsername); 
-                                System.out.println("Processing other player from data: " + pUsername + " (ID: " + pId + ")");
-                                
-                                otherP.setX(pX);
-                                otherP.setY(pY);
-                                otherP.setDx(pDx);
-                                otherP.setDy(pDy);
-                                otherP.setDirection(pDirection);
-                                currentUpdatePlayers.put(pId, otherP);
-                                System.out.println("Added/Updated to currentUpdatePlayers: " + pUsername + " (ID: " + pId + ") with angle " + pDirection);
-                            } catch (NumberFormatException e) {
-                                System.err.println("Error parsing player data entry: '" + playerDataString + "' - " + e.getMessage());
-                            }
-                        } else {
-                            System.err.println("Invalid pData length for entry '" + playerDataString + "'. Expected 7, Got: " + pData.length);
-                        }
-                    }
-                }
-                otherPlayers.clear(); 
-                otherPlayers.putAll(currentUpdatePlayers);
-                System.out.println("Final otherPlayers map size: " + otherPlayers.size());
-                if (!otherPlayers.isEmpty()) {
-                    System.out.println("Other players: " + otherPlayers.values().stream().map(p -> p.getUsername()+"("+p.getPlayerId()+")").collect(Collectors.joining(", ")));
-                }
-
-
-            } else if ("PLAYER_MOVED".equals(command)) {
-                System.out.println("GamePanel processing PLAYER_MOVED: " + message);
-     
-                String actualMoveDataString = message.substring(command.length() + 1).trim(); 
-                String[] moveData = actualMoveDataString.split(" "); 
-                if (moveData.length == 6) { 
-                    try {
-                        int pId = Integer.parseInt(moveData[0]);
-                        if (pId == this.playerId) return; 
-
-                        Player movedPlayer = otherPlayers.get(pId);
-                        if (movedPlayer != null) {
-                            movedPlayer.setX(Integer.parseInt(moveData[1]));
-                            movedPlayer.setY(Integer.parseInt(moveData[2]));
-                            movedPlayer.setDx(Double.parseDouble(moveData[3]));
-                            movedPlayer.setDy(Double.parseDouble(moveData[4]));
-                            movedPlayer.setDirection(Double.parseDouble(moveData[5]));
-                        } else {
-                            System.out.println("PLAYER_MOVED for unknown player ID: " + pId + ". Requesting full player list.");
-                            try {
-                                String fullPlayerData = Client.requestPlayers(this.gameId);
-                                if (fullPlayerData != null && fullPlayerData.startsWith("PLAYERS_DATA")) {
-                              
-                                    this.processServerMessage(fullPlayerData); 
-                                }
-                            } catch (Exception ex) {
-                                System.err.println("Error requesting players after unknown PLAYER_MOVED: " + ex.getMessage());
-                            }
-                        }
-                    } catch (NumberFormatException e) {
-                        System.err.println("Error parsing PLAYER_MOVED data items: '" + actualMoveDataString + "' - " + e.getMessage());
-                    }
-                } else {
-                    System.err.println("Invalid PLAYER_MOVED data items. Expected 6, got " + moveData.length + " from '" + actualMoveDataString + "' in message: " + message);
-                }
-            }
-          
-
-            repaint(); 
-        });
-    }
+    // The methods processPlayerUpdate and processServerMessage are removed
+    // as their functionalities are now handled by WorldManager via Client.java
 
     /**
      * Returns the player ID.
@@ -331,10 +220,12 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         int rightHandWorldCenterY = playerBodyWorldCenterY + (int) (handDistance * Math.sin(rightHandAngle));
         g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize); 
 
-        for (Player other : otherPlayers.values()) {
-            if (other.getPlayerId() == this.playerId) continue;
+        // Draw other players
+        if (worldManager != null) {
+            for (Player other : worldManager.getOtherPlayers()) {
+                if (other.getPlayerId() == this.playerId) continue;
 
-            g2d.setColor(Color.RED); 
+                g2d.setColor(Color.RED);
             int otherPlayerBodyWorldCenterX = other.getX() + playerSize / 2;
             int otherPlayerBodyWorldCenterY = other.getY() + playerSize / 2;
 
@@ -352,8 +243,20 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             int otherRightHandWorldCenterX = otherPlayerBodyWorldCenterX + (int) (handDistance * Math.cos(otherRightHandAngle));
             int otherRightHandWorldCenterY = otherPlayerBodyWorldCenterY + (int) (handDistance * Math.sin(otherRightHandAngle));
             g2d.fillOval(otherRightHandWorldCenterX - handSize / 2, otherRightHandWorldCenterY - handSize / 2, handSize, handSize);
+            }
         }
 
+        // Draw Dummies
+        if (worldManager != null) {
+            g2d.setColor(Color.GREEN); // Dummies color
+            for (com.tavuc.models.entities.Dummy dummy : worldManager.getDummies()) {
+                // Simple circle for dummies for now
+                g2d.fillOval((int)dummy.getX(), (int)dummy.getY(), playerSize / 2, playerSize / 2); 
+                g2d.setColor(Color.WHITE);
+                g2d.drawString("D" + dummy.getId(), (int)dummy.getX(), (int)dummy.getY() - 5);
+                g2d.setColor(Color.GREEN); // Reset color for next dummy
+            }
+        }
 
         g2d.setFont(boldFont);
         String playerText = player.getUsername() + " (You)";
@@ -380,10 +283,12 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         g2d.drawString(playerText, playerTextX, playerTextY);
         g2d.setFont(originalFont);
 
-        for (Player other : otherPlayers.values()) {
-            if (other.getPlayerId() == this.playerId) continue;
+        // Draw other player names
+        if (worldManager != null) {
+            for (Player other : worldManager.getOtherPlayers()) {
+                if (other.getPlayerId() == this.playerId) continue;
 
-            g2d.setFont(boldFont);
+                g2d.setFont(boldFont);
             String otherPlayerText = other.getUsername();
             FontMetrics otherFm = g2d.getFontMetrics();
             int otherPlayerTextWidth = otherFm.stringWidth(otherPlayerText);
@@ -405,7 +310,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             int otherTextX = otherBgX + textPadding;
             int otherTextY = otherBgY + textPadding + otherTextAscent;
             g2d.drawString(otherPlayerText, otherTextX, otherTextY);
-            g2d.setFont(originalFont); 
+            g2d.setFont(originalFont);
+            }
         }
 
         g2d.setTransform(originalTransform);

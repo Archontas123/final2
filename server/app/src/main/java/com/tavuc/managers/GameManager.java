@@ -7,15 +7,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.tavuc.models.GameObject;
+import com.tavuc.models.entities.Dummy;
+import com.tavuc.models.entities.Entity;
 import com.tavuc.models.entities.Player;
 import com.tavuc.models.planets.Chunk;
 import com.tavuc.models.planets.ColorPallete;
 import com.tavuc.models.planets.Planet;
 import com.tavuc.models.planets.Tile;
 import com.tavuc.networking.ClientSession;
-import com.tavuc.models.space.AttackShip; // Added import
+import com.tavuc.networking.models.DummyUpdateBroadcast;
+import com.tavuc.networking.models.DummyRemovedBroadcast;
+import com.tavuc.networking.models.PlayerJoinedBroadcast;
+import com.tavuc.networking.models.PlayerLeftBroadcast;
+import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
-import com.tavuc.models.space.LightCruiser; // Added import for findLightCruiserById
+
 
 public class GameManager {
 
@@ -26,6 +32,8 @@ public class GameManager {
     private final Map<Player, ClientSession> playerSessions = new ConcurrentHashMap<>();
     private final Map<String, Player> sessionToPlayer = new ConcurrentHashMap<>();
     private final Map<String, BaseShip> aiShips = new ConcurrentHashMap<>(); // Implemented AI ship tracking
+    private final Map<Integer, Dummy> dummies = new ConcurrentHashMap<>();
+    private int nextDummyId = 0;
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
@@ -37,8 +45,41 @@ public class GameManager {
         this.gameId = gameId;
         this.planet = planet;
         this.planetName = planet.getName();
-        this.maxPlayers = maxPlayers;     
+        this.maxPlayers = maxPlayers;
+        // Spawn some Dummies
+        spawnDummies(5); // Example: Spawn 5 dummies
         System.out.println("GameService " + gameId + " (" + planetName + ") initialized with max " + maxPlayers + " players.");
+    }
+
+    private void spawnDummies(int count) {
+        if (playerSessions.isEmpty()) {
+            System.out.println("GameManager " + gameId + ": No players in game, not spawning dummies.");
+            return;
+        }
+
+        List<Player> currentPlayers = new ArrayList<>(playerSessions.keySet());
+        java.util.Random random = new java.util.Random();
+
+        for (int i = 0; i < count; i++) {
+            Player targetPlayer = currentPlayers.get(random.nextInt(currentPlayers.size()));
+            
+            float spawnRadius = 100.0f; // Max distance from player
+            float angle = (float) (random.nextDouble() * 2 * Math.PI);
+            float distance = (float) (random.nextDouble() * spawnRadius);
+            
+            float x = targetPlayer.getX() + (float) (Math.cos(angle) * distance);
+            float y = targetPlayer.getY() + (float) (Math.sin(angle) * distance);
+
+            // Ensure dummies are within planet bounds if applicable - for now, simple offset
+            // This might need adjustment based on how planet boundaries are defined and checked.
+            // Example: Clamp to a generic 0-500 range if no specific planet bounds logic is available here.
+            // x = Math.max(0, Math.min(x, 500)); 
+            // y = Math.max(0, Math.min(y, 500));
+
+            Dummy dummy = new Dummy(nextDummyId++, x, y);
+            dummies.put(dummy.getId(), dummy);
+            System.out.println("GameManager " + gameId + ": Spawned Dummy " + dummy.getId() + " at (" + x + ", " + y + ") near Player " + targetPlayer.getId());
+        }
     }
 
     /**
@@ -65,28 +106,40 @@ public class GameManager {
         playerSessions.put(player, session);
         sessionToPlayer.put(session.getSessionId(), player);
 
-        // Update AI ship targets if a player with the same ID re-joins or is updated
-        for (BaseShip ship : aiShips.values()) {
-            if (ship instanceof LightCruiser) {
-                LightCruiser lc = (LightCruiser) ship;
-                Player oldTarget = lc.getTargetPlayer();
-                if (oldTarget != null && oldTarget.getId() == player.getId() && oldTarget != player) {
-                    lc.setTargetPlayer(player);
-                    System.out.println("GameService " + gameId + ": Updated LightCruiser " + lc.getEntityId() + " target to new Player instance for ID " + player.getId());
-                }
-            }
-            if (ship instanceof AttackShip) {
-                AttackShip as = (AttackShip) ship;
-                Player oldTarget = as.getTargetPlayerObject();
-                if (oldTarget != null && oldTarget.getId() == player.getId() && oldTarget != player) {
-                    as.setTargetPlayerObject(player);
-                    System.out.println("GameService " + gameId + ": Updated AttackShip " + as.getEntityId() + " target to new Player instance for ID " + player.getId());
-                }
+        // If this is the first player, try spawning dummies
+        if (playerSessions.size() == 1) {
+            spawnDummies(5); // Or a configurable number
+        }
+
+        PlayerJoinedBroadcast newPlayerJoinedMsg = new PlayerJoinedBroadcast(
+                player.getIdAsString(), 
+                player.getUsername(), 
+                player.getX(), 
+                player.getY(), 
+                player.getDx(), 
+                player.getDy(), 
+                player.getDirectionAngle()
+        );
+        broadcastToGameExceptSender(newPlayerJoinedMsg, session);
+
+        // Send existing players' info to the new player
+        for (Map.Entry<Player, ClientSession> entry : playerSessions.entrySet()) {
+            Player existingPlayer = entry.getKey();
+            // Don't send the new player's own info back to them
+            if (!existingPlayer.getIdAsString().equals(player.getIdAsString())) {
+                PlayerJoinedBroadcast existingPlayerMsg = new PlayerJoinedBroadcast(
+                        existingPlayer.getIdAsString(),
+                        existingPlayer.getUsername(),
+                        existingPlayer.getX(),
+                        existingPlayer.getY(),
+                        existingPlayer.getDx(),
+                        existingPlayer.getDy(),
+                        existingPlayer.getDirectionAngle()
+                );
+                System.out.println("GameService " + gameId + ": Sending existing player " + existingPlayer.getUsername() + " (ID: " + existingPlayer.getIdAsString() + ") info to new player " + player.getUsername() + " (ID: " + player.getIdAsString() + ")");
+                session.sendMessage(existingPlayerMsg);
             }
         }
-        
-        String newPlayerJoinedMsg = "PLAYER_JOINED " + player.getId() + " " + player.getUsername() + " " + player.getX() + " " + player.getY() + " " + player.getDx() + " " + player.getDy() + " " + player.getDirectionAngle();
-        broadcastToGameExceptSender(newPlayerJoinedMsg, session);
 
         System.out.println("GameService " + gameId + ": Player " + player.getUsername() + " (ID: " + player.getId() + ") with session " + session.getSessionId() + " added to game.");
         return true;
@@ -114,7 +167,7 @@ public class GameManager {
             if(sessionToRemove != null) sessionToPlayer.remove(sessionToRemove.getSessionId());
         }
         
-        String playerLeftMsg = "PLAYER_LEFT " + player.getId();
+        PlayerLeftBroadcast playerLeftMsg = new PlayerLeftBroadcast(player.getIdAsString());
         broadcastToGame(playerLeftMsg);
 
         System.out.println("GameService " + gameId + ": Player " + player.getUsername() + " (ID: " + player.getId() + ") removed from game.");
@@ -177,23 +230,23 @@ public class GameManager {
 
     /**
      * Broadcasts a message to all players in the game.
-     * @param message The message to be sent to all players.
+     * @param messageObject The message object to be sent to all players.
      */
-    public void broadcastToGame(String message) {
+    public void broadcastToGame(Object messageObject) {
         for (ClientSession session : playerSessions.values()) {
-            session.sendMessage(message);
+            session.sendMessage(messageObject);
         }
     }
 
     /**
      * Broadcasts a message to all players in the game except the sender.
-     * @param message The message to be sent to all players except the sender.
+     * @param messageObject The message object to be sent to all players except the sender.
      * @param sender The session of the player who sent the message, to be excluded from the broadcast.
      */
-    public void broadcastToGameExceptSender(String message, ClientSession sender) {
+    public void broadcastToGameExceptSender(Object messageObject, ClientSession sender) {
         for (Map.Entry<Player, ClientSession> entry : playerSessions.entrySet()) {
             if (entry.getValue() != sender) {
-                entry.getValue().sendMessage(message);
+                entry.getValue().sendMessage(messageObject);
             }
         }
     }
@@ -215,18 +268,29 @@ public class GameManager {
                aiShip.update();
             }
 
+            // Update Dummies
+            for (Dummy dummy : dummies.values()) {
+                dummy.update();
+                DummyUpdateBroadcast dummyUpdateMsg = new DummyUpdateBroadcast(dummy.getId(), dummy.getX(), dummy.getY(), dummy.getDx(), dummy.getDy());
+                broadcastToGame(dummyUpdateMsg);
+            }
+
 
             for (Player player : players) {
                 ClientSession session = playerSessions.get(player);
-                String finalUpdateMsg = "PLAYER_MOVED " + player.getId() + " " +
-                                       player.getX() + " " + player.getY() + " " +
-                                       player.getDx() + " " + player.getDy() + " " +
-                                       player.getDirectionAngle();
+                PlayerMovedBroadcast playerMovedMsg = new PlayerMovedBroadcast(
+                        player.getIdAsString(),
+                        player.getX(),
+                        player.getY(),
+                        player.getDx(),
+                        player.getDy(),
+                        player.getDirectionAngle()
+                );
                 if (session != null) {
-                    broadcastToGameExceptSender(finalUpdateMsg, session);
+                    broadcastToGameExceptSender(playerMovedMsg, session);
                 } else {
                     System.err.println("GameManager " + gameId + ": Session not found for player " + player.getId() + " (username: " + player.getUsername() + ") during final broadcast. Broadcasting to all as fallback.");
-                    broadcastToGame(finalUpdateMsg); 
+                    broadcastToGame(playerMovedMsg); 
                 }
             }
             // TODO: Broadcast updates for AI ships if necessary
@@ -236,6 +300,7 @@ public class GameManager {
     /**
      * Gets the unique identifier for this game.
      * @return The game ID.
+
      */
     public int getGameId() {
         return gameId;
@@ -265,37 +330,8 @@ public class GameManager {
         return maxPlayers;
     }
     
-    /**
-     * Finds a LightCruiser by its entity ID within this game instance.
-     * Placeholder: Actual implementation would require GameManager to track AI entities.
-     * @param cruiserId The ID of the cruiser to find.
-     * @return The LightCruiser object if found, otherwise null.
-     */
-    public LightCruiser findLightCruiserById(String cruiserId) {
-        BaseShip ship = aiShips.get(cruiserId);
-        if (ship instanceof LightCruiser) {
-            return (LightCruiser) ship;
-        }
-        return null; 
-    }
 
-    /**
-     * Spawns an AttackShip and adds it to the game.
-     * @param x Initial x-coordinate.
-     * @param y Initial y-coordinate.
-     * @param width Width of the AttackShip.
-     * @param height Height of the AttackShip.
-     * @param targetPlayer The player this AttackShip will target.
-     * @param parentCruiserId The ID of the LightCruiser that spawned this AttackShip.
-     * @return The newly created AttackShip, or null if creation failed.
-     */
-    public AttackShip spawnAttackShip(int x, int y, int width, int height, Player targetPlayer, String parentCruiserId) {
-        String newShipId = "AS_" + java.util.UUID.randomUUID().toString(); // AS for AttackShip
-        AttackShip newAttackShip = new AttackShip(newShipId, x, y, width, height, targetPlayer, parentCruiserId);
-        aiShips.put(newShipId, newAttackShip);
-        System.out.println("GameManager " + gameId + ": Spawned AttackShip " + newShipId + " targeting Player " + targetPlayer.getIdAsString() + " from Cruiser " + parentCruiserId);
-        return newAttackShip;
-    }
+
 
     /**
      * Adds an existing AI ship (e.g. a pre-placed LightCruiser) to the game's tracking.

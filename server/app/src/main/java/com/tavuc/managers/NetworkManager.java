@@ -15,15 +15,16 @@ import java.util.concurrent.TimeUnit;
 import com.tavuc.exceptions.ServerStartException;
 import com.tavuc.models.space.BaseShip;
 import com.tavuc.models.space.PlayerShip;
-import com.tavuc.models.space.Projectile;
 import com.tavuc.networking.ClientSession;
 import com.tavuc.networking.ClientSessionListener;
 import com.tavuc.networking.models.BaseMessage;
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.networking.models.ShipLeftBroadcast;
 import com.tavuc.networking.models.ShipUpdateBroadcast;
-import com.tavuc.models.space.AttackShip; // Added import
+
 import com.tavuc.networking.models.AttackShipUpdateBroadcast; // Added import
+import com.tavuc.networking.models.CruiserUpdateBroadcast; // Added import
+import com.tavuc.models.entities.Player; // Added import
 
 public class NetworkManager implements ClientSessionListener {
 
@@ -35,7 +36,6 @@ public class NetworkManager implements ClientSessionListener {
     private final Set<ClientSession> sessions = ConcurrentHashMap.newKeySet();
 
     private final Map<String, BaseShip> activeEntityShips = new ConcurrentHashMap<>();
-    private final List<Projectile> activeProjectiles = new CopyOnWriteArrayList<>();
 
     public NetworkManager(AuthManager authManager, LobbyManager lobbyManager) {
         this.authManager = authManager;
@@ -121,24 +121,7 @@ public class NetworkManager implements ClientSessionListener {
         return null;
     }
 
-    public synchronized void addProjectile(Projectile projectile) {
-        if (projectile == null) return;
-        activeProjectiles.add(projectile);
-        ProjectileSpawnedBroadcast broadcast = new ProjectileSpawnedBroadcast(
-            projectile.getId(),
-            projectile.getX(),
-            projectile.getY(),
-            projectile.getWidth(),
-            projectile.getHeight(),
-            projectile.getOrientation(),
-            projectile.getSpeed(),
-            projectile.getDamage(),
-            projectile.getFiredBy()
-        );
-        broadcastMessageToAllActiveSessions(broadcast);
-        System.out.println("NetworkManager: Added and broadcasted projectile " + projectile.getId());
-    }
-    
+  
     public synchronized void updateShip(int playerId, double x, double y, double angle, double dx, double dy, boolean thrusting, boolean shouldBeInSpace, ClientSession sourceSession) {
         String playerShipEntityId = "player_" + playerId;
         PlayerShip playerShip = getPlayerShip(playerId);
@@ -247,51 +230,11 @@ public class NetworkManager implements ClientSessionListener {
             );
             broadcastMessageToAllActiveSessions(broadcastMessage);
         } 
-        // TODO: Add specific broadcasts for AttackShip, LightCruiser if their update messages differ.
-        else if (ship instanceof AttackShip) {
-            AttackShip as = (AttackShip) ship;
-            // Assuming AttackShipUpdateBroadcast exists and takes relevant parameters
-            AttackShipUpdateBroadcast attackBroadcast = new AttackShipUpdateBroadcast(
-                as.getEntityId(),
-                as.getParentCruiserId(), // Corrected: Should be 2nd
-                as.getX(),
-                as.getY(),
-                as.getVelocityX(),
-                as.getVelocityY(),
-                as.getOrientation(), 
-                as.getHealth(), 
-                as.getMaxHealth(), 
-                as.getAiState().toString(),
-                as.getX(), 
-                as.getY()
-            );
-            broadcastMessageToAllActiveSessions(attackBroadcast);
-        }
-        // Add similar block for LightCruiser if LightCruiserUpdateBroadcast exists
+   
+       
     }
 
-    public synchronized void addAttackShipToBroadcast(AttackShip ship) {
-        if (ship == null) return;
-        // This method assumes an AttackShipUpdateBroadcast is the correct way to inform clients
-        // about a new AttackShip. If a different "spawn" message is preferred, adjust accordingly.
-        AttackShipUpdateBroadcast broadcast = new AttackShipUpdateBroadcast(
-            ship.getEntityId(),
-            ship.getParentCruiserId(), // Corrected: Should be 2nd
-            ship.getX(),
-            ship.getY(),
-            ship.getVelocityX(),
-            ship.getVelocityY(),
-            ship.getOrientation(),
-            ship.getHealth(),
-            ship.getMaxHealth(),
-            ship.getAiState().toString(),
-            ship.getX(),
-            ship.getY()
-        );
-        broadcastMessageToAllActiveSessions(broadcast);
-        System.out.println("NetworkManager: Broadcasted new AttackShip " + ship.getEntityId());
-    }
-
+  
     private void broadcastShipLeft(int playerId, ClientSession sourceSession) {
         ShipLeftBroadcast broadcastMessage = new ShipLeftBroadcast(String.valueOf(playerId));
         broadcastMessageToAllActiveSessions(broadcastMessage);
@@ -312,4 +255,6 @@ public class NetworkManager implements ClientSessionListener {
             }
         }
     }
+
+  
 }
