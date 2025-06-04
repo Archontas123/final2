@@ -14,6 +14,8 @@ import java.awt.geom.AffineTransform;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
@@ -31,7 +33,7 @@ public class ShipCombatSystem {
     private static final long FIRE_COOLDOWN_MS = 300; 
     
     private final Ship playerShip;
-    private final List<Projectile> projectiles = new CopyOnWriteArrayList<>();
+    private final Map<String, Projectile> projectiles = new ConcurrentHashMap<>();
     private long lastFireTime = 0;
     private final List<ExplosionData> explosions = new CopyOnWriteArrayList<>();
     
@@ -54,30 +56,7 @@ public class ShipCombatSystem {
         
         lastFireTime = currentTime;
         
-        double angle = playerShip.getAngle();
-        double shipCenterX = playerShip.getX() + playerShip.getWidth() / 2.0;
-        double shipCenterY = playerShip.getY() + playerShip.getHeight() / 2.0;
-        
-        double spawnDistance = playerShip.getWidth() / 2.0 + 10;
-        double spawnX = shipCenterX + Math.sin(angle) * spawnDistance;
-        double spawnY = shipCenterY - Math.cos(angle) * spawnDistance;
-        
-        double velocityX = Math.sin(angle) * PROJECTILE_SPEED;
-        double velocityY = -Math.cos(angle) * PROJECTILE_SPEED;
-        
-        velocityX += playerShip.getDx() * 0.5;
-        velocityY += playerShip.getDy() * 0.5;
-        
-        Projectile projectile = new Projectile(
-            spawnX, spawnY, 
-            velocityX, velocityY, 
-            PROJECTILE_DAMAGE, 
-            String.valueOf(Client.getInstance().getPlayerId())
-        );
-        projectiles.add(projectile);
-        
-        System.out.println("[ShipCombatSystem] Projectile fired from: " + spawnX + "," + spawnY + 
-                          " velocity: " + velocityX + "," + velocityY);
+        System.out.println("[ShipCombatSystem] Fire request sent to server");
         
         FireRequest request = new FireRequest(
             String.valueOf(Client.getInstance().getPlayerId()),
@@ -95,7 +74,7 @@ public class ShipCombatSystem {
      * @param projectile The projectile to add
      */
     public void addRemoteProjectile(Projectile projectile) {
-        projectiles.add(projectile);
+        projectiles.put(projectile.getId(), projectile);
         System.out.println("[ShipCombatSystem] Remote projectile added at: " + projectile.getX() + "," + projectile.getY());
     }
 
@@ -119,9 +98,9 @@ public class ShipCombatSystem {
      * @param delta Time passed since last update in seconds
      */
     private void updateProjectiles(double delta) {
-        List<Projectile> projectilesToRemove = new ArrayList<>();
+        List<String> projectilesToRemove = new ArrayList<>();
 
-        for (Projectile projectile : projectiles) {
+        for (Projectile projectile : projectiles.values()) {
             projectile.tick(delta);
 
             double distanceFromPlayer = Math.sqrt(
@@ -130,12 +109,14 @@ public class ShipCombatSystem {
             );
 
             if (distanceFromPlayer > 1500 || !projectile.isActive()) {
-                projectilesToRemove.add(projectile);
+                projectilesToRemove.add(projectile.getId());
             }
         }
 
         // Remove projectiles outside the loop
-        projectiles.removeAll(projectilesToRemove);
+        for (String id : projectilesToRemove) {
+            projectiles.remove(id);
+        }
     }
     
     /**
@@ -143,29 +124,7 @@ public class ShipCombatSystem {
      * @param otherShips a List of all the ships with which collision should be checked
      */
     private void checkProjectileCollisions(List<Ship> otherShips) {
-        List<Ship> allShips = new ArrayList<>(otherShips);
-        allShips.add(playerShip);
-        
-        for (Projectile projectile : projectiles) {
-            if (!projectile.isActive()) continue;
-            String ownerId = projectile.getOwnerId();
-            
-            for (Ship ship : allShips) {
-                if (ownerId.equals(String.valueOf(Client.getInstance().getPlayerId())) && ship == playerShip) continue;
-                
-                double dx = projectile.getX() - (ship.getX() + ship.getWidth()/2);
-                double dy = projectile.getY() - (ship.getY() + ship.getHeight()/2);
-                double distance = Math.sqrt(dx*dx + dy*dy);
-                
-                if (distance < ship.getWidth()/2) {
-                    System.out.println("[ShipCombatSystem] Projectile hit ship at: " + ship.getX() + "," + ship.getY());
-                    applyDamage(ship, projectile.getDamage());
-                    projectile.setActive(false);
-                    if (ship.getHealth() <= 0) createExplosion(ship.getX() + ship.getWidth()/2, ship.getY() + ship.getHeight()/2);
-                    break; 
-                }
-            }
-        }
+        // Collision handling now occurs on the server. Client no longer processes projectile hits.
     }
     
     /**
@@ -285,7 +244,7 @@ public class ShipCombatSystem {
      */
     public List<ProjectileRenderData> getProjectilesToRender() {
         List<ProjectileRenderData> renderList = new ArrayList<>();
-        for (Projectile projectile : projectiles) {
+        for (Projectile projectile : projectiles.values()) {
             if (projectile.isActive()) {
                 renderList.add(new ProjectileRenderData(
                     projectile.getX(),
@@ -330,7 +289,21 @@ public class ShipCombatSystem {
      * @return A list of all Projectiles
      */
     public List<Projectile> getProjectiles() {
-        return projectiles;
+        return new ArrayList<>(projectiles.values());
+    }
+
+    public void updateProjectile(String projectileId, double x, double y, double velocityX, double velocityY) {
+        Projectile p = projectiles.get(projectileId);
+        if (p != null) {
+            p.setX(x);
+            p.setY(y);
+            p.setVelocityX(velocityX);
+            p.setVelocityY(velocityY);
+        }
+    }
+
+    public void removeProjectile(String projectileId) {
+        projectiles.remove(projectileId);
     }
 
     public Ship getPlayerShip() {

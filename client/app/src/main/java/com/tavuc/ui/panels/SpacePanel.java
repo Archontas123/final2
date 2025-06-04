@@ -10,6 +10,8 @@ import com.tavuc.models.space.Planet;
 import com.tavuc.models.space.Ship;
 import com.tavuc.models.space.Projectile;
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
+import com.tavuc.networking.models.ProjectileUpdateBroadcast;
+import com.tavuc.networking.models.ProjectileRemovedBroadcast;
 import com.tavuc.ecs.components.HealthComponent;
 import com.tavuc.ecs.systems.ShipCombatSystem;
 import com.tavuc.ui.screens.GameOverScreen;
@@ -470,16 +472,11 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
      * @param event The ProjectileSpawnedBroadcast from the server
      */
     public void handleProjectileSpawned(ProjectileSpawnedBroadcast event) {
-        // Skip if it's our own projectile (already handled locally)
-        if (event.firedBy.equals(String.valueOf(playerId))) {
-            return;
-        }
-
         double velocityX = event.velocityX;
         double velocityY = event.velocityY;
 
-        // Create projectile and add it to the combat system
         Projectile projectile = new Projectile(
+            event.projectileId,
             event.x,
             event.y,
             velocityX,
@@ -490,6 +487,18 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
 
         if (combatSystem != null) {
             combatSystem.addRemoteProjectile(projectile);
+        }
+    }
+
+    public void handleProjectileUpdate(ProjectileUpdateBroadcast event) {
+        if (combatSystem != null) {
+            combatSystem.updateProjectile(event.projectileId, event.x, event.y, event.velocityX, event.velocityY);
+        }
+    }
+
+    public void handleProjectileRemoved(ProjectileRemovedBroadcast event) {
+        if (combatSystem != null) {
+            combatSystem.removeProjectile(event.projectileId);
         }
     }
     
