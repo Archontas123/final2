@@ -12,6 +12,7 @@ import java.awt.geom.Path2D;
  * Handles movement, damage, and collision detection.
  */
 public class Projectile {
+    private String id;
     private double x;
     private double y;
     private double velocityX;
@@ -40,7 +41,8 @@ public class Projectile {
      * @param damage The damage this projectile deals
      * @param ownerId The ID of the player who fired this projectile
      */
-    public Projectile(double x, double y, double velocityX, double velocityY, double damage, String ownerId) {
+    public Projectile(String id, double x, double y, double velocityX, double velocityY, double damage, String ownerId) {
+        this.id = id;
         this.x = x;
         this.y = y;
         this.velocityX = velocityX;
@@ -159,6 +161,10 @@ public class Projectile {
         return y;
     }
 
+    public String getId() {
+        return id;
+    }
+
     /**
      * Gets the damage this projectile deals.
      *
@@ -262,7 +268,8 @@ public class Projectile {
     @Override
     public String toString() {
         return "Projectile{" +
-                "x=" + x +
+                "id='" + id + '\'' +
+                ", x=" + x +
                 ", y=" + y +
                 ", velocityX=" + velocityX +
                 ", velocityY=" + velocityY +
