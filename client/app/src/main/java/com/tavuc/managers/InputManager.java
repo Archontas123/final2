@@ -87,10 +87,7 @@ public class InputManager implements KeyListener {
                 rightPressed = true;
                 ship.setRotationInput(1.0);
             }
-            if (keyCode == KeyEvent.VK_SPACE) {
-                FireRequest fireRequest = new FireRequest();
-                Client.sendFireRequest(fireRequest); 
-            }
+            // REMOVED the space bar handling from here - it's now handled in SpacePanel directly
         } else if (controlTargetType == ControlTargetType.PLAYER) {
             if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) upPressed = true;
             if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) downPressed = true;

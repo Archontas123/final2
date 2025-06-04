@@ -34,7 +34,7 @@ public class ShipCombatSystem {
     
     public ShipCombatSystem(Ship playerShip) {
         this.playerShip = playerShip;
-        this.lastFireTime = 0; // Ensure this is initialized to 0
+        this.lastFireTime = 0;
     }
     
     /**
@@ -55,16 +55,21 @@ public class ShipCombatSystem {
         double shipCenterX = playerShip.getX() + playerShip.getWidth() / 2.0;
         double shipCenterY = playerShip.getY() + playerShip.getHeight() / 2.0;
         
-        double spawnDistance = playerShip.getWidth() / 2.0 + 10;
+        // FIXED: Spawn projectile in front of ship in the direction it's facing
+        // Reduced spawn distance so projectiles start closer to ship (more visible)
+        double spawnDistance = 20; // Smaller distance for better visibility
         double spawnX = shipCenterX + Math.sin(angle) * spawnDistance;
         double spawnY = shipCenterY - Math.cos(angle) * spawnDistance;
         
+        // FIXED: Velocity should move projectile in the same direction as spawn offset
         double velocityX = Math.sin(angle) * PROJECTILE_SPEED;
-        double velocityY = -Math.cos(angle) * PROJECTILE_SPEED;
+        double velocityY = -Math.cos(angle) * PROJECTILE_SPEED; // Negative because Y increases downward
         
+        // Add ship momentum
         velocityX += playerShip.getDx() * 0.5;
         velocityY += playerShip.getDy() * 0.5;
         
+        // Create and add the projectile to the local list
         Projectile projectile = new Projectile(
             spawnX, spawnY, 
             velocityX, velocityY, 
@@ -73,6 +78,14 @@ public class ShipCombatSystem {
         );
         projectiles.add(projectile);
         
+        System.out.println("[ShipCombatSystem] Fired projectile:");
+        System.out.println("  - Ship center: (" + shipCenterX + ", " + shipCenterY + ")");
+        System.out.println("  - Ship angle: " + Math.toDegrees(angle) + " degrees");
+        System.out.println("  - Spawn at: (" + spawnX + ", " + spawnY + ")");
+        System.out.println("  - Velocity: (" + velocityX + ", " + velocityY + ")");
+        System.out.println("  - Total projectiles: " + projectiles.size());
+        
+        // Send fire request to server with proper ship data
         FireRequest request = new FireRequest(
             String.valueOf(Client.getInstance().getPlayerId()),
             playerShip.getX(),
@@ -90,6 +103,7 @@ public class ShipCombatSystem {
      */
     public void addRemoteProjectile(Projectile projectile) {
         projectiles.add(projectile);
+        System.out.println("[ShipCombatSystem] Added remote projectile from player " + projectile.getOwnerId() + ". Total projectiles: " + projectiles.size());
     }
 
     /**
@@ -129,7 +143,10 @@ public class ShipCombatSystem {
         }
 
         // Remove projectiles outside the loop
-        projectiles.removeAll(projectilesToRemove);
+        if (!projectilesToRemove.isEmpty()) {
+            projectiles.removeAll(projectilesToRemove);
+            System.out.println("[ShipCombatSystem] Removed " + projectilesToRemove.size() + " projectiles. Remaining: " + projectiles.size());
+        }
     }
     
     /**
@@ -274,17 +291,19 @@ public class ShipCombatSystem {
     }
     
     /**
-     * Renders all projectiles and explosions. //TODO: Finish this doc comment
-     * @param g2d 
-     * @param offsetX
-     * @param offsetY
+     * Renders all projectiles and explosions.
+     * @param g2d Graphics2D context for rendering
+     * @param offsetX Camera offset X
+     * @param offsetY Camera offset Y
      */
     public void render(Graphics2D g2d, double offsetX, double offsetY) {
         for (Projectile projectile : projectiles) {
-            if (!projectile.isActive()) continue;
+            System.out.println("RENDERING PROJECTILE" + projectile.toString());
+            //if (!projectile.isActive()) continue;
             
             double screenX = projectile.getX() - offsetX;
             double screenY = projectile.getY() - offsetY;
+            System.out.println(screenX + "," + screenY);
             
             g2d.setColor(Color.RED);
             g2d.fillOval((int)(screenX - PROJECTILE_SIZE/2), 
@@ -382,16 +401,16 @@ public class ShipCombatSystem {
         
 
         /**
-         * //TODO: THIS DOC COMMENT
-         * @return
+         * Gets the alpha value for the explosion effect
+         * @return Alpha transparency value
          */
         public float getAlpha() {
             return (float)(1.0 - (elapsed / duration));
         }
         
         /**
-         * //TODO: DO THIS DOC COMMENT
-         * @return
+         * Gets the scale value for the explosion effect
+         * @return Scale factor for rendering
          */
         public float getScale() {
             double progress = elapsed / duration;
