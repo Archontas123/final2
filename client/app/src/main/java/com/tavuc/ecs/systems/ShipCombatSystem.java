@@ -34,6 +34,7 @@ public class ShipCombatSystem {
     
     public ShipCombatSystem(Ship playerShip) {
         this.playerShip = playerShip;
+        this.lastFireTime = 0; // Ensure this is initialized to 0
     }
     
     /**
@@ -43,8 +44,9 @@ public class ShipCombatSystem {
     public void fireProjectile() {
         long currentTime = System.currentTimeMillis();
         if (currentTime - lastFireTime < FIRE_COOLDOWN_MS) {
-            System.out.println("[ShipCombatSystem] Can't fire bullet on cooldown" );
-            return; 
+            long remainingCooldown = FIRE_COOLDOWN_MS - (currentTime - lastFireTime);
+            System.out.println("[ShipCombatSystem] Weapon on cooldown for " + remainingCooldown + "ms");
+            return;
         }
         
         lastFireTime = currentTime;
@@ -80,6 +82,14 @@ public class ShipCombatSystem {
             playerShip.getDy()
         );
         Client.sendFireRequest(request);
+    }
+
+    /**
+     * Adds a projectile created by another player to the combat system.
+     * @param projectile The projectile to add
+     */
+    public void addRemoteProjectile(Projectile projectile) {
+        projectiles.add(projectile);
     }
 
     /**
