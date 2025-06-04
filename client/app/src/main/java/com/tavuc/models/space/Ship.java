@@ -5,11 +5,14 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.geom.AffineTransform;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.io.IOException;
-import java.io.InputStream; 
-import java.awt.RenderingHints;
+import java.io.InputStream;
+import java.awt.AlphaComposite;
+import java.awt.BasicStroke;
+
 import com.tavuc.ecs.ComponentContainer;
 import com.tavuc.ecs.components.*;
 
@@ -28,12 +31,20 @@ public class Ship {
     private boolean thrusting;
     
     private ComponentContainer components;
+    private Rectangle collisionBounds;
+    private boolean destroyed = false;
 
+    // Ship movement physics constants
     private static final double ROTATION_AMOUNT = Math.toRadians(5.0);
     private static final double THRUST_FORCE = 15.0;
     private static final double MAX_SPEED = 30.0;
     private static final double DAMPING_FACTOR = 0.985;
-    private static final double STEERING_ASSIST_FACTOR = 0.08; 
+    private static final double STEERING_ASSIST_FACTOR = 0.08;
+    
+    // Shield visual effect
+    private float shieldVisualStrength = 0.0f;
+    private float shieldHitEffect = 0.0f;
+    private long lastDamageTime = 0;
 
     /**
      * Constructor for Ship
@@ -52,10 +63,11 @@ public class Ship {
         this.rotationInput = 0;
         this.thrusting = false;
         this.components = new ComponentContainer();
+        this.collisionBounds = new Rectangle((int)x, (int)y, width, height);
         
         // Initialize default components
         components.addComponent(new HealthComponent(100f));
-        components.addComponent(new ShieldComponent(100f, 5f, 3f)); // 5 shield/sec after 3 sec delay
+        components.addComponent(new ShieldComponent(100f, 10f, 3f)); // 10 shield/sec after 3 sec delay
         
         loadImages();
     }
@@ -85,27 +97,64 @@ public class Ship {
         return shield != null ? shield.getShieldPercentage() : 0f;
     }
     
+    public boolean isDestroyed() {
+        return destroyed || getHealth() <= 0;
+    }
+    
+    public void setDestroyed(boolean destroyed) {
+        this.destroyed = destroyed;
+    }
+
+    /**
+     * Applies damage to the ship, considering shields first.
+     * @param amount Amount of damage to apply
+     */
     public void takeDamage(double amount) {
         ShieldComponent shield = components.getComponent(ShieldComponent.class);
         HealthComponent health = components.getComponent(HealthComponent.class);
-        
+
+        // Record the damage time for shield recharge delay
+        lastDamageTime = System.currentTimeMillis();
+
+        // Visual effect for shield hit
+        shieldHitEffect = 1.0f;
+
         if (shield != null && shield.hasShield()) {
             double shieldDamage = Math.min(amount, shield.getShield());
-            shield.takeDamage((float)shieldDamage);
             amount -= shieldDamage;
+            shield.takeDamage((float) shieldDamage);
         }
-        
+
         if (amount > 0 && health != null) {
-            health.takeDamage((float)amount);
+            health.takeDamage((float) amount);
+
+            // Check if ship is destroyed
+            if (health.getHealth() <= 0) {
+                setDestroyed(true);
+            }
         }
+    }
+
+    /**
+     * Updates the ship.
+     * @param deltaTime Time passed since the last update in seconds
+     */
+    public void update(double deltaTime) {
+        updatePosition();
     }
 
     public void setX(double x) {
         this.x = x;
+        updateCollisionBounds();
     }
 
     public void setY(double y) {
         this.y = y;
+        updateCollisionBounds();
+    }
+    
+    private void updateCollisionBounds() {
+        this.collisionBounds.setLocation((int)x, (int)y);
     }
 
     public void setAngle(double angle) {
@@ -122,6 +171,10 @@ public class Ship {
 
     public boolean isThrusting() {
         return thrusting;
+    }
+    
+    public Rectangle getCollisionBounds() {
+        return collisionBounds;
     }
 
     private void loadImages() {
@@ -187,6 +240,22 @@ public class Ship {
     public double getY() {
         return y;
     }
+    
+    /**
+     * Gets the width of the ship.
+     * @return the width
+     */
+    public int getWidth() {
+        return width;
+    }
+    
+    /**
+     * Gets the height of the ship.
+     * @return the height
+     */
+    public int getHeight() {
+        return height;
+    }
 
     /**
      * Gets the current angle of the ship.
@@ -216,6 +285,10 @@ public class Ship {
      * Updates the position and orientation of the ship.
      */
     public void updatePosition() {
+        if (isDestroyed()) {
+            return; // Don't update destroyed ships
+        }
+        
         this.angle += this.rotationInput * ROTATION_AMOUNT;
         this.angle %= (2 * Math.PI);
         if (this.angle < 0) {
@@ -232,6 +305,7 @@ public class Ship {
             this.dy *= DAMPING_FACTOR;
         }
 
+        // Apply steering assist when turning to make the ship more maneuverable
         if (this.rotationInput != 0 && (this.dx != 0 || this.dy != 0)) {
             double currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
             if (currentSpeed > 0.01) { 
@@ -243,12 +317,14 @@ public class Ship {
             }
         }
         
+        // Cap maximum speed
         double currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
         if (currentSpeed > MAX_SPEED) {
             this.dx = (this.dx / currentSpeed) * MAX_SPEED;
             this.dy = (this.dy / currentSpeed) * MAX_SPEED;
         }
 
+        // Stop very slow movement when not thrusting
         if (currentSpeed < 0.01 && !this.thrusting) { 
             this.dx = 0;
             this.dy = 0;
@@ -256,6 +332,7 @@ public class Ship {
 
         this.x += this.dx;
         this.y += this.dy;
+        updateCollisionBounds();
     }
 
     /**
@@ -264,9 +341,14 @@ public class Ship {
      * @param g the Graphics context to draw on
      */
     public void draw(Graphics g) {
+        if (isDestroyed()) {
+            return; // Don't draw destroyed ships
+        }
+        
         Graphics2D g2d = (Graphics2D) g.create();
 
-        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 
         g2d.translate(this.x, this.y);
         g2d.rotate(this.angle);
@@ -277,7 +359,6 @@ public class Ship {
         if (!this.thrusting && currentSpeed < 0.1) { 
             imageIndex = 0;
         } else if (this.thrusting || currentSpeed >= 0.1) { 
-
             if (currentSpeed < 0.1 && this.thrusting) {
                  imageIndex = 1; 
             } else {
@@ -289,12 +370,13 @@ public class Ship {
                 if (imageIndex == 0 && currentSpeed >= 0.1) { 
                     imageIndex = 1;
                 }
-                 if (imageIndex == 0 && this.thrusting) {
+                if (imageIndex == 0 && this.thrusting) {
                     imageIndex = 1;
                 }
             }
         }
-         if (imageIndex >= shipImages.length) { 
+        
+        if (imageIndex >= shipImages.length) { 
             imageIndex = shipImages.length - 1;
         }
         if (imageIndex < 0) {
@@ -307,20 +389,56 @@ public class Ship {
             g2d.setColor(Color.CYAN); 
             g2d.fillRect(-width / 2, -height / 2, width, height);
         }
+        
+        // Draw shields if active
+        drawShieldEffect(g2d);
+        
         g2d.dispose();
     }
-
+    
     /**
-     * Updates the ship's state.
-     * @param deltaTime The time elapsed since the last update.
+     * Draws the shield effect around the ship.
      */
-    public void update(double deltaTime) {
-        updatePosition();
-        
-        // Update shield recharge
+    private void drawShieldEffect(Graphics2D g2d) {
         ShieldComponent shield = components.getComponent(ShieldComponent.class);
-        if (shield != null) {
-            shield.update((float)deltaTime);
+        if (shield == null) return;
+        
+        float shieldPercent = shield.getShieldPercentage() / 100f;
+        
+        // Only show shield if it has power or recently hit
+        if (shieldPercent > 0 || shieldHitEffect > 0) {
+            // Calculate shield visual strength
+            if (shieldPercent > 0) {
+                // Gradually increase shield visibility when active
+                shieldVisualStrength = Math.min(1.0f, shieldVisualStrength + 0.05f);
+            } else {
+                // Gradually fade shield when depleted
+                shieldVisualStrength = Math.max(0.0f, shieldVisualStrength - 0.1f);
+            }
+            
+            // Fade out shield hit effect
+            shieldHitEffect = Math.max(0.0f, shieldHitEffect - 0.05f);
+            
+            // Shield size slightly larger than ship
+            int shieldSize = (int)(Math.max(width, height) * 1.2);
+            
+            // Base shield color (blue with alpha based on shield strength)
+            Color baseShieldColor = new Color(0.2f, 0.6f, 1.0f, 
+                    0.2f * shieldVisualStrength + 0.6f * shieldHitEffect);
+            
+            // Draw outer glow
+            g2d.setComposite(AlphaComposite.SrcOver);
+            
+            // Outer shield
+            g2d.setColor(baseShieldColor);
+            g2d.fillOval(-shieldSize/2, -shieldSize/2, shieldSize, shieldSize);
+            
+            // Inner shield highlight
+            Color innerShieldColor = new Color(0.6f, 0.8f, 1.0f, 
+                    0.15f * shieldVisualStrength + 0.4f * shieldHitEffect);
+            g2d.setColor(innerShieldColor);
+            g2d.setStroke(new BasicStroke(2.0f));
+            g2d.drawOval(-shieldSize/2 + 5, -shieldSize/2 + 5, shieldSize - 10, shieldSize - 10);
         }
     }
 }

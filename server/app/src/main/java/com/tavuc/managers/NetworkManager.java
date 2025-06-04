@@ -1,5 +1,9 @@
 package com.tavuc.managers;
 
+import java.util.ArrayList;
+
+import java.util.Collection;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -7,7 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -22,10 +25,6 @@ import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.networking.models.ShipLeftBroadcast;
 import com.tavuc.networking.models.ShipUpdateBroadcast;
 
-import com.tavuc.networking.models.AttackShipUpdateBroadcast; // Added import
-import com.tavuc.networking.models.CruiserUpdateBroadcast; // Added import
-import com.tavuc.models.entities.Player; // Added import
-
 public class NetworkManager implements ClientSessionListener {
 
     private ServerSocket socket;
@@ -36,14 +35,22 @@ public class NetworkManager implements ClientSessionListener {
     private final Set<ClientSession> sessions = ConcurrentHashMap.newKeySet();
 
     private final Map<String, BaseShip> activeEntityShips = new ConcurrentHashMap<>();
+    
+    // Combat manager for handling ship combat
+    private final CombatManager combatManager;
 
     public NetworkManager(AuthManager authManager, LobbyManager lobbyManager) {
         this.authManager = authManager;
         this.lobbyManager = lobbyManager;
+        this.combatManager = new CombatManager(this);
     }
 
     public LobbyManager getLobbyManager() {
         return lobbyManager;
+    }
+    
+    public CombatManager getCombatManager() {
+        return combatManager;
     }
 
     public void startServer(int port) throws ServerStartException {
@@ -52,6 +59,32 @@ public class NetworkManager implements ClientSessionListener {
             running = true;
             clientExecutor = Executors.newCachedThreadPool();
             System.out.println("NetworkService started on port " + port);
+
+            // Start game logic update thread
+            new Thread(() -> {
+                long lastUpdateTime = System.nanoTime();
+                final double TARGET_FPS = 60.0;
+                final double TARGET_TIME_STEP = 1.0 / TARGET_FPS;
+                
+                while (running && !socket.isClosed()) {
+                    long currentTime = System.nanoTime();
+                    double deltaTime = (currentTime - lastUpdateTime) / 1_000_000_000.0;
+                    lastUpdateTime = currentTime;
+                    
+                    // Update game logic
+                    updateGameLogic((float)deltaTime);
+                    
+                    // Sleep to maintain target frame rate
+                    try {
+                        long sleepTime = (long)((TARGET_TIME_STEP - deltaTime) * 1000);
+                        if (sleepTime > 0) {
+                            Thread.sleep(sleepTime);
+                        }
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+            }, "GameLogicUpdateThread").start();
 
             new Thread(() -> {
                 while (running && !socket.isClosed()) {
@@ -64,13 +97,58 @@ public class NetworkManager implements ClientSessionListener {
                         clientExecutor.submit(clientSession::start);
                     } catch (IOException e) {
                         System.err.println("Error accepting client connection: " + e.getMessage());
-                        
                     }
                 }
             }, "NetworkService-AcceptThread").start();
         } catch (IOException e) {
             running = false;
             throw new ServerStartException("Could not start server on port " + port, e);
+        }
+    }
+    
+    /**
+     * Updates all game logic components.
+     * 
+     * @param deltaTime Time passed since last update in seconds
+     */
+    private void updateGameLogic(float deltaTime) {
+        // Update combat system
+        if (combatManager != null) {
+            combatManager.update(deltaTime);
+        }
+        
+        // Check for ship collisions
+        checkShipCollisions();
+    }
+    
+    /**
+     * Checks for collisions between ships.
+     */
+    private void checkShipCollisions() {
+        if (combatManager == null) return;
+        
+        // Get all ships
+        Collection<BaseShip> ships = activeEntityShips.values();
+        List<BaseShip> shipsList = new ArrayList<>(ships);
+        
+        // Check each ship against all other ships
+        for (int i = 0; i < shipsList.size(); i++) {
+            BaseShip ship1 = shipsList.get(i);
+            
+            for (int j = i + 1; j < shipsList.size(); j++) {
+                BaseShip ship2 = shipsList.get(j);
+                
+                // Calculate distance between ships
+                float distance = (float) Math.sqrt(
+                    Math.pow(ship1.getX() - ship2.getX(), 2) +
+                    Math.pow(ship1.getY() - ship2.getY(), 2)
+                );
+                
+                // If ships are colliding
+                if (distance < 80.0f) { // Simple collision distance
+                    combatManager.handleShipCollision(ship1, ship2);
+                }
+            }
         }
     }
 
@@ -121,7 +199,6 @@ public class NetworkManager implements ClientSessionListener {
         return null;
     }
 
-  
     public synchronized void updateShip(int playerId, double x, double y, double angle, double dx, double dy, boolean thrusting, boolean shouldBeInSpace, ClientSession sourceSession) {
         String playerShipEntityId = "player_" + playerId;
         PlayerShip playerShip = getPlayerShip(playerId);
@@ -137,7 +214,6 @@ public class NetworkManager implements ClientSessionListener {
                 playerShip.setPosition((int)x, (int)y);
                 playerShip.setOrientation((float)angle);
                 playerShip.setVelocity((float)dx, (float)dy);
-                // TODO: PlayerShip might need a setThrusting(boolean) if it affects animation/state
                 broadcastShipUpdate(playerShip, sourceSession);
             } else { 
                 if(activeEntityShips.containsKey(playerShipEntityId)){
@@ -185,13 +261,11 @@ public class NetworkManager implements ClientSessionListener {
     public synchronized void addOrUpdateNonPlayerShip(BaseShip ship) {
         if (ship == null || ship.getEntityId() == null) return;
         activeEntityShips.put(ship.getEntityId(), ship);
-        // TODO: Implement broadcasting for AI ship updates (AttackShip, LightCruiser)
     }
 
     public synchronized void removeNonPlayerShip(String entityId) {
         BaseShip removedShip = activeEntityShips.remove(entityId);
         if (removedShip != null) {
-            // TODO: Broadcast AI ship removal (e.g., EntityRemovedBroadcast)
             System.out.println("NetworkManager: AI Ship " + entityId + " removed.");
         }
     }
@@ -229,12 +303,9 @@ public class NetworkManager implements ClientSessionListener {
                 false 
             );
             broadcastMessageToAllActiveSessions(broadcastMessage);
-        } 
-   
-       
+        }
     }
 
-  
     private void broadcastShipLeft(int playerId, ClientSession sourceSession) {
         ShipLeftBroadcast broadcastMessage = new ShipLeftBroadcast(String.valueOf(playerId));
         broadcastMessageToAllActiveSessions(broadcastMessage);
@@ -255,6 +326,4 @@ public class NetworkManager implements ClientSessionListener {
             }
         }
     }
-
-  
 }

@@ -76,7 +76,7 @@ public class Client {
     private static Socket socket;
     private static volatile CompletableFuture<String> activeRequestFuture; 
     public static GamePanel currentGamePanel = null;
-    public static ISpacePanel currentSpacePanel = null; 
+    public static SpacePanel currentSpacePanel = null; 
     public static WorldManager worldManager = null;
     private static ColorPallete currentColorPalette = null;
     private static final Gson gson = new Gson();

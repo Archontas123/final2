@@ -1,0 +1,385 @@
+package com.tavuc.ecs.systems;
+
+import com.tavuc.Client;
+import com.tavuc.ecs.ComponentContainer;
+import com.tavuc.ecs.components.HealthComponent;
+import com.tavuc.ecs.components.ShieldComponent;
+import com.tavuc.models.space.Projectile;
+import com.tavuc.models.space.Ship;
+import com.tavuc.networking.models.FireRequest;
+
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.geom.AffineTransform;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+
+
+public class ShipCombatSystem {
+
+    private static final float PROJECTILE_SPEED = 15.0f;
+    private static final int PROJECTILE_SIZE = 8;
+    private static final double PROJECTILE_DAMAGE = 10.0;
+    private static final double COLLISION_DAMAGE = 25.0;
+    private static final double EXPLOSION_DAMAGE = 50.0;
+    private static final double EXPLOSION_RADIUS = 150.0;
+    private static final long FIRE_COOLDOWN_MS = 300; 
+    
+    private final Ship playerShip;
+    private final List<Projectile> projectiles = new CopyOnWriteArrayList<>();
+    private long lastFireTime = 0;
+    private final List<Explosion> explosions = new CopyOnWriteArrayList<>();
+    
+    public ShipCombatSystem(Ship playerShip) {
+        this.playerShip = playerShip;
+    }
+    
+    /**
+     * Attempts to fire a projectile from the player ship.
+     * Respects cooldown and sends fire request to server.
+     */
+    public void fireProjectile() {
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastFireTime < FIRE_COOLDOWN_MS) {
+            System.out.println("[ShipCombatSystem] Can't fire bullet on cooldown" );
+            return; 
+        }
+        
+        lastFireTime = currentTime;
+        
+        double angle = playerShip.getAngle();
+        double shipCenterX = playerShip.getX() + playerShip.getWidth() / 2.0;
+        double shipCenterY = playerShip.getY() + playerShip.getHeight() / 2.0;
+        
+        double spawnDistance = playerShip.getWidth() / 2.0 + 10;
+        double spawnX = shipCenterX + Math.sin(angle) * spawnDistance;
+        double spawnY = shipCenterY - Math.cos(angle) * spawnDistance;
+        
+        double velocityX = Math.sin(angle) * PROJECTILE_SPEED;
+        double velocityY = -Math.cos(angle) * PROJECTILE_SPEED;
+        
+        velocityX += playerShip.getDx() * 0.5;
+        velocityY += playerShip.getDy() * 0.5;
+        
+        Projectile projectile = new Projectile(
+            spawnX, spawnY, 
+            velocityX, velocityY, 
+            PROJECTILE_DAMAGE, 
+            String.valueOf(Client.getInstance().getPlayerId())
+        );
+        projectiles.add(projectile);
+        
+        FireRequest request = new FireRequest();
+        Client.sendFireRequest(request);
+    }
+    
+    /**
+     * Updates all projectiles, explosions, and handles collisions.
+     * @param delta Time passed since last update in seconds
+     * @param otherShips List of other player ships to check for collisions
+     */
+    public void update(double delta, List<Ship> otherShips) {
+        updateProjectiles(delta);
+        checkProjectileCollisions(otherShips);
+        checkShipCollisions(otherShips);
+        updateExplosions(delta);
+        
+        ShieldComponent shield = playerShip.getComponents().getComponent(ShieldComponent.class);
+        shield.update((float)delta);
+        
+    }
+    
+    /**
+     * Updates all projectiles positions and removes ones that have exceeded lifetime.
+     * @param delta Time passed since last update in seconds
+     */
+    private void updateProjectiles(double delta) {
+        Iterator<Projectile> iterator = projectiles.iterator();
+        while (iterator.hasNext()) {
+            Projectile projectile = iterator.next();
+            projectile.tick(delta);
+            
+            double distanceFromPlayer = Math.sqrt(
+                Math.pow(projectile.getX() - playerShip.getX(), 2) + 
+                Math.pow(projectile.getY() - playerShip.getY(), 2)
+            );
+            
+            if (distanceFromPlayer > 1500 || !projectile.isActive()) {
+                iterator.remove();
+            }
+        }
+    }
+    
+    /**
+     * Checks for collisions between projectiles and ships.
+     * @param otherShips a List of all the ships with which collision should be checked
+     */
+    private void checkProjectileCollisions(List<Ship> otherShips) {
+        List<Ship> allShips = new ArrayList<>(otherShips);
+        allShips.add(playerShip);
+        
+        for (Projectile projectile : projectiles) {
+            if (!projectile.isActive()) continue;
+            String ownerId = projectile.getOwnerId();
+            
+            for (Ship ship : allShips) {
+                if (ownerId.equals(String.valueOf(Client.getInstance().getPlayerId())) && ship == playerShip) continue;
+                
+                //TODO: Improve Collision Check with actual Hitbox's
+                double dx = projectile.getX() - (ship.getX() + ship.getWidth()/2);
+                double dy = projectile.getY() - (ship.getY() + ship.getHeight()/2);
+                double distance = Math.sqrt(dx*dx + dy*dy);
+                
+                if (distance < ship.getWidth()/2) {
+                    applyDamage(ship, projectile.getDamage());
+                    projectile.setActive(false);
+                    if (ship.getHealth() <= 0) createExplosion(ship.getX() + ship.getWidth()/2, ship.getY() + ship.getHeight()/2);
+                    break; 
+                }
+            }
+        }
+    }
+    
+    /**
+     * Checks for collisions between ships and handles damage.
+     * @param otherShips a List of all the ships with which collision should be checked
+     */
+    private void checkShipCollisions(List<Ship> otherShips) {
+        for (Ship otherShip : otherShips) {
+            if (otherShip.getHealth() <= 0) continue;
+            
+            double dx = playerShip.getX() - otherShip.getX();
+            double dy = playerShip.getY() - otherShip.getY();
+            double distance = Math.sqrt(dx*dx + dy*dy);
+            
+            double minDistance = (playerShip.getWidth() + otherShip.getWidth()) / 2;
+            
+            if (distance < minDistance) {
+                applyDamage(playerShip, COLLISION_DAMAGE);
+                
+                double angle = Math.atan2(dy, dx);
+                double playerMass = 1.0;
+                double otherMass = 1.0;
+                double forceFactor = 5.0;
+                
+                double playerImpulseX = Math.cos(angle) * forceFactor;
+                double playerImpulseY = Math.sin(angle) * forceFactor;
+                playerShip.setDx(playerShip.getDx() + playerImpulseX * (otherMass / playerMass));
+                playerShip.setDy(playerShip.getDy() + playerImpulseY * (otherMass / playerMass));
+                
+            }
+        }
+    }
+    
+    /**
+     * Creates an explosion effect at the specified location.
+     * @param x The X coordinate at which to create the explosion effect
+     * @param y the Y coordinate at which to create the explosion effect
+     */
+    private void createExplosion(double x, double y) {
+        Explosion explosion = new Explosion(x, y, 1.0); 
+        explosions.add(explosion);
+        
+        List<Ship> nearbyShips = getNearbyShips(x, y, EXPLOSION_RADIUS);
+        for (Ship ship : nearbyShips) {
+            double distance = Math.sqrt(
+                Math.pow(ship.getX() + ship.getWidth()/2 - x, 2) + 
+                Math.pow(ship.getY() + ship.getHeight()/2 - y, 2)
+            );
+            
+            double damageMultiplier = 1.0 - (distance / EXPLOSION_RADIUS);
+            if (damageMultiplier > 0) applyDamage(ship, EXPLOSION_DAMAGE * damageMultiplier);
+            
+        }
+    }
+    
+    /**
+     * Returns a list of ships near the specified point.
+     * @param x The X coordinate of the point at which to return the list of ships near
+     * @param y The Y coordinate of the point at which to return the list of ships near
+     * @param radius how close the ship has to be to be retrieved
+     * @return A list of ships in radius around point (x,y)
+     */
+    private List<Ship> getNearbyShips(double x, double y, double radius) {
+        List<Ship> result = new ArrayList<>();
+        
+        double playerDistance = Math.sqrt(
+            Math.pow(playerShip.getX() + playerShip.getWidth()/2 - x, 2) + 
+            Math.pow(playerShip.getY() + playerShip.getHeight()/2 - y, 2)
+        );
+        if (playerDistance <= radius) {
+            result.add(playerShip);
+        }
+        
+        if (Client.currentSpacePanel != null) {
+            for (Ship otherShip : Client.currentSpacePanel.getOtherPlayerShips()) {
+                double distance = Math.sqrt(
+                    Math.pow(otherShip.getX() + otherShip.getWidth()/2 - x, 2) + 
+                    Math.pow(otherShip.getY() + otherShip.getHeight()/2 - y, 2)
+                );
+                if (distance <= radius) {
+                    result.add(otherShip);
+                }
+            }
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Updates all explosion effects.
+     * @param delta Time passed since last update in seconds
+     */
+    private void updateExplosions(double delta) {
+        Iterator<Explosion> iterator = explosions.iterator();
+        while (iterator.hasNext()) {
+            Explosion explosion = iterator.next();
+            explosion.update(delta);
+            
+            if (explosion.isFinished()) {
+                iterator.remove();
+            }
+        }
+    }
+    
+    /**
+     * Applies damage to a ship, considering shields first.
+     * @param Ship the ship to which damage should be applied
+     * @param damage the damage to apply to the Ship
+     */
+    private void applyDamage(Ship ship, double damage) {
+        ship.takeDamage(damage);
+    }
+    
+    /**
+     * Renders all projectiles and explosions. //TODO: Finish this doc comment
+     * @param g2d 
+     * @param offsetX
+     * @param offsetY
+     */
+    public void render(Graphics2D g2d, double offsetX, double offsetY) {
+        for (Projectile projectile : projectiles) {
+            if (!projectile.isActive()) continue;
+            
+            double screenX = projectile.getX() - offsetX;
+            double screenY = projectile.getY() - offsetY;
+            
+            g2d.setColor(Color.RED);
+            g2d.fillOval((int)(screenX - PROJECTILE_SIZE/2), 
+                         (int)(screenY - PROJECTILE_SIZE/2), 
+                         PROJECTILE_SIZE, PROJECTILE_SIZE);
+        }
+        
+        for (Explosion explosion : explosions) {
+            double screenX = explosion.x - offsetX;
+            double screenY = explosion.y - offsetY;
+            
+            float alpha = explosion.getAlpha();
+            float scale = explosion.getScale();
+            
+            AffineTransform oldTransform = g2d.getTransform();
+            
+            g2d.translate(screenX, screenY);
+            g2d.scale(scale, scale);
+            
+            Color[] explosionColors = {
+                new Color(1.0f, 1.0f, 0.2f, alpha * 0.8f),
+                new Color(1.0f, 0.5f, 0.0f, alpha * 0.6f),
+                new Color(1.0f, 0.2f, 0.0f, alpha * 0.4f)
+            };
+            
+            int[] sizes = {30, 50, 70};
+            
+            for (int i = 0; i < explosionColors.length; i++) {
+                g2d.setColor(explosionColors[i]);
+                g2d.fillOval(-sizes[i]/2, -sizes[i]/2, sizes[i], sizes[i]);
+            }
+            
+            g2d.setTransform(oldTransform);
+        }
+    }
+    
+    public Ship getPlayerShip() {
+        return playerShip;
+    }
+
+    
+    /**
+     * Handles a player ship being destroyed.
+     */
+    public void handlePlayerDestroyed() {
+        createExplosion(
+            playerShip.getX() + playerShip.getWidth()/2, 
+            playerShip.getY() + playerShip.getHeight()/2
+        );
+        
+        //TODO: ADD FURTHER HANDLING
+    }
+    
+    /**
+     * Gets all active projectiles.
+     * @return A list of all Projectiles
+     */
+    public List<Projectile> getProjectiles() {
+        return projectiles;
+    }
+
+
+    private static class Explosion {
+        private final double x, y;
+        private final double duration;
+        private double elapsed = 0;
+        
+        /**
+         * A constructor for the Explosion class
+         * @param x the X coordinate of the Explosion
+         * @param y the Y coordinate of the Explosion
+         * @param duration how long the Explosion should last
+         */
+        public Explosion(double x, double y, double duration) {
+            this.x = x;
+            this.y = y;
+            this.duration = duration;
+        }
+        
+        /**
+         * 
+         * @param delta Time passed since last update in seconds
+         */
+        public void update(double delta) {
+            elapsed += delta;
+        }
+        
+        /**
+         * Check if the Explosion is finished
+         * @return true if its finished false if its not
+         */
+        public boolean isFinished() {
+            return elapsed >= duration;
+        }
+        
+
+        /**
+         * //TODO: THIS DOC COMMENT
+         * @return
+         */
+        public float getAlpha() {
+            return (float)(1.0 - (elapsed / duration));
+        }
+        
+        /**
+         * //TODO: DO THIS DOC COMMENT
+         * @return
+         */
+        public float getScale() {
+            double progress = elapsed / duration;
+            if (progress < 0.3) {
+                return (float)(progress / 0.3 * 2.0);
+            } else {
+                return (float)(2.0 + (progress - 0.3) / 0.7 * 3.0);
+            }
+        }
+    }
+}
