@@ -21,7 +21,7 @@ import com.tavuc.networking.models.ShipDestroyedBroadcast;
  * Handles projectiles, collisions, and damage.
  */
 public class CombatManager {
-    private static final float PROJECTILE_SPEED = 15.0f;
+    private static final float PROJECTILE_SPEED = 25.0f;
     private static final int PROJECTILE_WIDTH = 8;
     private static final int PROJECTILE_HEIGHT = 8;
     private static final float PROJECTILE_DAMAGE = 10.0f;
@@ -73,7 +73,7 @@ public class CombatManager {
         float shipAngle = playerShip.getOrientation();
         
         // Calculate spawn position at the ship's front
-        float spawnDistance = 40.0f; // Half the ship width + offset
+        float spawnDistance = playerShip.getHeight() / 2.0f;
         float spawnX = shipX + (float)(Math.sin(shipAngle) * spawnDistance);
         float spawnY = shipY - (float)(Math.cos(shipAngle) * spawnDistance);
         
@@ -111,7 +111,9 @@ public class CombatManager {
             PROJECTILE_WIDTH,
             PROJECTILE_HEIGHT,
             shipAngle,
-            (float)Math.sqrt(velocityX * velocityX + velocityY * velocityY), // Speed
+            (float)Math.sqrt(velocityX * velocityX + velocityY * velocityY),
+            velocityX,
+            velocityY,
             PROJECTILE_DAMAGE,
             playerId
         );

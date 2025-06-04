@@ -22,7 +22,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class ShipCombatSystem {
 
-    private static final float PROJECTILE_SPEED = 15.0f;
+    private static final float PROJECTILE_SPEED = 25.0f;
     private static final int PROJECTILE_SIZE = 12; // Increased size for better visibility
     private static final double PROJECTILE_DAMAGE = 10.0;
     private static final double COLLISION_DAMAGE = 25.0;
@@ -58,7 +58,7 @@ public class ShipCombatSystem {
         double shipCenterX = playerShip.getX() + playerShip.getWidth() / 2.0;
         double shipCenterY = playerShip.getY() + playerShip.getHeight() / 2.0;
         
-        double spawnDistance = playerShip.getWidth() / 2.0 + 10;
+        double spawnDistance = playerShip.getHeight() / 2.0;
         double spawnX = shipCenterX + Math.sin(angle) * spawnDistance;
         double spawnY = shipCenterY - Math.cos(angle) * spawnDistance;
         
