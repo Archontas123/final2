@@ -38,6 +38,8 @@ import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerUpdateRequest;
 import com.tavuc.networking.models.PlayerInitialData; 
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
+import com.tavuc.networking.models.ProjectileUpdateBroadcast;
+import com.tavuc.networking.models.ProjectileRemovedBroadcast;
 import com.tavuc.networking.models.RegisterRequest;
 import com.tavuc.networking.models.RegisterResponse;
 import com.tavuc.networking.models.RequestChunkRequest;
@@ -568,6 +570,18 @@ public class Client {
                                 if (currentSpacePanel != null) {
                                     ProjectileSpawnedBroadcast event = gson.fromJson(processedJson, ProjectileSpawnedBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileSpawned(event));
+                                }
+                                break;
+                            case "PROJECTILE_UPDATE_BROADCAST":
+                                if (currentSpacePanel != null) {
+                                    ProjectileUpdateBroadcast event = gson.fromJson(processedJson, ProjectileUpdateBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileUpdate(event));
+                                }
+                                break;
+                            case "PROJECTILE_REMOVED_BROADCAST":
+                                if (currentSpacePanel != null) {
+                                    ProjectileRemovedBroadcast event = gson.fromJson(processedJson, ProjectileRemovedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileRemoved(event));
                                 }
                                 break;
                             case "REQUEST_CHUNK_RESPONSE":

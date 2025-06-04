@@ -13,6 +13,8 @@ import com.tavuc.models.space.PlayerShip;
 import com.tavuc.models.space.ProjectileEntity;
 import com.tavuc.networking.ClientSession;
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
+import com.tavuc.networking.models.ProjectileUpdateBroadcast;
+import com.tavuc.networking.models.ProjectileRemovedBroadcast;
 import com.tavuc.networking.models.ShipDamagedBroadcast;
 import com.tavuc.networking.models.ShipDestroyedBroadcast;
 
@@ -129,22 +131,33 @@ public class CombatManager {
      * @param deltaTime Time passed since last update in seconds
      */
     public void update(float deltaTime) {
-        // Update projectiles
         Iterator<ProjectileEntity> projectileIterator = activeProjectiles.values().iterator();
         while (projectileIterator.hasNext()) {
             ProjectileEntity projectile = projectileIterator.next();
             projectile.update(deltaTime);
-            
-            // Check for lifetime
-            if (projectile.getLifetime() > 5.0f) { // 5 seconds max lifetime
+
+            boolean removed = false;
+
+            if (projectile.getLifetime() > 5.0f) {
                 projectileIterator.remove();
-                continue;
+                removed = true;
+            } else if (checkProjectileCollisions(projectile)) {
+                projectileIterator.remove();
+                removed = true;
             }
-            
-            // Check for collisions with ships
-            boolean hit = checkProjectileCollisions(projectile);
-            if (hit) {
-                projectileIterator.remove();
+
+            if (removed) {
+                ProjectileRemovedBroadcast rm = new ProjectileRemovedBroadcast(projectile.getId());
+                networkManager.broadcastMessageToAllActiveSessions(rm);
+            } else {
+                ProjectileUpdateBroadcast up = new ProjectileUpdateBroadcast(
+                    projectile.getId(),
+                    projectile.getX(),
+                    projectile.getY(),
+                    projectile.getVelocityX(),
+                    projectile.getVelocityY()
+                );
+                networkManager.broadcastMessageToAllActiveSessions(up);
             }
         }
     }
