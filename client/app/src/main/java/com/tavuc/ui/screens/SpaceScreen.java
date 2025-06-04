@@ -6,11 +6,14 @@ import javax.swing.Timer;
 import com.tavuc.ui.panels.SpacePanel;
 import com.tavuc.ui.panels.SpaceScreenUILayer;
 import com.tavuc.Client;
+import com.tavuc.managers.InputManager;
 import com.tavuc.managers.SpaceManager;
-import com.tavuc.models.space.Ship; 
+import com.tavuc.models.space.Ship;
+import com.tavuc.models.space.Planet;
+import java.util.List;
 
 import java.awt.*;
-import java.awt.event.ActionEvent; 
+import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener; 
 
 public class SpaceScreen extends GScreen {
@@ -36,17 +39,17 @@ public class SpaceScreen extends GScreen {
         Client.currentSpacePanel = spacePanel; 
         setScreenSpecificPanel(spacePanel);
 
-        uiLayerPanel = new SpaceScreenUILayer();
+        uiLayerPanel = new SpaceScreenUILayer(InputManager.getInstance()); // Pass InputManager
         addUILayer(uiLayerPanel);
 
-        if (uiLayerPanel.getActionButton() != null) {
-            for (ActionListener al : uiLayerPanel.getActionButton().getActionListeners()) {
-                uiLayerPanel.getActionButton().removeActionListener(al);
-            }
-            uiLayerPanel.getActionButton().addActionListener(e -> {
-                Client.enterShipInterior(); 
-            });
-        }
+        // if (uiLayerPanel.getActionButton() != null) { // Action button was removed
+        //     for (ActionListener al : uiLayerPanel.getActionButton().getActionListeners()) {
+        //         uiLayerPanel.getActionButton().removeActionListener(al);
+        //     }
+        //     uiLayerPanel.getActionButton().addActionListener(e -> {
+        //         // Client.enterShipInterior(); // Removed ship interior functionality
+        //     });
+        // }
 
         if (!super.isActuallyFullScreen()) {
             setPreferredSize(new Dimension(1000, 700));
@@ -112,5 +115,17 @@ public class SpaceScreen extends GScreen {
 
     public SpaceManager getSpaceManager() {
         return spaceManager;
+    }
+
+    public void updateUILayerData(int playerX, int playerY,
+                                  List<Planet> planets, List<Ship> ships, Ship playerShip,
+                                  boolean wPressed, boolean aPressed, boolean sPressed, boolean dPressed) {
+        if (uiLayerPanel != null) {
+            uiLayerPanel.updateCoordinates(playerX, playerY); // This was already here, but good to keep
+            uiLayerPanel.updateMinimapData(planets, ships, playerShip);
+            uiLayerPanel.updateMovementKeys(wPressed, aPressed, sPressed, dPressed);
+            // uiLayerPanel.updateStatusBars(playerShip.getHealth(), playerShip.getShield()); // When health/shield are on ship
+            // uiLayerPanel.updateDialog("Some dynamic dialog text");
+        }
     }
 }

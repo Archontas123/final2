@@ -36,6 +36,7 @@ import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerUpdateRequest;
+import com.tavuc.networking.models.PlayerInitialData; 
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.networking.models.RegisterRequest;
 import com.tavuc.networking.models.RegisterResponse;
@@ -54,8 +55,7 @@ import com.tavuc.ui.panels.GamePanel;
 import com.tavuc.ui.panels.ISpacePanel;
 import com.tavuc.ui.panels.SpacePanel;
 import com.tavuc.ui.screens.GameScreen;
-import com.tavuc.ui.screens.SpaceScreen; 
-import com.tavuc.ui.screens.ShipInteriorScreen;
+import com.tavuc.ui.screens.SpaceScreen;
 import com.tavuc.ui.screens.StartScreen;
 
 import javax.swing.JFrame;
@@ -231,24 +231,25 @@ public class Client {
         }
         LoginRequest req = new LoginRequest(username, password);
         out.println(gson.toJson(req));
-        
+
         String jsonResponse = waitForResponse(20);
         LoginResponse resp = gson.fromJson(jsonResponse, LoginResponse.class);
 
-        if (instance != null) {
-            if (resp != null && resp.success) {
-                instance.loggedInStatus = true;
+        if (resp != null && resp.success) {
+            if (instance != null && resp.playerId != null) {
                 try {
-                    instance.setLoginDetails(resp.username, Integer.parseInt(resp.playerId));
+                    instance.setLoginDetails(username, Integer.parseInt(resp.playerId));
+                    instance.loggedInStatus = true;
                 } catch (NumberFormatException e) {
                     System.err.println("Could not parse player ID from login response: " + resp.playerId);
-                    instance.loggedInStatus = false; 
+                    if (instance != null) instance.loggedInStatus = false; 
+                    return gson.toJson(new LoginResponse(false, "LOGIN_FAILED_INVALID_PLAYER_ID", null, null));
                 }
-            } else {
-                instance.loggedInStatus = false;
             }
+        } else {
+            if (instance != null) instance.loggedInStatus = false;
         }
-        return jsonResponse; 
+        return jsonResponse;
     }
 
     /**
@@ -273,7 +274,7 @@ public class Client {
         if (out == null) return gson.toJson(new ListGamesResponse(null)); 
         ListGamesRequest req = new ListGamesRequest();
         out.println(gson.toJson(req));
-        return waitForResponse(5);
+        return waitForResponse(10); 
     }
 
     /**
@@ -285,26 +286,36 @@ public class Client {
      * @throws TimeoutException
      */
     public static String joinPlanet(int gameId, String planetName) throws InterruptedException, ExecutionException, TimeoutException {
-        if (out == null) return gson.toJson(new JoinGameResponse(false, "ERROR_NOT_CONNECTED", String.valueOf(gameId), planetName, null));
+        if (out == null) return gson.toJson(new JoinGameResponse(false, "JOIN_FAILED_NO_CONNECTION", String.valueOf(gameId), planetName, null));
         JoinGameRequest req = new JoinGameRequest(String.valueOf(gameId));
         out.println(gson.toJson(req));
         
-        String jsonResponse = waitForResponse(10);
+        String jsonResponse = waitForResponse(20);
         JoinGameResponse resp = gson.fromJson(jsonResponse, JoinGameResponse.class);
 
-        if (instance != null && resp != null && resp.success) {
-            instance.setJoinedPlanetDetails(gameId, resp.planetName != null ? resp.planetName : planetName);
-            // Initialize or update WorldManager here
-            if (worldManager == null) {
-                worldManager = new WorldManager(gameId);
-                System.out.println("Client.joinPlanet: WorldManager initialized for game ID: " + gameId);
-            } else {
-                worldManager.setGameId(gameId);
-                worldManager.clearChunks(); // Clear data from any previous game
-                System.out.println("Client.joinPlanet: WorldManager reset for new game ID: " + gameId);
+        if (resp != null && resp.success) {
+            if (instance != null) {
+                instance.setJoinedPlanetDetails(gameId, planetName);
+                 if (worldManager == null) {
+                    worldManager = new WorldManager(gameId);
+                    System.out.println("Client.joinPlanet: WorldManager initialized for game ID: " + gameId);
+                } else {
+                    worldManager.setGameId(gameId);
+                    worldManager.clearChunks(); 
+                    System.out.println("Client.joinPlanet: WorldManager reset for new game ID: " + gameId);
+                }
+                // Process initial player data from response
+                if (resp.playersInGame != null) {
+                    for (PlayerInitialData pData : resp.playersInGame) {
+                        if (worldManager != null) {
+                            PlayerJoinedBroadcast pjb = new PlayerJoinedBroadcast(pData.playerId, pData.username, pData.x, pData.y, pData.dx, pData.dy, pData.directionAngle);
+                            worldManager.addPlayer(pjb);
+                        }
+                    }
+                }
             }
         }
-        return jsonResponse; 
+        return jsonResponse;
     }
 
     /**
@@ -366,10 +377,16 @@ public class Client {
      * @throws TimeoutException
      */
     public static String requestPlanetPalette(int gameId) throws InterruptedException, ExecutionException, TimeoutException {
-        if (out == null) return gson.toJson(new RequestPaletteResponse(null, null, null, null, null, null)); 
+        if (out == null) return gson.toJson(new RequestPaletteResponse(null, null, null, null, null, null));
         RequestPaletteRequest req = new RequestPaletteRequest(String.valueOf(gameId));
         out.println(gson.toJson(req));
-        return waitForResponse(5); 
+        
+        String jsonResponse = waitForResponse(10);
+        RequestPaletteResponse resp = gson.fromJson(jsonResponse, RequestPaletteResponse.class);
+        if (resp != null && resp.primarySurfaceRGB != null) { // Check if response is valid
+            processPlanetPaletteData(resp); 
+        }
+        return jsonResponse;
     }
 
     /**
@@ -382,11 +399,11 @@ public class Client {
      * @throws ExecutionException
      * @throws TimeoutException
      */
-    public static String requestPlanetsArea(double centerX, double centerY, double radius) throws InterruptedException, ExecutionException, TimeoutException { 
-        if (out == null) return gson.toJson(new RequestPlanetsAreaResponse(null)); 
+    public static String requestPlanetsArea(double centerX, double centerY, double radius) throws InterruptedException, ExecutionException, TimeoutException {
+        if (out == null) return gson.toJson(new RequestPlanetsAreaResponse(null));
         RequestPlanetsAreaRequest req = new RequestPlanetsAreaRequest(centerX, centerY, radius);
         out.println(gson.toJson(req));
-        return waitForResponse(15); 
+        return waitForResponse(10);
     }
 
     public static void sendShipUpdate(int playerId, double x, double y, double angle, double dx, double dy, boolean thrusting) {
@@ -698,68 +715,6 @@ public class Client {
         });
     }
 
-    public static void enterShipInterior() {
-        SwingUtilities.invokeLater(() -> {
-            if (instance == null || !instance.isLoggedIn()) {
-                System.err.println("Client instance is null or not logged in, cannot enter ship interior.");
-                return;
-            }
-            
-            currentSpacePanel = null; 
-
-            JFrame currentFrame = null;
-            Window[] windows = Window.getWindows();
-            for (Window window : windows) {
-                if ((window instanceof GameScreen || window instanceof SpaceScreen) && window.isVisible()) { 
-                    currentFrame = (JFrame) window;
-                    break;
-                }
-            }
-
-            if (currentFrame != null) {
-                if (currentFrame instanceof GameScreen) {
-                    ((GameScreen)currentFrame).stopGameLoop(); 
-                }
-                if (currentFrame instanceof SpaceScreen) {
-                }
-                currentFrame.dispose(); 
-            }
-            
-            new ShipInteriorScreen(instance.getPlayerId(), instance.getUsername()).setVisible(true);
-            System.out.println("Entered Ship Interior Screen.");
-        });
-    }
-
-    public static void exitShipInterior() {
-        SwingUtilities.invokeLater(() -> {
-            if (instance == null || !instance.isLoggedIn()) {
-                System.err.println("Client instance is null or not logged in, cannot exit ship interior.");
-                return;
-            }
-
-            JFrame currentFrame = null;
-            Window[] windows = Window.getWindows();
-            for (Window window : windows) {
-                if (window instanceof ShipInteriorScreen && window.isVisible()) {
-                    currentFrame = (JFrame) window;
-                    break;
-                }
-            }
-
-            if (currentFrame != null) {
-                 ((ShipInteriorScreen)currentFrame).stopGameLoop();
-                currentFrame.dispose();
-            } else {
-                System.err.println("Could not find the current ShipInteriorScreen to dispose.");
-            }
-            
-            SpaceScreen ss = new SpaceScreen(null, instance.getPlayerId(), instance.getUsername()); 
-            System.out.println("Exited Ship Interior, returned to Space Screen."); 
-        });
-    }
-
-  
-
     public static void main(String[] args) {
         instance = getInstance();
 
@@ -773,6 +728,8 @@ public class Client {
         } catch (IOException e) {
             System.err.println("Could not connect to the server: " + e.getMessage());
             JOptionPane.showMessageDialog(null, "Could not connect to server: " + e.getMessage(), "Connection Error", JOptionPane.ERROR_MESSAGE);
+            // Optionally, still show StartScreen in a disconnected state or exit
+            SwingUtilities.invokeLater(() -> new StartScreen()); // Or handle error differently
         }
     }
 }

@@ -50,23 +50,6 @@ public class Player extends Entity {
     }
 
     /**
-     * Constructor for Player in Ship Interior
-     * @param x initial x position
-     * @param y initial y position
-     */
-    public Player(int x, int y) {
-        super(x, y, PLAYER_BASE_WIDTH, PLAYER_BASE_HEIGHT, 0.0, 100); 
-        this.username = "Player"; 
-        this.playerId = 0; 
-        this.accelleration = 0.0;
-        this.speed = 0.0;
-        this.direction = 0.0; 
-        updatePlayerShapes();
-        //TODO: UPDATE SHIP INTERIOR TO USE NORMAL PLAYER
-    }
-
-
-    /**
      * Gets the player ID.
      * @return the player ID
      */
@@ -242,26 +225,6 @@ public class Player extends Entity {
         //         getHurtbox().height
         //     );
         // }
-    }
-
-    /**
-     * Draws the player on the screen (for ship interior, no offset).
-     * @param g2d the Graphics2D context to draw on
-     */
-    public void draw(Graphics2D g2d) {
-        playerBody.setFrame(this.x, this.y, this.width, this.height);
-        playerLeftHand.setFrame(this.x - HAND_SIZE / 2.0 + this.width / 4.0, this.y + this.height / 2.0 - HAND_SIZE / 2.0, HAND_SIZE, HAND_SIZE);
-        playerRightHand.setFrame(this.x + this.width / 2.0 + HAND_SIZE / 2.0, this.y + this.height / 2.0 - HAND_SIZE / 2.0, HAND_SIZE, HAND_SIZE);
-        
-        g2d.setColor(Color.BLUE); 
-        g2d.fill(playerBody);
-        g2d.setColor(Color.CYAN); 
-        g2d.fill(playerLeftHand);
-        g2d.fill(playerRightHand);
-
-        g2d.setColor(Color.WHITE);
-        g2d.drawString(username, (float)this.x, (float)this.y - 5);
-        //TODO: SET SHIP INTERIOR TO USE THE ONE FOR NORMAL PLAYER
     }
 
     /**

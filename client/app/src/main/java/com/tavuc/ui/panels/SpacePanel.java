@@ -12,6 +12,10 @@ import com.tavuc.models.space.Ship;
 import com.tavuc.ui.screens.GScreen;
 import com.tavuc.ui.screens.GameScreen;
 import com.tavuc.ui.screens.SpaceScreen;
+import com.tavuc.ui.components.MinimapComponent;
+import com.tavuc.ui.components.MovementKeysComponent;
+import com.tavuc.ui.components.StatusBarsComponent;
+import com.tavuc.ui.components.DialogComponent;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -71,16 +75,19 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
     private int playerId;
     private String username;
     private JFrame mainFrame; 
-    private static final int PANEL_WIDTH = 800; 
-    private static final int PANEL_HEIGHT = 600;
-    private static final int WORLD_WIDTH = PANEL_WIDTH * 5;
-    private static final int WORLD_HEIGHT = PANEL_HEIGHT * 5;
+    // private static final int PANEL_WIDTH = 800; // Will use getWidth()
+    // private static final int PANEL_HEIGHT = 600; // Will use getHeight()
+    // WORLD_WIDTH and WORLD_HEIGHT might need to be re-evaluated or made dynamic if the game world scales with panel size.
+    // For now, let's assume they define a fixed large world.
+    private static final int WORLD_WIDTH = 800 * 5; // Example: Keep fixed for now or make dynamic later
+    private static final int WORLD_HEIGHT = 600 * 5; // Example: Keep fixed for now or make dynamic later
     private static final double PLAYER_SPEED = 5.0; 
     private static final double PROXIMITY_THRESHOLD = 40.0;
     private List<StarData> starField;
     private static final int NUM_STARS = 200;
     private Map<Integer, Ship> otherPlayerShips;
     private static final Gson gson = new Gson();
+    private boolean renderOtherShips = false; // Flag to control rendering
     
 
 
@@ -95,18 +102,21 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
     private static final Color ARROW_COLOR = Color.GREEN;
 
     public SpacePanel(SpaceScreen parentScreen, JFrame mainFrame, int playerId, String username, SpaceManager spaceManager) {
-        super(); 
+        super();
+        // setLayout(null); // UI Components are now in SpaceScreenUILayer
         this.parentScreen = parentScreen; 
         this.mainFrame = mainFrame;
         this.playerId = playerId;
         this.username = username;
         this.spaceManager = spaceManager;
 
-        setPreferredSize(new Dimension(PANEL_WIDTH, PANEL_HEIGHT));
+        // setPreferredSize(new Dimension(PANEL_WIDTH, PANEL_HEIGHT)); // Let the layout manager determine size
         setOpaque(true); 
         setBackground(Color.BLACK);
 
-        this.playerShip = new Ship(PANEL_WIDTH / 2.0, PANEL_HEIGHT / 2.0);
+        // Initialize player ship position based on initial panel dimensions or center of the world
+        // For now, let's use a nominal starting position, assuming the panel will get its size from parent
+        this.playerShip = new Ship(WORLD_WIDTH / 2.0, WORLD_HEIGHT / 2.0); // Start player in center of the world
         this.spaceManager.addShip(this.playerShip); 
         
         this.inputManager = InputManager.getInstance();
@@ -130,12 +140,14 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         this.gameLoopTimer.start();
         this.otherPlayerShips = new HashMap<>();
         
-  
+        // initializeUIComponents(); // UI Components are now in SpaceScreenUILayer
         
         initializeStars();
         fetchInitialSystems();
     
     }
+
+    // private void initializeUIComponents() { ... } // Removed as components are in UILayer
 
     private void fetchInitialSystems() {
         final double initialCenterX = 0;
@@ -217,8 +229,10 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             playerShip.draw(g2d);
         }
 
-        for (Ship otherShip : otherPlayerShips.values()) {
-            otherShip.draw(g2d);
+        if (renderOtherShips) {
+            for (Ship otherShip : otherPlayerShips.values()) {
+                otherShip.draw(g2d);
+            }
         }
 
 
@@ -271,6 +285,26 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         if (parentScreen != null && playerShip != null) {
             parentScreen.updatePlayerCoordinatesOnUI(playerShip.getX(), playerShip.getY());
         }
+
+        // Update UI Components - This will now be handled by SpaceScreen passing data to SpaceScreenUILayer
+        if (parentScreen != null && playerShip != null && spaceManager != null && inputManager != null) {
+            List<Ship> allShipsForUI = new ArrayList<>(otherPlayerShips.values());
+            allShipsForUI.add(playerShip);
+            List<Planet> loadedPlanetsListForUI = new ArrayList<>(spaceManager.getLoadedPlanets());
+            
+            parentScreen.updateUILayerData(
+                (int)playerShip.getX(), (int)playerShip.getY(),
+                loadedPlanetsListForUI,
+                allShipsForUI,
+                playerShip,
+                inputManager.isKeyPressed(KeyEvent.VK_W),
+                inputManager.isKeyPressed(KeyEvent.VK_A),
+                inputManager.isKeyPressed(KeyEvent.VK_S),
+                inputManager.isKeyPressed(KeyEvent.VK_D)
+                // Pass health/shield/dialog text once available on playerShip or elsewhere
+            );
+        }
+
 
         if (spaceManager != null && spaceManager.getSpace() != null) {
             final double MOON_ANGULAR_VELOCITY = 0.002; 

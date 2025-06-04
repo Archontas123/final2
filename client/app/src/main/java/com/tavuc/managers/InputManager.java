@@ -23,7 +23,7 @@ public class InputManager implements KeyListener {
     }
 
     /**
-     * Enum to differentiate between controlling a Player, a Ship, or Player in Ship Interior.
+     * Enum to differentiate between controlling a Player or a Ship.
      */
     public enum ControlTargetType {
         PLAYER,
@@ -196,5 +196,15 @@ public class InputManager implements KeyListener {
      */
     public Ship getShip() {
         return ship;
+    }
+
+    public void simulateKeyPress(int keyCode) {
+        KeyEvent keyEvent = new KeyEvent(new java.awt.Component(){}, KeyEvent.KEY_PRESSED, System.currentTimeMillis(), 0, keyCode, KeyEvent.CHAR_UNDEFINED);
+        this.keyPressed(keyEvent);
+    }
+
+    public void simulateKeyRelease(int keyCode) {
+        KeyEvent keyEvent = new KeyEvent(new java.awt.Component(){}, KeyEvent.KEY_RELEASED, System.currentTimeMillis(), 0, keyCode, KeyEvent.CHAR_UNDEFINED);
+        this.keyReleased(keyEvent);
     }
 }

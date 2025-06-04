@@ -142,39 +142,60 @@ public class WorldManager {
     }
 
     public void processChunkData(RequestChunkResponse response) {
-        if (response == null || response.tiles == null) {
+        if (response == null) {
+            System.err.println("WorldManager: Received null RequestChunkResponse.");
             return;
         }
 
-        try {
-            int chunkX = response.chunkX;
-            int chunkY = response.chunkY;
+        int chunkX = response.chunkX;
+        int chunkY = response.chunkY;
+        Chunk chunk = chunks.computeIfAbsent(new Point(chunkX, chunkY), k -> new Chunk(chunkX, chunkY));
 
-            Chunk chunk = chunks.computeIfAbsent(new Point(chunkX, chunkY), k -> new Chunk(chunkX, chunkY));
-
-            for (TileData tileData : response.tiles) {
-                try {
-                    ColorType colorType = ColorType.valueOf(tileData.colorTypeName);
-                    int globalX = tileData.x; 
-                    int globalY = tileData.y;
-
-                    int localX = globalX - (chunkX * Chunk.CHUNK_SIZE);
-                    int localY = globalY - (chunkY * Chunk.CHUNK_SIZE);
-
-                    Tile clientTile = new Tile(globalX, globalY, tileData.tileType, colorType);
-                    chunk.setTile(localX, localY, clientTile);
-
-                } catch (IllegalArgumentException e) {
-                    // System.err.println("WorldManager: Error parsing ColorType from TileData: " + tileData.colorTypeName + " - " + e.getMessage());
-                } catch (Exception e) {
-                    // System.err.println("WorldManager: Error processing individual tile data: " + gson.toJson(tileData) + " - " + e.getMessage());
+        if (response.tiles == null) {
+            // Offline mode or empty chunk from server: Procedurally generate the chunk
+            System.out.println("WorldManager: No tile data for chunk " + chunkX + "," + chunkY + ". Generating procedurally.");
+            for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
+                for (int y = 0; y < Chunk.CHUNK_SIZE; y++) {
+                    int globalX = chunkX * Chunk.CHUNK_SIZE + x;
+                    int globalY = chunkY * Chunk.CHUNK_SIZE + y;
+                    // Simple procedural generation: alternate between two tile types
+                    String tileType = (x + y) % 2 == 0 ? "GRASS" : "DIRT";
+                    ColorType colorType = (x + y) % 2 == 0 ? ColorType.PRIMARY_SURFACE : ColorType.SECONDARY_SURFACE;
+                    if (Math.random() < 0.1) { // Add some water
+                        tileType = "WATER";
+                        colorType = ColorType.PRIMARY_LIQUID;
+                    }
+                    Tile clientTile = new Tile(globalX, globalY, tileType, colorType);
+                    chunk.setTile(x, y, clientTile);
                 }
             }
-            if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
-        } catch (Exception e) {
-            // System.err.println("WorldManager: Error processing chunk data response: " + gson.toJson(response) + " - " + e.getMessage());
-            // e.printStackTrace();
+        } else {
+            // Process tiles from server response
+            try {
+                for (TileData tileData : response.tiles) {
+                    try {
+                        ColorType colorType = ColorType.valueOf(tileData.colorTypeName);
+                        int globalX = tileData.x; 
+                        int globalY = tileData.y;
+
+                        int localX = globalX - (chunkX * Chunk.CHUNK_SIZE);
+                        int localY = globalY - (chunkY * Chunk.CHUNK_SIZE);
+
+                        Tile clientTile = new Tile(globalX, globalY, tileData.tileType, colorType);
+                        chunk.setTile(localX, localY, clientTile);
+
+                    } catch (IllegalArgumentException e) {
+                        // System.err.println("WorldManager: Error parsing ColorType from TileData: " + tileData.colorTypeName + " - " + e.getMessage());
+                    } catch (Exception e) {
+                        // System.err.println("WorldManager: Error processing individual tile data: " + gson.toJson(tileData) + " - " + e.getMessage());
+                    }
+                }
+            } catch (Exception e) {
+                // System.err.println("WorldManager: Error processing chunk data response: " + gson.toJson(response) + " - " + e.getMessage());
+                // e.printStackTrace();
+            }
         }
+        if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
     }
 
     public void updateVisibleChunks(int playerX, int playerY, int viewWidth, int viewHeight) {

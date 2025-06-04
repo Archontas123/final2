@@ -42,6 +42,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     // private Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Managed by WorldManager
     private Timer playerUpdateRequester;
     private WorldManager worldManager; 
+    private boolean renderOtherPlayers = false; // Flag to control rendering
 
 
     /**
@@ -221,7 +222,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize); 
 
         // Draw other players
-        if (worldManager != null) {
+        if (renderOtherPlayers && worldManager != null) {
             for (Player other : worldManager.getOtherPlayers()) {
                 if (other.getPlayerId() == this.playerId) continue;
 
@@ -247,7 +248,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
 
         // Draw Dummies
-        if (worldManager != null) {
+        if (renderOtherPlayers && worldManager != null) {
             g2d.setColor(Color.GREEN); // Dummies color
             for (com.tavuc.models.entities.Dummy dummy : worldManager.getDummies()) {
                 // Simple circle for dummies for now
@@ -284,7 +285,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         g2d.setFont(originalFont);
 
         // Draw other player names
-        if (worldManager != null) {
+        if (renderOtherPlayers && worldManager != null) {
             for (Player other : worldManager.getOtherPlayers()) {
                 if (other.getPlayerId() == this.playerId) continue;
 

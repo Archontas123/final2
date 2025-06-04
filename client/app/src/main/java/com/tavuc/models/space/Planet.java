@@ -30,6 +30,7 @@ public class Planet {
     private int galaxyY; 
     private transient BufferedImage basePlanetIcon;
     private transient BufferedImage displayedPlanetIcon;
+    private boolean iconNeedsUpdate = true;
     private static final int ICON_SIZE = 128;
 
     /**
@@ -55,6 +56,7 @@ public class Planet {
         this.x = galaxyX; 
         this.y = galaxyY; 
         this.isBoardingIndicatorActive = false;
+        prepareDisplayedIcon(); // Initial preparation
     }
     
     private void loadBaseIcon() {
@@ -122,7 +124,10 @@ public class Planet {
      * @param g The Graphics context to draw on.
      */
     public void draw(Graphics g) {
-        prepareDisplayedIcon();
+        if (iconNeedsUpdate || displayedPlanetIcon == null) {
+            prepareDisplayedIcon();
+            iconNeedsUpdate = false;
+        }
 
         if (displayedPlanetIcon != null) {
             int drawX = (int) (x - ICON_SIZE / 2.0);
@@ -172,7 +177,10 @@ public class Planet {
     }
 
     public void setPlanetType(PlanetType planetType) {
-        this.planetType = planetType;
+        if (this.planetType != planetType) {
+            this.planetType = planetType;
+            this.iconNeedsUpdate = true;
+        }
     }
 
     public double getX() {
@@ -226,7 +234,10 @@ public class Planet {
     }
 
     public void setActiveHueShiftColor(Color activeHueShiftColor) {
-        this.activeHueShiftColor = activeHueShiftColor;
+        if (this.activeHueShiftColor == null || !this.activeHueShiftColor.equals(activeHueShiftColor)) {
+            this.activeHueShiftColor = activeHueShiftColor;
+            this.iconNeedsUpdate = true;
+        }
     }
 
     public Rectangle2D.Double getBounds() {
@@ -243,5 +254,13 @@ public class Planet {
         // Placeholder for planet-specific update logic
         // For example, orbital rotation, resource generation, etc.
         updateDisplayPosition(); // Already exists, can be part of the update
+    }
+
+    public int getSize() {
+        return this.radius * 2; // Or ICON_SIZE if that's the consistent display size
+    }
+
+    public Color getColor() {
+        return this.representativeColor; // Return the base representative color
     }
 }

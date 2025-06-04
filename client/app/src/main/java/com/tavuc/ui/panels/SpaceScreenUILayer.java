@@ -9,50 +9,110 @@ import java.awt.Dimension;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.BorderLayout;
+import java.awt.event.KeyEvent; // For InputManager key codes
+import java.util.List;
 
-public class SpaceScreenUILayer extends JPanel { 
+import com.tavuc.managers.InputManager;
+import com.tavuc.models.space.Planet;
+import com.tavuc.models.space.Ship;
+import com.tavuc.ui.components.MinimapComponent;
+import com.tavuc.ui.components.MovementKeysComponent;
+import com.tavuc.ui.components.StatusBarsComponent;
+import com.tavuc.ui.components.DialogComponent;
 
-    private JButton actionButton;
-    private JLabel coordinatesLabel;
+public class SpaceScreenUILayer extends JPanel {
 
-    public SpaceScreenUILayer() { 
+    private MinimapComponent minimapComponent;
+    private MovementKeysComponent movementKeysComponent;
+    private StatusBarsComponent statusBarsComponent;
+    private DialogComponent dialogComponent;
+
+    private static final int UI_PADDING = 10;
+
+    public SpaceScreenUILayer(InputManager inputManager) {
         setOpaque(false);
         setFocusable(false);
-        setLayout(new BorderLayout());
+        setLayout(null); // Use absolute positioning
 
-        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
-        topPanel.setOpaque(false);
-        coordinatesLabel = new JLabel("X: 0, Y: 0");
-        coordinatesLabel.setFont(new Font("Consolas", Font.BOLD, 14));
-        coordinatesLabel.setForeground(new Color(220, 220, 220));
-        topPanel.add(coordinatesLabel);
-        add(topPanel, BorderLayout.NORTH);
+        minimapComponent = new MinimapComponent();
+        add(minimapComponent);
 
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 15));
-        buttonPanel.setOpaque(false);
-
-        actionButton = new JButton("Enter Ship Interior");
-        actionButton.setFont(new Font("Consolas", Font.BOLD, 14)); 
-        actionButton.setBackground(new Color(45, 60, 80)); 
-        actionButton.setForeground(new Color(220, 220, 220)); 
-        actionButton.setFocusPainted(false);
-        actionButton.setFocusable(false); 
-        actionButton.setPreferredSize(new Dimension(180, 45)); 
-        actionButton.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(80, 100, 120), 2),
-            BorderFactory.createEmptyBorder(8, 15, 8, 15)
-        ));
+        statusBarsComponent = new StatusBarsComponent();
+        add(statusBarsComponent);
         
-        buttonPanel.add(actionButton);
-        add(buttonPanel, BorderLayout.SOUTH);
+        dialogComponent = new DialogComponent();
+        add(dialogComponent);
 
+        movementKeysComponent = new MovementKeysComponent(inputManager);
+        add(movementKeysComponent);
     }
 
-    public JButton getActionButton() {
-        return actionButton;
+    @Override
+    public void doLayout() {
+        super.doLayout();
+
+        int panelWidth = getWidth();
+        int panelHeight = getHeight();
+        int topOffset = 0;
+
+        java.awt.Window windowAncestor = javax.swing.SwingUtilities.getWindowAncestor(this);
+        if (windowAncestor instanceof com.tavuc.ui.screens.GScreen) {
+            com.tavuc.ui.screens.GScreen gScreen = (com.tavuc.ui.screens.GScreen) windowAncestor;
+            com.tavuc.ui.panels.TitleBar titleBar = gScreen.getTitleBarPanel();
+            if (titleBar != null && titleBar.isVisible()) {
+                topOffset = titleBar.getHeight();
+            }
+        }
+
+        if (statusBarsComponent != null) {
+            Dimension statusBarsSize = statusBarsComponent.getPreferredSize();
+            statusBarsComponent.setBounds(UI_PADDING, topOffset + UI_PADDING, statusBarsSize.width, statusBarsSize.height);
+        }
+
+        if (minimapComponent != null) {
+            Dimension minimapSize = minimapComponent.getPreferredSize();
+            minimapComponent.setBounds(panelWidth - minimapSize.width - UI_PADDING, topOffset + UI_PADDING, minimapSize.width, minimapSize.height);
+        }
+        
+        if (dialogComponent != null) {
+            Dimension dialogSize = dialogComponent.getPreferredSize();
+            dialogComponent.setBounds(UI_PADDING, panelHeight - dialogSize.height - UI_PADDING, dialogSize.width, dialogSize.height);
+        }
+
+        if (movementKeysComponent != null) {
+            Dimension movementKeysSize = movementKeysComponent.getPreferredSize();
+            movementKeysComponent.setBounds(panelWidth - movementKeysSize.width - UI_PADDING, panelHeight - movementKeysSize.height - UI_PADDING, movementKeysSize.width, movementKeysSize.height);
+        }
     }
 
     public void updateCoordinates(double x, double y) {
-        coordinatesLabel.setText(String.format("X: %.2f, Y: %.2f", x, y));
+        if (minimapComponent != null) { // Coordinates are now part of MinimapComponent
+            minimapComponent.updateCoordinates((int) x, (int) y);
+        }
+    }
+
+    public void updateMinimapData(List<Planet> planets, List<Ship> ships, Ship playerShip) {
+        if (minimapComponent != null) {
+            minimapComponent.updateMinimapData(planets, ships, playerShip);
+        }
+    }
+
+    public void updateMovementKeys(boolean wPressed, boolean aPressed, boolean sPressed, boolean dPressed) {
+        if (movementKeysComponent != null) {
+            movementKeysComponent.updateKeyStates(wPressed, aPressed, sPressed, dPressed);
+        }
+    }
+
+    public void updateStatusBars(int health, int shield) {
+        if (statusBarsComponent != null) {
+            statusBarsComponent.setHealth(health);
+            statusBarsComponent.setShield(shield);
+        }
+    }
+
+    public void updateDialog(String text) {
+        if (dialogComponent != null) {
+            dialogComponent.setDialogText(text);
+        }
     }
 }
