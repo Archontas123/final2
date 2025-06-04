@@ -218,9 +218,25 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             }
         }
         
-        // Draw combat elements (projectiles, explosions)
+        // Draw combat elements using the combat system's render data
         if (combatSystem != null) {
-            combatSystem.render(g2d, camX, camY);
+            // Draw projectiles
+            List<ShipCombatSystem.ProjectileRenderData> projectiles = combatSystem.getProjectilesToRender();
+            for (ShipCombatSystem.ProjectileRenderData projectile : projectiles) {
+                g2d.setColor(projectile.color);
+                g2d.fillOval(
+                    (int)(projectile.x - projectile.size/2),
+                    (int)(projectile.y - projectile.size/2),
+                    projectile.size,
+                    projectile.size
+                );
+            }
+
+            // Draw explosions
+            List<ShipCombatSystem.ExplosionRenderData> explosions = combatSystem.getExplosionsToRender();
+            for (ShipCombatSystem.ExplosionRenderData explosion : explosions) {
+                drawExplosion(g2d, explosion);
+            }
         }
 
         g2d.setTransform(originalTransform);
@@ -231,6 +247,35 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         if (gameOver) {
             drawGameOverMessage(g2d);
         }
+    }
+
+    /**
+     * Draws an explosion effect based on the provided explosion render data.
+     */
+    private void drawExplosion(Graphics2D g2d, ShipCombatSystem.ExplosionRenderData explosion) {
+        // Save the current transform
+        AffineTransform oldTransform = g2d.getTransform();
+
+        // Translate to explosion center
+        g2d.translate(explosion.x, explosion.y);
+        g2d.scale(explosion.scale, explosion.scale);
+
+        // Create colors with the current alpha value
+        Color[] explosionColors = {
+            new Color(1.0f, 1.0f, 0.2f, explosion.alpha * 0.8f),
+            new Color(1.0f, 0.5f, 0.0f, explosion.alpha * 0.6f),
+            new Color(1.0f, 0.2f, 0.0f, explosion.alpha * 0.4f)
+        };
+
+        int[] sizes = {30, 50, 70};
+
+        for (int i = 0; i < explosionColors.length; i++) {
+            g2d.setColor(explosionColors[i]);
+            g2d.fillOval(-sizes[i]/2, -sizes[i]/2, sizes[i], sizes[i]);
+        }
+
+        // Restore original transform
+        g2d.setTransform(oldTransform);
     }
     
     private void drawGameOverMessage(Graphics2D g2d) {
