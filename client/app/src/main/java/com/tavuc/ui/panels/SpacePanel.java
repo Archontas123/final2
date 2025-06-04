@@ -9,6 +9,7 @@ import com.tavuc.models.space.Moon;
 import com.tavuc.models.space.Planet;
 import com.tavuc.models.space.Ship;
 import com.tavuc.models.space.Projectile;
+import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.ecs.components.HealthComponent;
 import com.tavuc.ecs.systems.ShipCombatSystem;
 import com.tavuc.ui.screens.GameOverScreen;
@@ -417,6 +418,35 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
     private void checkCollisions() {
         if (playerShip == null) return;
         // Collision is handled by the combat system
+    }
+
+    /**
+     * Handles a projectile spawned broadcast from the server.
+     * @param event The ProjectileSpawnedBroadcast from the server
+     */
+    public void handleProjectileSpawned(ProjectileSpawnedBroadcast event) {
+        // Skip if it's our own projectile (already handled locally)
+        if (event.firedBy.equals(String.valueOf(playerId))) {
+            return;
+        }
+
+        // Calculate velocity components from orientation and speed
+        double velocityX = Math.sin(event.orientation) * event.speed;
+        double velocityY = -Math.cos(event.orientation) * event.speed;
+
+        // Create projectile and add it to the combat system
+        Projectile projectile = new Projectile(
+            event.x,
+            event.y,
+            velocityX,
+            velocityY,
+            event.damage,
+            event.firedBy
+        );
+
+        if (combatSystem != null) {
+            combatSystem.addRemoteProjectile(projectile);
+        }
     }
     
     private void fetchMorePlanetsIfNeeded() {

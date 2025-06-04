@@ -560,13 +560,19 @@ public class Client {
                                 break;
                             case "SHIP_LEFT_BROADCAST":
                                 if (currentSpacePanel != null) {
-                                    ShipLeftBroadcast event = gson.fromJson(processedJson, ShipLeftBroadcast.class); 
+                                    ShipLeftBroadcast event = gson.fromJson(processedJson, ShipLeftBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.removeOtherShip(Integer.parseInt(event.playerId)));
                                 }
                                 break;
-                            case "REQUEST_CHUNK_RESPONSE": 
+                            case "PROJECTILE_SPAWNED_BROADCAST":
+                                if (currentSpacePanel != null) {
+                                    ProjectileSpawnedBroadcast event = gson.fromJson(processedJson, ProjectileSpawnedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileSpawned(event));
+                                }
+                                break;
+                            case "REQUEST_CHUNK_RESPONSE":
                                 if (worldManager != null) {
-                                    RequestChunkResponse chunkResponse = gson.fromJson(processedJson, RequestChunkResponse.class); 
+                                    RequestChunkResponse chunkResponse = gson.fromJson(processedJson, RequestChunkResponse.class);
                                     SwingUtilities.invokeLater(() -> worldManager.processChunkData(chunkResponse));
                                 }
                                 break;
