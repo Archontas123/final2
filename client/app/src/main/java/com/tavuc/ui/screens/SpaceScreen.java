@@ -1,7 +1,7 @@
 package com.tavuc.ui.screens;
 
 import javax.swing.*;
-import javax.swing.Timer; 
+import javax.swing.Timer;
 
 import com.tavuc.ui.panels.SpacePanel;
 import com.tavuc.ui.panels.SpaceScreenUILayer;
@@ -14,7 +14,7 @@ import java.util.List;
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener; 
+import java.awt.event.ActionListener;
 
 public class SpaceScreen extends GScreen {
 
@@ -119,13 +119,16 @@ public class SpaceScreen extends GScreen {
 
     public void updateUILayerData(int playerX, int playerY,
                                   List<Planet> planets, List<Ship> ships, Ship playerShip,
-                                  boolean wPressed, boolean aPressed, boolean sPressed, boolean dPressed) {
+                                  boolean wPressed, boolean aPressed, boolean sPressed, boolean dPressed,
+                                  int healthPercent, int shieldPercent, String dialogText) {
         if (uiLayerPanel != null) {
-            uiLayerPanel.updateCoordinates(playerX, playerY); // This was already here, but good to keep
+            uiLayerPanel.updateCoordinates(playerX, playerY);
             uiLayerPanel.updateMinimapData(planets, ships, playerShip);
             uiLayerPanel.updateMovementKeys(wPressed, aPressed, sPressed, dPressed);
-            // uiLayerPanel.updateStatusBars(playerShip.getHealth(), playerShip.getShield()); // When health/shield are on ship
-            // uiLayerPanel.updateDialog("Some dynamic dialog text");
+            uiLayerPanel.updateStatusBars(healthPercent, shieldPercent);
+            if (dialogText != null) {
+                uiLayerPanel.updateDialog(dialogText);
+            }
         }
     }
 }

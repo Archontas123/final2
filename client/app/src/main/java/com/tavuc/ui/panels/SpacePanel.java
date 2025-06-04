@@ -8,6 +8,7 @@ import com.tavuc.managers.InputManager;
 import com.tavuc.models.space.Moon;
 import com.tavuc.models.space.Planet;
 import com.tavuc.models.space.Ship;
+import com.tavuc.ecs.components.HealthComponent;
 
 import com.tavuc.ui.screens.GScreen;
 import com.tavuc.ui.screens.GameScreen;
@@ -277,20 +278,22 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
     private void gameUpdate() {
         if (playerShip == null) return;
 
-
         spaceManager.tick(); 
-    
         sendPlayerShipData();
 
         if (parentScreen != null && playerShip != null) {
             parentScreen.updatePlayerCoordinatesOnUI(playerShip.getX(), playerShip.getY());
         }
 
-        // Update UI Components - This will now be handled by SpaceScreen passing data to SpaceScreenUILayer
+        // Update UI Components with health and shield data
         if (parentScreen != null && playerShip != null && spaceManager != null && inputManager != null) {
             List<Ship> allShipsForUI = new ArrayList<>(otherPlayerShips.values());
             allShipsForUI.add(playerShip);
             List<Planet> loadedPlanetsListForUI = new ArrayList<>(spaceManager.getLoadedPlanets());
+            
+            // Get health and shield percentages
+            int healthPercent = (int)playerShip.getHealthPercentage();
+            int shieldPercent = (int)playerShip.getShieldPercentage();
             
             parentScreen.updateUILayerData(
                 (int)playerShip.getX(), (int)playerShip.getY(),
@@ -300,25 +303,25 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
                 inputManager.isKeyPressed(KeyEvent.VK_W),
                 inputManager.isKeyPressed(KeyEvent.VK_A),
                 inputManager.isKeyPressed(KeyEvent.VK_S),
-                inputManager.isKeyPressed(KeyEvent.VK_D)
-                // Pass health/shield/dialog text once available on playerShip or elsewhere
+                inputManager.isKeyPressed(KeyEvent.VK_D),
+                healthPercent,
+                shieldPercent,
+                null // dialog text - can be added later
             );
         }
 
-
+        // Check for boarding
         if (spaceManager != null && spaceManager.getSpace() != null) {
             final double MOON_ANGULAR_VELOCITY = 0.002; 
 
             for (Planet planet : spaceManager.getLoadedPlanets()) {
                 planet.isNear(playerShip, PROXIMITY_THRESHOLD);
-
-
             }
         }
 
         checkCollisions();
         fetchMorePlanetsIfNeeded(); 
-
+        simulateSpaceCombat();
 
         repaint();
     }
@@ -611,5 +614,22 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         
         g2d.fillPolygon(xPoints, yPoints, 3);
         g2d.setTransform(oldTransform);
+    }
+
+    private void simulateSpaceCombat() {
+        // Test damage simulation - press 'Q' to take damage
+        if (inputManager.isKeyPressed(KeyEvent.VK_Q) && playerShip != null) {
+            playerShip.takeDamage(10f);
+            System.out.println("Damage taken! Health: " + playerShip.getHealth() + ", Shield: " + playerShip.getShield());
+        }
+        
+        // Test healing simulation - press 'H' to heal
+        if (inputManager.isKeyPressed(KeyEvent.VK_H) && playerShip != null) {
+            HealthComponent health = playerShip.getComponents().getComponent(HealthComponent.class);
+            if (health != null) {
+                health.heal(5f);
+                System.out.println("Healed! Health: " + playerShip.getHealth());
+            }
+        }
     }
 }

@@ -10,6 +10,8 @@ import javax.imageio.ImageIO;
 import java.io.IOException;
 import java.io.InputStream; 
 import java.awt.RenderingHints;
+import com.tavuc.ecs.ComponentContainer;
+import com.tavuc.ecs.components.*;
 
 public class Ship {
 
@@ -24,6 +26,8 @@ public class Ship {
 
     private double rotationInput;
     private boolean thrusting;
+    
+    private ComponentContainer components;
 
     private static final double ROTATION_AMOUNT = Math.toRadians(5.0);
     private static final double THRUST_FORCE = 15.0;
@@ -47,7 +51,53 @@ public class Ship {
         this.mass = 100.0;
         this.rotationInput = 0;
         this.thrusting = false;
+        this.components = new ComponentContainer();
+        
+        // Initialize default components
+        components.addComponent(new HealthComponent(100f));
+        components.addComponent(new ShieldComponent(100f, 5f, 3f)); // 5 shield/sec after 3 sec delay
+        
         loadImages();
+    }
+    
+    public ComponentContainer getComponents() {
+        return components;
+    }
+    
+    // Convenience methods for health and shield
+    public float getHealth() {
+        HealthComponent health = components.getComponent(HealthComponent.class);
+        return health != null ? health.getHealth() : 0f;
+    }
+    
+    public float getHealthPercentage() {
+        HealthComponent health = components.getComponent(HealthComponent.class);
+        return health != null ? health.getHealthPercentage() : 0f;
+    }
+    
+    public float getShield() {
+        ShieldComponent shield = components.getComponent(ShieldComponent.class);
+        return shield != null ? shield.getShield() : 0f;
+    }
+    
+    public float getShieldPercentage() {
+        ShieldComponent shield = components.getComponent(ShieldComponent.class);
+        return shield != null ? shield.getShieldPercentage() : 0f;
+    }
+    
+    public void takeDamage(double amount) {
+        ShieldComponent shield = components.getComponent(ShieldComponent.class);
+        HealthComponent health = components.getComponent(HealthComponent.class);
+        
+        if (shield != null && shield.hasShield()) {
+            double shieldDamage = Math.min(amount, shield.getShield());
+            shield.takeDamage((float)shieldDamage);
+            amount -= shieldDamage;
+        }
+        
+        if (amount > 0 && health != null) {
+            health.takeDamage((float)amount);
+        }
     }
 
     public void setX(double x) {
@@ -251,7 +301,6 @@ public class Ship {
             imageIndex = 0;
         }
 
-
         if (shipImages[imageIndex] != null) {
             g2d.drawImage(shipImages[imageIndex], -width / 2, -height / 2, width, height, null);
         } else {
@@ -267,5 +316,11 @@ public class Ship {
      */
     public void update(double deltaTime) {
         updatePosition();
+        
+        // Update shield recharge
+        ShieldComponent shield = components.getComponent(ShieldComponent.class);
+        if (shield != null) {
+            shield.update((float)deltaTime);
+        }
     }
 }
