@@ -51,6 +51,7 @@ import com.tavuc.networking.models.RequestPlanetsAreaResponse;
 import com.tavuc.networking.models.ShipLeftBroadcast;
 import com.tavuc.networking.models.ShipUpdateBroadcast;
 import com.tavuc.networking.models.ShipDamagedBroadcast;
+import com.tavuc.networking.models.ShipDestroyedBroadcast;
 import com.tavuc.networking.models.ShipUpdateRequest;
 import com.tavuc.networking.models.DummyUpdateBroadcast; // Added import
 import com.tavuc.networking.models.DummyRemovedBroadcast; // Added import
@@ -571,6 +572,12 @@ public class Client {
                                 if (currentSpacePanel != null) {
                                     ShipDamagedBroadcast dmgEvent = gson.fromJson(processedJson, ShipDamagedBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.handleShipDamaged(dmgEvent));
+                                }
+                                break;
+                            case "SHIP_DESTROYED_BROADCAST":
+                                if (currentSpacePanel != null) {
+                                    ShipDestroyedBroadcast destroyedEvent = gson.fromJson(processedJson, ShipDestroyedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleShipDestroyed(destroyedEvent));
                                 }
                                 break;
                             case "PROJECTILE_SPAWNED_BROADCAST":

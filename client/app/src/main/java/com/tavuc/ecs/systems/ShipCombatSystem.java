@@ -163,7 +163,7 @@ public class ShipCombatSystem {
      * @param x The X coordinate at which to create the explosion effect
      * @param y the Y coordinate at which to create the explosion effect
      */
-    private void createExplosion(double x, double y) {
+    public void createExplosion(double x, double y) {
         ExplosionData explosion = new ExplosionData(x, y, 1.0); 
         explosions.add(explosion);
         System.out.println("[ShipCombatSystem] Explosion created at: " + x + "," + y);
