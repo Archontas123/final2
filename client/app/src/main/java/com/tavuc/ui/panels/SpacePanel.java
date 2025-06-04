@@ -13,6 +13,7 @@ import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.networking.models.ProjectileUpdateBroadcast;
 import com.tavuc.networking.models.ProjectileRemovedBroadcast;
 import com.tavuc.networking.models.ShipDamagedBroadcast;
+import com.tavuc.networking.models.ShipDestroyedBroadcast;
 import com.tavuc.ecs.components.HealthComponent;
 import com.tavuc.ecs.systems.ShipCombatSystem;
 import com.tavuc.ui.screens.GameOverScreen;
@@ -529,6 +530,32 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             }
         } catch (NumberFormatException ex) {
             System.err.println("SpacePanel: Invalid playerId in ShipDamagedBroadcast: " + event.playerId);
+        }
+    }
+
+    /**
+     * Handles a ship destroyed broadcast from the server.
+     */
+    public void handleShipDestroyed(ShipDestroyedBroadcast event) {
+        try {
+            int id = Integer.parseInt(event.playerId);
+            if (combatSystem != null) {
+                combatSystem.createExplosion(event.x, event.y);
+            }
+
+            if (id == this.playerId) {
+                if (playerShip != null) {
+                    playerShip.setDestroyed(true);
+                }
+                handlePlayerDestroyed();
+            } else {
+                Ship ship = otherPlayerShips.get(id);
+                if (ship != null) {
+                    ship.setDestroyed(true);
+                }
+            }
+        } catch (NumberFormatException ex) {
+            System.err.println("SpacePanel: Invalid playerId in ShipDestroyedBroadcast: " + event.playerId);
         }
     }
     
