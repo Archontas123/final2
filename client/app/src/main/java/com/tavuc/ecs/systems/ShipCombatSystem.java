@@ -16,11 +16,14 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-
+/**
+ * The ShipCombatSystem handles combat logic between ships and projectiles.
+ * Instead of drawing directly, it provides render data for the SpacePanel to draw.
+ */
 public class ShipCombatSystem {
 
     private static final float PROJECTILE_SPEED = 15.0f;
-    private static final int PROJECTILE_SIZE = 8;
+    private static final int PROJECTILE_SIZE = 12; // Increased size for better visibility
     private static final double PROJECTILE_DAMAGE = 10.0;
     private static final double COLLISION_DAMAGE = 25.0;
     private static final double EXPLOSION_DAMAGE = 50.0;
@@ -30,7 +33,7 @@ public class ShipCombatSystem {
     private final Ship playerShip;
     private final List<Projectile> projectiles = new CopyOnWriteArrayList<>();
     private long lastFireTime = 0;
-    private final List<Explosion> explosions = new CopyOnWriteArrayList<>();
+    private final List<ExplosionData> explosions = new CopyOnWriteArrayList<>();
     
     public ShipCombatSystem(Ship playerShip) {
         this.playerShip = playerShip;
@@ -55,21 +58,16 @@ public class ShipCombatSystem {
         double shipCenterX = playerShip.getX() + playerShip.getWidth() / 2.0;
         double shipCenterY = playerShip.getY() + playerShip.getHeight() / 2.0;
         
-        // FIXED: Spawn projectile in front of ship in the direction it's facing
-        // Reduced spawn distance so projectiles start closer to ship (more visible)
-        double spawnDistance = 20; // Smaller distance for better visibility
+        double spawnDistance = playerShip.getWidth() / 2.0 + 10;
         double spawnX = shipCenterX + Math.sin(angle) * spawnDistance;
         double spawnY = shipCenterY - Math.cos(angle) * spawnDistance;
         
-        // FIXED: Velocity should move projectile in the same direction as spawn offset
         double velocityX = Math.sin(angle) * PROJECTILE_SPEED;
-        double velocityY = -Math.cos(angle) * PROJECTILE_SPEED; // Negative because Y increases downward
+        double velocityY = -Math.cos(angle) * PROJECTILE_SPEED;
         
-        // Add ship momentum
         velocityX += playerShip.getDx() * 0.5;
         velocityY += playerShip.getDy() * 0.5;
         
-        // Create and add the projectile to the local list
         Projectile projectile = new Projectile(
             spawnX, spawnY, 
             velocityX, velocityY, 
@@ -78,14 +76,9 @@ public class ShipCombatSystem {
         );
         projectiles.add(projectile);
         
-        System.out.println("[ShipCombatSystem] Fired projectile:");
-        System.out.println("  - Ship center: (" + shipCenterX + ", " + shipCenterY + ")");
-        System.out.println("  - Ship angle: " + Math.toDegrees(angle) + " degrees");
-        System.out.println("  - Spawn at: (" + spawnX + ", " + spawnY + ")");
-        System.out.println("  - Velocity: (" + velocityX + ", " + velocityY + ")");
-        System.out.println("  - Total projectiles: " + projectiles.size());
+        System.out.println("[ShipCombatSystem] Projectile fired from: " + spawnX + "," + spawnY + 
+                          " velocity: " + velocityX + "," + velocityY);
         
-        // Send fire request to server with proper ship data
         FireRequest request = new FireRequest(
             String.valueOf(Client.getInstance().getPlayerId()),
             playerShip.getX(),
@@ -103,7 +96,7 @@ public class ShipCombatSystem {
      */
     public void addRemoteProjectile(Projectile projectile) {
         projectiles.add(projectile);
-        System.out.println("[ShipCombatSystem] Added remote projectile from player " + projectile.getOwnerId() + ". Total projectiles: " + projectiles.size());
+        System.out.println("[ShipCombatSystem] Remote projectile added at: " + projectile.getX() + "," + projectile.getY());
     }
 
     /**
@@ -119,7 +112,6 @@ public class ShipCombatSystem {
         
         ShieldComponent shield = playerShip.getComponents().getComponent(ShieldComponent.class);
         shield.update((float)delta);
-        
     }
     
     /**
@@ -143,10 +135,7 @@ public class ShipCombatSystem {
         }
 
         // Remove projectiles outside the loop
-        if (!projectilesToRemove.isEmpty()) {
-            projectiles.removeAll(projectilesToRemove);
-            System.out.println("[ShipCombatSystem] Removed " + projectilesToRemove.size() + " projectiles. Remaining: " + projectiles.size());
-        }
+        projectiles.removeAll(projectilesToRemove);
     }
     
     /**
@@ -164,12 +153,12 @@ public class ShipCombatSystem {
             for (Ship ship : allShips) {
                 if (ownerId.equals(String.valueOf(Client.getInstance().getPlayerId())) && ship == playerShip) continue;
                 
-                //TODO: Improve Collision Check with actual Hitbox's
                 double dx = projectile.getX() - (ship.getX() + ship.getWidth()/2);
                 double dy = projectile.getY() - (ship.getY() + ship.getHeight()/2);
                 double distance = Math.sqrt(dx*dx + dy*dy);
                 
                 if (distance < ship.getWidth()/2) {
+                    System.out.println("[ShipCombatSystem] Projectile hit ship at: " + ship.getX() + "," + ship.getY());
                     applyDamage(ship, projectile.getDamage());
                     projectile.setActive(false);
                     if (ship.getHealth() <= 0) createExplosion(ship.getX() + ship.getWidth()/2, ship.getY() + ship.getHeight()/2);
@@ -194,6 +183,7 @@ public class ShipCombatSystem {
             double minDistance = (playerShip.getWidth() + otherShip.getWidth()) / 2;
             
             if (distance < minDistance) {
+                System.out.println("[ShipCombatSystem] Ship collision detected");
                 applyDamage(playerShip, COLLISION_DAMAGE);
                 
                 double angle = Math.atan2(dy, dx);
@@ -205,7 +195,6 @@ public class ShipCombatSystem {
                 double playerImpulseY = Math.sin(angle) * forceFactor;
                 playerShip.setDx(playerShip.getDx() + playerImpulseX * (otherMass / playerMass));
                 playerShip.setDy(playerShip.getDy() + playerImpulseY * (otherMass / playerMass));
-                
             }
         }
     }
@@ -216,8 +205,9 @@ public class ShipCombatSystem {
      * @param y the Y coordinate at which to create the explosion effect
      */
     private void createExplosion(double x, double y) {
-        Explosion explosion = new Explosion(x, y, 1.0); 
+        ExplosionData explosion = new ExplosionData(x, y, 1.0); 
         explosions.add(explosion);
+        System.out.println("[ShipCombatSystem] Explosion created at: " + x + "," + y);
         
         List<Ship> nearbyShips = getNearbyShips(x, y, EXPLOSION_RADIUS);
         for (Ship ship : nearbyShips) {
@@ -228,7 +218,6 @@ public class ShipCombatSystem {
             
             double damageMultiplier = 1.0 - (distance / EXPLOSION_RADIUS);
             if (damageMultiplier > 0) applyDamage(ship, EXPLOSION_DAMAGE * damageMultiplier);
-            
         }
     }
     
@@ -270,9 +259,9 @@ public class ShipCombatSystem {
      * @param delta Time passed since last update in seconds
      */
     private void updateExplosions(double delta) {
-        Iterator<Explosion> iterator = explosions.iterator();
+        Iterator<ExplosionData> iterator = explosions.iterator();
         while (iterator.hasNext()) {
-            Explosion explosion = iterator.next();
+            ExplosionData explosion = iterator.next();
             explosion.update(delta);
             
             if (explosion.isFinished()) {
@@ -283,67 +272,48 @@ public class ShipCombatSystem {
     
     /**
      * Applies damage to a ship, considering shields first.
-     * @param Ship the ship to which damage should be applied
-     * @param damage the damage to apply to the Ship
+     * @param ship the ship to which damage should be applied
+     * @param damage the damage to apply to the ship
      */
     private void applyDamage(Ship ship, double damage) {
         ship.takeDamage(damage);
     }
     
     /**
-     * Renders all projectiles and explosions.
-     * @param g2d Graphics2D context for rendering
-     * @param offsetX Camera offset X
-     * @param offsetY Camera offset Y
+     * Gets all projectiles that should be rendered
+     * @return List of projectiles to render
      */
-    public void render(Graphics2D g2d, double offsetX, double offsetY) {
+    public List<ProjectileRenderData> getProjectilesToRender() {
+        List<ProjectileRenderData> renderList = new ArrayList<>();
         for (Projectile projectile : projectiles) {
-            System.out.println("RENDERING PROJECTILE" + projectile.toString());
-            //if (!projectile.isActive()) continue;
-            
-            double screenX = projectile.getX() - offsetX;
-            double screenY = projectile.getY() - offsetY;
-            System.out.println(screenX + "," + screenY);
-            
-            g2d.setColor(Color.RED);
-            g2d.fillOval((int)(screenX - PROJECTILE_SIZE/2), 
-                         (int)(screenY - PROJECTILE_SIZE/2), 
-                         PROJECTILE_SIZE, PROJECTILE_SIZE);
-        }
-        
-        for (Explosion explosion : explosions) {
-            double screenX = explosion.x - offsetX;
-            double screenY = explosion.y - offsetY;
-            
-            float alpha = explosion.getAlpha();
-            float scale = explosion.getScale();
-            
-            AffineTransform oldTransform = g2d.getTransform();
-            
-            g2d.translate(screenX, screenY);
-            g2d.scale(scale, scale);
-            
-            Color[] explosionColors = {
-                new Color(1.0f, 1.0f, 0.2f, alpha * 0.8f),
-                new Color(1.0f, 0.5f, 0.0f, alpha * 0.6f),
-                new Color(1.0f, 0.2f, 0.0f, alpha * 0.4f)
-            };
-            
-            int[] sizes = {30, 50, 70};
-            
-            for (int i = 0; i < explosionColors.length; i++) {
-                g2d.setColor(explosionColors[i]);
-                g2d.fillOval(-sizes[i]/2, -sizes[i]/2, sizes[i], sizes[i]);
+            if (projectile.isActive()) {
+                renderList.add(new ProjectileRenderData(
+                    projectile.getX(),
+                    projectile.getY(),
+                    PROJECTILE_SIZE,
+                    Color.RED
+                ));
             }
-            
-            g2d.setTransform(oldTransform);
         }
+        return renderList;
     }
     
-    public Ship getPlayerShip() {
-        return playerShip;
+    /**
+     * Gets all explosions that should be rendered
+     * @return List of explosions to render
+     */
+    public List<ExplosionRenderData> getExplosionsToRender() {
+        List<ExplosionRenderData> renderList = new ArrayList<>();
+        for (ExplosionData explosion : explosions) {
+            renderList.add(new ExplosionRenderData(
+                explosion.x,
+                explosion.y,
+                explosion.getScale(),
+                explosion.getAlpha()
+            ));
+        }
+        return renderList;
     }
-
     
     /**
      * Handles a player ship being destroyed.
@@ -353,8 +323,6 @@ public class ShipCombatSystem {
             playerShip.getX() + playerShip.getWidth()/2, 
             playerShip.getY() + playerShip.getHeight()/2
         );
-        
-        //TODO: ADD FURTHER HANDLING
     }
     
     /**
@@ -365,53 +333,70 @@ public class ShipCombatSystem {
         return projectiles;
     }
 
+    public Ship getPlayerShip() {
+        return playerShip;
+    }
+    
+    /**
+     * Class containing data needed to render a projectile
+     */
+    public static class ProjectileRenderData {
+        public final double x;
+        public final double y;
+        public final int size;
+        public final Color color;
+        
+        public ProjectileRenderData(double x, double y, int size, Color color) {
+            this.x = x;
+            this.y = y;
+            this.size = size;
+            this.color = color;
+        }
+    }
+    
+    /**
+     * Class containing data needed to render an explosion
+     */
+    public static class ExplosionRenderData {
+        public final double x;
+        public final double y;
+        public final float scale;
+        public final float alpha;
+        
+        public ExplosionRenderData(double x, double y, float scale, float alpha) {
+            this.x = x;
+            this.y = y;
+            this.scale = scale;
+            this.alpha = alpha;
+        }
+    }
 
-    private static class Explosion {
+    /**
+     * Internal class for tracking explosion data
+     */
+    private static class ExplosionData {
         private final double x, y;
         private final double duration;
         private double elapsed = 0;
         
-        /**
-         * A constructor for the Explosion class
-         * @param x the X coordinate of the Explosion
-         * @param y the Y coordinate of the Explosion
-         * @param duration how long the Explosion should last
-         */
-        public Explosion(double x, double y, double duration) {
+        public ExplosionData(double x, double y, double duration) {
             this.x = x;
             this.y = y;
             this.duration = duration;
         }
         
-        /**
-         * 
-         * @param delta Time passed since last update in seconds
-         */
         public void update(double delta) {
             elapsed += delta;
         }
         
-        /**
-         * Check if the Explosion is finished
-         * @return true if its finished false if its not
-         */
         public boolean isFinished() {
             return elapsed >= duration;
         }
         
-
-        /**
-         * Gets the alpha value for the explosion effect
-         * @return Alpha transparency value
-         */
         public float getAlpha() {
             return (float)(1.0 - (elapsed / duration));
         }
         
-        /**
-         * Gets the scale value for the explosion effect
-         * @return Scale factor for rendering
-         */
         public float getScale() {
             double progress = elapsed / duration;
             if (progress < 0.3) {
