@@ -333,19 +333,13 @@ public class ShipCombatSystem {
         return projectiles;
     }
 
-    public Ship getPlayerShip() {
-        return playerShip;
-    }
-    
-    /**
-     * Class containing data needed to render a projectile
-     */
+    /** Data used for rendering a projectile. */
     public static class ProjectileRenderData {
         public final double x;
         public final double y;
         public final int size;
         public final Color color;
-        
+
         public ProjectileRenderData(double x, double y, int size, Color color) {
             this.x = x;
             this.y = y;
@@ -353,16 +347,14 @@ public class ShipCombatSystem {
             this.color = color;
         }
     }
-    
-    /**
-     * Class containing data needed to render an explosion
-     */
+
+    /** Data used for rendering an explosion. */
     public static class ExplosionRenderData {
         public final double x;
         public final double y;
         public final float scale;
         public final float alpha;
-        
+
         public ExplosionRenderData(double x, double y, float scale, float alpha) {
             this.x = x;
             this.y = y;
@@ -372,9 +364,29 @@ public class ShipCombatSystem {
     }
 
     /**
-     * Internal class for tracking explosion data
+     * Returns a list of projectile render data for drawing.
      */
-    private static class ExplosionData {
+    public List<ProjectileRenderData> getProjectilesToRender() {
+        List<ProjectileRenderData> renderData = new ArrayList<>();
+        for (Projectile p : projectiles) {
+            renderData.add(new ProjectileRenderData(p.getX(), p.getY(), PROJECTILE_SIZE, Color.RED));
+        }
+        return renderData;
+    }
+
+    /**
+     * Returns a list of explosion render data for drawing.
+     */
+    public List<ExplosionRenderData> getExplosionsToRender() {
+        List<ExplosionRenderData> renderData = new ArrayList<>();
+        for (Explosion e : explosions) {
+            renderData.add(new ExplosionRenderData(e.x, e.y, e.getScale(), e.getAlpha()));
+        }
+        return renderData;
+    }
+
+
+    private static class Explosion {
         private final double x, y;
         private final double duration;
         private double elapsed = 0;
