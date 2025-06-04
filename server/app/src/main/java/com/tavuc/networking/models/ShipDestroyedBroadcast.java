@@ -1,6 +1,5 @@
 package com.tavuc.networking.models;
 
-
 public class ShipDestroyedBroadcast extends BaseMessage {
     public String playerId;
     public float x;

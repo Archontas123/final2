@@ -1,3 +1,5 @@
+// server/app/src/main/java/com/tavuc/networking/models/FireRequest.java
+
 package com.tavuc.networking.models;
 
 public class FireRequest extends BaseMessage {

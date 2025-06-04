@@ -136,6 +136,25 @@ public class Ship {
     }
 
     /**
+     * Updates the ship's health based on server damage broadcast.
+     * This ensures health values are consistent across all clients.
+     * 
+     * @param currentHealth The current health value from server
+     * @param maxHealth The maximum health value from server
+     */
+    public void updateHealthFromServer(float currentHealth, float maxHealth) {
+        HealthComponent health = components.getComponent(HealthComponent.class);
+        if (health != null) {
+            health.setMaxHealth(maxHealth);
+            health.setCurrentHealth(currentHealth);
+        }
+        
+        // Set destroyed state if health is zero
+        if (currentHealth <= 0) {
+            setDestroyed(true);
+        }
+    }
+    /**
      * Updates the ship.
      * @param deltaTime Time passed since the last update in seconds
      */
