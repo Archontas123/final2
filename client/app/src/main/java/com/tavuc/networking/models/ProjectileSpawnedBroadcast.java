@@ -8,6 +8,8 @@ public class ProjectileSpawnedBroadcast extends BaseMessage {
     public int height;
     public float orientation;
     public float speed;
+    public float velocityX;
+    public float velocityY;
     public float damage;
     public String firedBy;
 

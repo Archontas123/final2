@@ -475,9 +475,8 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             return;
         }
 
-        // Calculate velocity components from orientation and speed
-        double velocityX = Math.sin(event.orientation) * event.speed;
-        double velocityY = -Math.cos(event.orientation) * event.speed;
+        double velocityX = event.velocityX;
+        double velocityY = event.velocityY;
 
         // Create projectile and add it to the combat system
         Projectile projectile = new Projectile(
