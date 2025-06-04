@@ -71,10 +71,17 @@ public class ShipCombatSystem {
         );
         projectiles.add(projectile);
         
-        FireRequest request = new FireRequest();
+        FireRequest request = new FireRequest(
+            String.valueOf(Client.getInstance().getPlayerId()),
+            playerShip.getX(),
+            playerShip.getY(),
+            playerShip.getAngle(),
+            playerShip.getDx(),
+            playerShip.getDy()
+        );
         Client.sendFireRequest(request);
     }
-    
+
     /**
      * Updates all projectiles, explosions, and handles collisions.
      * @param delta Time passed since last update in seconds
@@ -96,20 +103,23 @@ public class ShipCombatSystem {
      * @param delta Time passed since last update in seconds
      */
     private void updateProjectiles(double delta) {
-        Iterator<Projectile> iterator = projectiles.iterator();
-        while (iterator.hasNext()) {
-            Projectile projectile = iterator.next();
+        List<Projectile> projectilesToRemove = new ArrayList<>();
+
+        for (Projectile projectile : projectiles) {
             projectile.tick(delta);
-            
+
             double distanceFromPlayer = Math.sqrt(
-                Math.pow(projectile.getX() - playerShip.getX(), 2) + 
+                Math.pow(projectile.getX() - playerShip.getX(), 2) +
                 Math.pow(projectile.getY() - playerShip.getY(), 2)
             );
-            
+
             if (distanceFromPlayer > 1500 || !projectile.isActive()) {
-                iterator.remove();
+                projectilesToRemove.add(projectile);
             }
         }
+
+        // Remove projectiles outside the loop
+        projectiles.removeAll(projectilesToRemove);
     }
     
     /**

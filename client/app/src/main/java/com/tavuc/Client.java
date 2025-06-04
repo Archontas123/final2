@@ -438,7 +438,11 @@ public class Client {
             System.err.println("Client not connected, cannot send fire request.");
             return;
         }
-        out.println(gson.toJson(request));
+        try {
+            out.println(new Gson().toJson(request));
+        } catch (Exception e) {
+            System.err.println("Error sending fire request: " + e.getMessage());
+        }
     }
 
     /**
