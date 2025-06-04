@@ -1,6 +1,4 @@
-
 package com.tavuc.networking.models;
-
 
 public class ShipDamagedBroadcast extends BaseMessage {
     public String playerId;
@@ -13,7 +11,7 @@ public class ShipDamagedBroadcast extends BaseMessage {
         this.type = "SHIP_DAMAGED_BROADCAST";
     }
 
-    public ShipDamagedBroadcast(String playerId, float damageAmount, float currentHealth, 
+    public ShipDamagedBroadcast(String playerId, float damageAmount, float currentHealth,
                                 float maxHealth, String damageDealerId) {
         this.type = "SHIP_DAMAGED_BROADCAST";
         this.playerId = playerId;
