@@ -1,10 +1,15 @@
 package com.tavuc.networking.models;
 
+
 public class AttackResultData {
     public String playerId;
     public float damageDealt;
     public float newHealth;
     public boolean blocked;
+
+
+    public AttackResultData() {}
+
 
     public AttackResultData(String playerId, float damageDealt, float newHealth, boolean blocked) {
         this.playerId = playerId;
@@ -13,5 +18,4 @@ public class AttackResultData {
         this.blocked = blocked;
     }
 
-    public AttackResultData() {}
 }
