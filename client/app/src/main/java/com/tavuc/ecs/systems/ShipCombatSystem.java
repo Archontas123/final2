@@ -220,15 +220,10 @@ public class ShipCombatSystem {
      * @param delta Time passed since last update in seconds
      */
     private void updateExplosions(double delta) {
-        Iterator<ExplosionData> iterator = explosions.iterator();
-        while (iterator.hasNext()) {
-            ExplosionData explosion = iterator.next();
+        explosions.removeIf(explosion -> {
             explosion.update(delta);
-            
-            if (explosion.isFinished()) {
-                iterator.remove();
-            }
-        }
+            return explosion.isFinished();
+        });
     }
     
     /**
