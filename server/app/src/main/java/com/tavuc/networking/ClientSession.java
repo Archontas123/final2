@@ -146,6 +146,9 @@ public class ClientSession implements Runnable {
                 case "SHIP_UPDATE_REQUEST":
                     handleShipUpdateCommand(jsonMessage);
                     break;
+                case "ATTACK_REQUEST":
+                    handleAttackRequest(jsonMessage);
+                    break;
                 case "FIRE_REQUEST":
                     handleFireRequest(jsonMessage);
                     break;
@@ -578,6 +581,19 @@ public class ClientSession implements Runnable {
         }
 
         networkManager.updateShip(getPlayerId(), req.x, req.y, req.angle, req.dx, req.dy, req.thrusting, true, this);
+    }
+
+    private void handleAttackRequest(String jsonMessage) {
+        AttackRequest req = gson.fromJson(jsonMessage, AttackRequest.class);
+        if (!isAuthenticated() || player == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not authenticated.")));
+            return;
+        }
+        if (currentGameService == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not in a game.")));
+            return;
+        }
+        currentGameService.handleAttackRequest(player, new com.tavuc.utils.Vector2D(req.directionX, req.directionY));
     }
 
     private void handleFireRequest(String jsonMessage) {
