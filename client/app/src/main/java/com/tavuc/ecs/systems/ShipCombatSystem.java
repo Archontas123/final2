@@ -25,7 +25,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class ShipCombatSystem {
 
     // Keep in sync with server projectile speed for prediction
-    private static final float PROJECTILE_SPEED = 40.0f;
+    // Increased to make dodging more challenging
+    private static final float PROJECTILE_SPEED = 120.0f;
     private static final int PROJECTILE_SIZE = 12; // Increased size for better visibility
     private static final double PROJECTILE_DAMAGE = 10.0;
     private static final double COLLISION_DAMAGE = 25.0;
