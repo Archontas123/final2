@@ -17,12 +17,14 @@ public class PlayerCombatComponent {
     private float health = 100f;
     private final Map<String, StatusEffect> activeEffects = new HashMap<>();
     private boolean attacking;
+    private boolean attackProcessed;
     private Vector2D attackDirection;
     private long lastAttackTime;
 
     public PlayerCombatComponent(Player player) {
         this.player = player;
         this.equippedWeapon = WeaponRegistry.createWeaponInstance("lightsaber_1");
+        this.attackProcessed = false;
     }
 
     public boolean attemptAttack(Vector2D direction) {
@@ -30,6 +32,7 @@ public class PlayerCombatComponent {
         if (!equippedWeapon.canAttack()) return false;
         this.attacking = true;
         this.attackDirection = direction;
+        this.attackProcessed = false;
         this.lastAttackTime = System.currentTimeMillis();
         return equippedWeapon.performAttack(player, direction);
     }
@@ -37,6 +40,8 @@ public class PlayerCombatComponent {
     public void update() {
         if (attacking && System.currentTimeMillis() - lastAttackTime > 500) {
             attacking = false;
+            attackProcessed = false;
+            attackDirection = null;
         }
         Iterator<Map.Entry<String, StatusEffect>> it = activeEffects.entrySet().iterator();
         while (it.hasNext()) {
@@ -62,5 +67,24 @@ public class PlayerCombatComponent {
 
     public boolean isAttacking() {
         return attacking;
+    }
+
+    public boolean wasAttackProcessed() {
+        return attackProcessed;
+    }
+
+    public void setAttackProcessed(boolean processed) {
+        this.attackProcessed = processed;
+    }
+
+    public void takeDamage(float amount, Player attacker) {
+        float finalDamage = amount;
+        for (StatusEffect effect : activeEffects.values()) {
+            finalDamage = effect.modifyIncomingDamage(finalDamage);
+        }
+        this.health -= finalDamage;
+        if (this.health < 0) {
+            this.health = 0;
+        }
     }
 }
