@@ -2,14 +2,13 @@ package com.tavuc.networking.models;
 
 import java.util.List;
 
-/**
- * Broadcast sent to all players after an attack is processed.
- */
+
 public class AttackResultBroadcast extends BaseMessage {
     public String attackerId;
     public double directionX;
     public double directionY;
     public List<AttackResultData> results;
+
 
     public AttackResultBroadcast() {}
 

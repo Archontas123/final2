@@ -8,13 +8,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
+
 import com.tavuc.models.combat.PlayerCombatComponent;
 
 public class Player extends Entity {
     
     private String username;
     private String password;
-    private double directionAngle; 
+    private double directionAngle;
     private double lastSpaceX;
     private double lastSpaceY;
     private double lastSpaceAngle;
@@ -30,7 +31,7 @@ public class Player extends Entity {
         super(id, username.trim(), 0, 0, 100.0, 60, 60); 
         this.username = username.trim();
         this.password = password;
-        this.directionAngle = 0.0; 
+        this.directionAngle = 0.0;
         this.lastSpaceX = 0.0; // Default to 0,0 or a system entry point
         this.lastSpaceY = 0.0;
         this.lastSpaceAngle = 0.0;

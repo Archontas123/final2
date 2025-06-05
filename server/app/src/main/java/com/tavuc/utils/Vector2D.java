@@ -1,8 +1,6 @@
 package com.tavuc.utils;
 
-/**
- * Simple 2D vector utility class used for combat calculations.
- */
+
 public class Vector2D {
     public double x;
     public double y;
@@ -16,9 +14,19 @@ public class Vector2D {
         this.y = y;
     }
 
+    public Vector2D add(Vector2D other) {
+        return new Vector2D(this.x + other.x, this.y + other.y);
+    }
+
+
     public Vector2D subtract(Vector2D other) {
         return new Vector2D(this.x - other.x, this.y - other.y);
     }
+
+    public Vector2D multiply(double scalar) {
+        return new Vector2D(this.x * scalar, this.y * scalar);
+    }
+
 
     public double magnitude() {
         return Math.sqrt(x * x + y * y);
@@ -26,6 +34,7 @@ public class Vector2D {
 
     public Vector2D normalize() {
         double mag = magnitude();
+        if (mag == 0) return new Vector2D(0,0);
         if (mag == 0) {
             return new Vector2D(0, 0);
         }
