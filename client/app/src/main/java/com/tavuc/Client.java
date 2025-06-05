@@ -553,10 +553,14 @@ public class Client {
                                 break;
                             case "SHIP_UPDATE_BROADCAST":
                                 if (currentSpacePanel != null) {
-                                    ShipUpdateBroadcast event = gson.fromJson(processedJson, ShipUpdateBroadcast.class); 
+                                    ShipUpdateBroadcast event = gson.fromJson(processedJson, ShipUpdateBroadcast.class);
                                     try {
                                         int pId = Integer.parseInt(event.playerId);
-                                        SwingUtilities.invokeLater(() -> currentSpacePanel.updateOtherShip(pId, event.x, event.y, event.angle, event.dx, event.dy, event.thrusting));
+                                        if (pId == instance.getPlayerId()) {
+                                            SwingUtilities.invokeLater(() -> currentSpacePanel.updatePlayerShip(event.x, event.y, event.angle, event.dx, event.dy, event.thrusting));
+                                        } else {
+                                            SwingUtilities.invokeLater(() -> currentSpacePanel.updateOtherShip(pId, event.x, event.y, event.angle, event.dx, event.dy, event.thrusting));
+                                        }
                                     } catch (NumberFormatException e) {
                                         System.err.println("Listener: Error parsing playerId for SHIP_UPDATE_BROADCAST: " + event.playerId);
                                     }
