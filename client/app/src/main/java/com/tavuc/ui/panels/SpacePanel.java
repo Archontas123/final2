@@ -69,7 +69,7 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
     // Other players
     private Map<Integer, Ship> otherPlayerShips = new ConcurrentHashMap<>();
     private boolean renderOtherShips = true;
-    
+
     // Combat system
     private ShipCombatSystem combatSystem;
     
@@ -433,6 +433,27 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         if (playerShip != null && Client.currentSpacePanel == this) {
             Client.sendShipUpdate(playerId, playerShip.getX(), playerShip.getY(), playerShip.getAngle(), playerShip.getDx(), playerShip.getDy(), playerShip.isThrusting());
         }
+    }
+
+    /**
+     * Updates the local player's ship based on server data.
+     * This is used when reconnecting so the ship appears at its
+     * last known coordinates rather than the default spawn point.
+     */
+    public void updatePlayerShip(double x, double y, double angle, double dx, double dy, boolean thrusting) {
+        if (playerShip == null) {
+            playerShip = new Ship(x, y);
+            spaceManager.addShip(playerShip);
+            combatSystem = new ShipCombatSystem(playerShip);
+            inputManager.setShipTarget(playerShip);
+        }
+
+        playerShip.setX(x);
+        playerShip.setY(y);
+        playerShip.setAngle(angle);
+        playerShip.setDx(dx);
+        playerShip.setDy(dy);
+        playerShip.setThrusting(thrusting);
     }
 
     public void updateOtherShip(int otherPlayerId, double x, double y, double angle, double dx, double dy, boolean thrusting) {
