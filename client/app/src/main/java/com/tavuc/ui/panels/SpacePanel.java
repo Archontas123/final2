@@ -16,7 +16,7 @@ import com.tavuc.networking.models.ShipDamagedBroadcast;
 import com.tavuc.networking.models.ShipDestroyedBroadcast;
 import com.tavuc.ecs.components.HealthComponent;
 import com.tavuc.ecs.systems.ShipCombatSystem;
-import com.tavuc.ui.screens.GameOverScreen;
+import com.tavuc.ui.panels.GameOverPanel;
 import com.tavuc.ui.screens.GScreen;
 import com.tavuc.ui.screens.SpaceScreen;
 
@@ -99,8 +99,16 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         setOpaque(true); 
         setBackground(Color.BLACK);
 
-        // Initialize player ship in center of the world
-        this.playerShip = new Ship(WORLD_WIDTH / 2.0, WORLD_HEIGHT / 2.0);
+        // Initialize player ship slightly offset from the center so multiple
+        // players don't stack directly on top of each other when respawning
+        double SPAWN_RADIUS = 200.0;
+        java.util.Random rand = new java.util.Random();
+        double angle = rand.nextDouble() * Math.PI * 2.0;
+        double distance = rand.nextDouble() * SPAWN_RADIUS;
+        double spawnX = WORLD_WIDTH / 2.0 + Math.cos(angle) * distance;
+        double spawnY = WORLD_HEIGHT / 2.0 + Math.sin(angle) * distance;
+
+        this.playerShip = new Ship(spawnX, spawnY);
         this.spaceManager.addShip(this.playerShip);
         
         // Initialize combat system
@@ -247,9 +255,9 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
 
         drawPlanetArrows(g2d, camX, camY);
         
-        // Draw game over message if applicable
+        // If game is over, no additional HUD needed here
         if (gameOver) {
-            drawGameOverMessage(g2d);
+            return;
         }
     }
 
@@ -282,35 +290,6 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         g2d.setTransform(oldTransform);
     }
     
-    private void drawGameOverMessage(Graphics2D g2d) {
-        String message = "SHIP DESTROYED";
-        String subMessage = "Press ESC to return";
-        
-        g2d.setFont(new Font("Arial", Font.BOLD, 36));
-        FontMetrics fm = g2d.getFontMetrics();
-        int messageWidth = fm.stringWidth(message);
-        
-        int x = (getWidth() - messageWidth) / 2;
-        int y = getHeight() / 2 - 40;
-        
-        // Draw shadow
-        g2d.setColor(new Color(0, 0, 0, 180));
-        g2d.fillRect(x - 20, y - fm.getAscent() - 10, messageWidth + 40, 100);
-        
-        // Draw main message
-        g2d.setColor(new Color(255, 50, 50));
-        g2d.drawString(message, x, y);
-        
-        // Draw sub message
-        g2d.setFont(new Font("Arial", Font.PLAIN, 18));
-        fm = g2d.getFontMetrics();
-        int subMessageWidth = fm.stringWidth(subMessage);
-        x = (getWidth() - subMessageWidth) / 2;
-        y += 40;
-        
-        g2d.setColor(Color.WHITE);
-        g2d.drawString(subMessage, x, y);
-    }
 
     private void drawStars(Graphics2D g2d) {
         double parallaxFactor = 0.1;
@@ -414,15 +393,14 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         if (!gameOver) {
             gameOver = true;
             combatSystem.handlePlayerDestroyed();
-            
-            // Show game over screen after a delay
+
+            // Show game over panel after a short delay
             Timer gameOverTimer = new Timer(3000, e -> {
-                // Return to main menu or show game over screen
                 SwingUtilities.invokeLater(() -> {
-                    // Implementation depends on your game flow
-                    // Could return to main menu or show specific game over screen
-                    //parentScreen.dispose();
-                    //new GameOverScreen(playerId, username).setVisible(true);
+                    if (parentScreen != null) {
+                        GameOverPanel panel = new GameOverPanel(parentScreen, playerId, username);
+                        parentScreen.showOverlay(panel);
+                    }
                 });
             });
             gameOverTimer.setRepeats(false);

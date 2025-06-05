@@ -131,4 +131,25 @@ public class SpaceScreen extends GScreen {
             }
         }
     }
+
+    /**
+     * Adds an overlay component above the main content.
+     * Useful for game over panels or dialogs.
+     */
+    public void showOverlay(JComponent overlay) {
+        overlay.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
+        layeredPane.add(overlay, JLayeredPane.PALETTE_LAYER);
+        layeredPane.revalidate();
+        layeredPane.repaint();
+        overlay.requestFocusInWindow();
+    }
+
+    /**
+     * Removes a previously added overlay component.
+     */
+    public void removeOverlay(JComponent overlay) {
+        layeredPane.remove(overlay);
+        layeredPane.revalidate();
+        layeredPane.repaint();
+    }
 }
