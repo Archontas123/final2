@@ -8,6 +8,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Properties;
 
+import com.tavuc.models.combat.PlayerCombatComponent;
+
 public class Player extends Entity {
     
     private String username;
@@ -16,6 +18,7 @@ public class Player extends Entity {
     private double lastSpaceX;
     private double lastSpaceY;
     private double lastSpaceAngle;
+    private PlayerCombatComponent combatComponent;
 
     /**
      * Constructor for Player
@@ -31,6 +34,7 @@ public class Player extends Entity {
         this.lastSpaceX = 0.0; // Default to 0,0 or a system entry point
         this.lastSpaceY = 0.0;
         this.lastSpaceAngle = 0.0;
+        this.combatComponent = new PlayerCombatComponent(this);
     }
 
     /** 
@@ -87,6 +91,10 @@ public class Player extends Entity {
 
     public void setLastSpaceAngle(double lastSpaceAngle) {
         this.lastSpaceAngle = lastSpaceAngle;
+    }
+
+    public PlayerCombatComponent getCombatComponent() {
+        return combatComponent;
     }
 
     public String getIdAsString() {
