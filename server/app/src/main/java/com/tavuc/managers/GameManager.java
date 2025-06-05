@@ -23,9 +23,9 @@ import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
 import com.tavuc.networking.models.AttackResultBroadcast;
 import com.tavuc.networking.models.AttackResultData;
-import com.tavuc.combat.HitDetectionSystem;
+import com.tavuc.models.combat.HitDetectionSystem;
 import com.tavuc.utils.Vector2D;
-import com.tavuc.combat.PlayerCombatComponent;
+import com.tavuc.models.combat.PlayerCombatComponent;
 
 
 public class GameManager {
