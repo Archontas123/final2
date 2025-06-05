@@ -19,6 +19,9 @@ import com.tavuc.ecs.systems.ShipCombatSystem;
 import com.tavuc.ui.panels.GameOverPanel;
 import com.tavuc.ui.screens.GScreen;
 import com.tavuc.ui.screens.SpaceScreen;
+import com.tavuc.ui.screens.GameScreen;
+import com.tavuc.networking.models.JoinGameResponse;
+import com.google.gson.Gson;
 
 import java.awt.*;
 import java.awt.event.*;
@@ -623,8 +626,20 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
                         // Attempt to join planet
                         try {
                             String jsonResponseString = Client.joinPlanet(planet.getPlanetId(), planet.getPlanetName());
-                            // Process response as before...
-                            // This section would handle planet boarding
+                            JoinGameResponse resp = new Gson().fromJson(jsonResponseString, JoinGameResponse.class);
+                            if (resp != null && resp.success) {
+                                SwingUtilities.invokeLater(() -> {
+                                    if (parentScreen != null) {
+                                        parentScreen.dispose();
+                                    }
+                                    GameScreen gameScreen = new GameScreen(Client.getInstance().getPlayerId(),
+                                            Client.getInstance().getUsername(), Integer.parseInt(resp.gameId), resp.planetName);
+                                    gameScreen.setVisible(true);
+                                });
+                            } else {
+                                String msg = (resp != null) ? resp.message : "Unknown error";
+                                JOptionPane.showMessageDialog(this, "Failed to join planet: " + msg, "Join Error", JOptionPane.ERROR_MESSAGE);
+                            }
                         } catch (Exception ex) {
                             JOptionPane.showMessageDialog(this, "Error joining planet: " + ex.getMessage(), "Join Error", JOptionPane.ERROR_MESSAGE);
                         }
