@@ -122,7 +122,66 @@ public class CombatManager {
         );
         
         networkManager.broadcastMessageToAllActiveSessions(broadcast);
-        
+
+        return true;
+    }
+
+    /**
+     * Alternate fire method using explicit ship parameters. Used when a PlayerShip
+     * instance is not available (e.g. players on foot in a GameManager).
+     */
+    public boolean processFireRequest(String playerId, double shipX, double shipY,
+                                      double shipAngle, double shipDx, double shipDy) {
+        long currentTime = System.currentTimeMillis();
+        Long lastFireTime = lastFireTimes.get(playerId);
+        if (lastFireTime != null && currentTime - lastFireTime < FIRE_COOLDOWN_MS) {
+            return false;
+        }
+
+        lastFireTimes.put(playerId, currentTime);
+
+        float spawnDistance = PROJECTILE_HEIGHT; // reasonable forward offset
+        float spawnX = (float) (shipX + Math.sin(shipAngle) * spawnDistance);
+        float spawnY = (float) (shipY - Math.cos(shipAngle) * spawnDistance);
+
+        float velocityX = (float) (Math.sin(shipAngle) * PROJECTILE_SPEED);
+        float velocityY = (float) (-Math.cos(shipAngle) * PROJECTILE_SPEED);
+
+        velocityX += shipDx * 0.5f;
+        velocityY += shipDy * 0.5f;
+
+        String projectileId = "proj_" + UUID.randomUUID();
+        ProjectileEntity projectile = new ProjectileEntity(
+            projectileId,
+            spawnX,
+            spawnY,
+            PROJECTILE_WIDTH,
+            PROJECTILE_HEIGHT,
+            (float) shipAngle,
+            velocityX,
+            velocityY,
+            PROJECTILE_DAMAGE,
+            playerId
+        );
+
+        activeProjectiles.put(projectileId, projectile);
+
+        ProjectileSpawnedBroadcast broadcast = new ProjectileSpawnedBroadcast(
+            projectileId,
+            (int) spawnX,
+            (int) spawnY,
+            PROJECTILE_WIDTH,
+            PROJECTILE_HEIGHT,
+            (float) shipAngle,
+            (float) Math.sqrt(velocityX * velocityX + velocityY * velocityY),
+            velocityX,
+            velocityY,
+            PROJECTILE_DAMAGE,
+            playerId
+        );
+
+        networkManager.broadcastMessageToAllActiveSessions(broadcast);
+
         return true;
     }
     
