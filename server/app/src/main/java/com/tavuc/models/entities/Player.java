@@ -9,7 +9,7 @@ import java.nio.file.Paths;
 import java.util.Properties;
 
 
-import com.tavuc.combat.PlayerCombatComponent;
+import com.tavuc.models.combat.PlayerCombatComponent;
 
 public class Player extends Entity {
     
