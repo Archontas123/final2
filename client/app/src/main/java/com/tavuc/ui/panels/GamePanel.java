@@ -42,7 +42,11 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     // private Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Managed by WorldManager
     private Timer playerUpdateRequester;
     private WorldManager worldManager; 
-    private boolean renderOtherPlayers = false; // Flag to control rendering
+    // Rendering of other players was previously disabled which meant a player
+    // could not see anyone else walking around on a planet.  Enabling this flag
+    // by default allows the GamePanel to draw the players managed by
+    // WorldManager.
+    private boolean renderOtherPlayers = true; // Flag to control rendering
 
 
     /**
