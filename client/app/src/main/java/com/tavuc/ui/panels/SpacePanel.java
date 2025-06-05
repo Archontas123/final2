@@ -509,20 +509,14 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             int id = Integer.parseInt(event.playerId);
             if (id == this.playerId) {
                 if (playerShip != null) {
-                    HealthComponent hc = playerShip.getComponents().getComponent(HealthComponent.class);
-                    if (hc != null) {
-                        hc.setMaxHealth(event.maxHealth);
-                        hc.setCurrentHealth(event.currentHealth);
-                    }
+                    playerShip.updateHealthFromServer(event.currentHealth, event.maxHealth);
+                    playerShip.triggerHitEffect();
                 }
             } else {
                 Ship ship = otherPlayerShips.get(id);
                 if (ship != null) {
-                    HealthComponent hc = ship.getComponents().getComponent(HealthComponent.class);
-                    if (hc != null) {
-                        hc.setMaxHealth(event.maxHealth);
-                        hc.setCurrentHealth(event.currentHealth);
-                    }
+                    ship.updateHealthFromServer(event.currentHealth, event.maxHealth);
+                    ship.triggerHitEffect();
                     if (event.currentHealth <= 0) {
                         ship.setDestroyed(true);
                     }
