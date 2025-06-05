@@ -29,7 +29,8 @@ public class CombatManager {
     private static final int PROJECTILE_HEIGHT = 8;
     private static final float PROJECTILE_DAMAGE = 10.0f;
     private static final float COLLISION_DAMAGE = 25.0f;
-    private static final float EXPLOSION_DAMAGE = 50.0f;
+    // Reduced so explosions don't instantly destroy nearby players
+    private static final float EXPLOSION_DAMAGE = 30.0f;
     private static final float EXPLOSION_RADIUS = 150.0f;
     private static final long FIRE_COOLDOWN_MS = 300;
     

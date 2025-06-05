@@ -30,7 +30,8 @@ public class ShipCombatSystem {
     private static final int PROJECTILE_SIZE = 12; // Increased size for better visibility
     private static final double PROJECTILE_DAMAGE = 10.0;
     private static final double COLLISION_DAMAGE = 25.0;
-    private static final double EXPLOSION_DAMAGE = 50.0;
+    // Match server value so explosions only deal moderate damage
+    private static final double EXPLOSION_DAMAGE = 30.0;
     private static final double EXPLOSION_RADIUS = 150.0;
     private static final long FIRE_COOLDOWN_MS = 300; 
     
