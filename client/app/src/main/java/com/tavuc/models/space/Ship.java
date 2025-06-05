@@ -136,6 +136,15 @@ public class Ship {
     }
 
     /**
+     * Triggers the visual hit effect without modifying health.
+     * Useful when the server informs the client of damage dealt.
+     */
+    public void triggerHitEffect() {
+        lastDamageTime = System.currentTimeMillis();
+        shieldHitEffect = 1.0f;
+    }
+
+    /**
      * Updates the ship's health based on server damage broadcast.
      * This ensures health values are consistent across all clients.
      * 
