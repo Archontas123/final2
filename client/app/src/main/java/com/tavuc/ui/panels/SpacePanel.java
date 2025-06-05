@@ -662,11 +662,29 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             if (spaceManager != null && spaceManager.getSpace() != null) {
                 for (Planet planet : spaceManager.getLoadedPlanets()) {
                     if (planet.isNear(playerShip, 40) && planet.getBounds().contains(worldClickPoint)) {
-                        // Attempt to join planet
                         try {
                             String jsonResponseString = Client.joinPlanet(planet.getPlanetId(), planet.getPlanetName());
-                            // Process response as before...
-                            // This section would handle planet boarding
+
+                            com.google.gson.Gson gson = new com.google.gson.Gson();
+                            com.tavuc.networking.models.JoinGameResponse resp =
+                                gson.fromJson(jsonResponseString, com.tavuc.networking.models.JoinGameResponse.class);
+
+                            if (resp != null && resp.success) {
+                                SwingUtilities.invokeLater(() -> {
+                                    if (parentScreen != null) {
+                                        parentScreen.dispose();
+                                    }
+                                    try {
+                                        int gameId = Integer.parseInt(resp.gameId);
+                                        new com.tavuc.ui.screens.GameScreen(playerId, username, gameId, planet.getPlanetName()).setVisible(true);
+                                    } catch (NumberFormatException ex) {
+                                        JOptionPane.showMessageDialog(this, "Invalid game ID from server.", "Join Error", JOptionPane.ERROR_MESSAGE);
+                                    }
+                                });
+                            } else {
+                                String msg = (resp != null && resp.message != null) ? resp.message : "Unknown error";
+                                JOptionPane.showMessageDialog(this, "Failed to join planet: " + msg, "Join Error", JOptionPane.ERROR_MESSAGE);
+                            }
                         } catch (Exception ex) {
                             JOptionPane.showMessageDialog(this, "Error joining planet: " + ex.getMessage(), "Join Error", JOptionPane.ERROR_MESSAGE);
                         }
