@@ -139,6 +139,9 @@ public class SpaceScreen extends GScreen {
     public void showOverlay(JComponent overlay) {
         overlay.setBounds(0, 0, layeredPane.getWidth(), layeredPane.getHeight());
         layeredPane.add(overlay, JLayeredPane.PALETTE_LAYER);
+        if (uiLayerPanel != null) {
+            layeredPane.remove(uiLayerPanel);
+        }
         layeredPane.revalidate();
         layeredPane.repaint();
         overlay.requestFocusInWindow();
@@ -149,6 +152,9 @@ public class SpaceScreen extends GScreen {
      */
     public void removeOverlay(JComponent overlay) {
         layeredPane.remove(overlay);
+        if (uiLayerPanel != null) {
+            layeredPane.add(uiLayerPanel, JLayeredPane.PALETTE_LAYER);
+        }
         layeredPane.revalidate();
         layeredPane.repaint();
     }
