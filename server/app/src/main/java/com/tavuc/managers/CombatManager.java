@@ -23,7 +23,8 @@ import com.tavuc.networking.models.ShipDestroyedBroadcast;
  * Handles projectiles, collisions, and damage.
  */
 public class CombatManager {
-    private static final float PROJECTILE_SPEED = 25.0f;
+    // Increased speed so fired projectiles travel faster across the map
+    private static final float PROJECTILE_SPEED = 40.0f;
     private static final int PROJECTILE_WIDTH = 8;
     private static final int PROJECTILE_HEIGHT = 8;
     private static final float PROJECTILE_DAMAGE = 10.0f;
