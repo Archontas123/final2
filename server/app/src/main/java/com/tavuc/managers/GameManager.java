@@ -21,6 +21,11 @@ import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
+import com.tavuc.networking.models.AttackResultBroadcast;
+import com.tavuc.networking.models.AttackResultData;
+import com.tavuc.combat.HitDetectionSystem;
+import com.tavuc.utils.Vector2D;
+import com.tavuc.combat.PlayerCombatComponent;
 
 
 public class GameManager {
@@ -34,6 +39,7 @@ public class GameManager {
     private final Map<String, BaseShip> aiShips = new ConcurrentHashMap<>(); // Implemented AI ship tracking
     private final Map<Integer, Dummy> dummies = new ConcurrentHashMap<>();
     private int nextDummyId = 0;
+    private HitDetectionSystem hitDetection = new HitDetectionSystem();
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
@@ -196,6 +202,14 @@ public class GameManager {
         playerToUpdate.setDirectionAngle(directionAngle);
     }
 
+    public void handleAttackRequest(Player player, Vector2D direction) {
+        if (player == null) return;
+        PlayerCombatComponent combat = player.getCombatComponent();
+        if (combat != null) {
+            combat.attemptAttack(direction.normalize());
+        }
+    }
+
     /**
      * Retrieves the chunk data for a specific chunk in the planet associated with this game.
      * @param chunkX The x-coordinate of the chunk.
@@ -275,6 +289,8 @@ public class GameManager {
                 broadcastToGame(dummyUpdateMsg);
             }
 
+            updatePlayerCombat();
+            processAttacks();
 
             for (Player player : players) {
                 ClientSession session = playerSessions.get(player);
@@ -328,6 +344,44 @@ public class GameManager {
      */
     public int getMaxPlayers() {
         return maxPlayers;
+    }
+
+    private void updatePlayerCombat() {
+        for (Player player : getPlayersInGame()) {
+            if (player.getCombatComponent() != null) {
+                player.getCombatComponent().update();
+            }
+        }
+    }
+
+    private void processAttacks() {
+        for (Player attacker : getPlayersInGame()) {
+            PlayerCombatComponent combat = attacker.getCombatComponent();
+            if (combat == null || !combat.isAttacking()) continue;
+            if (combat.wasAttackProcessed()) continue;
+
+            Vector2D dir = combat.getAttackDirection();
+            if (dir == null) continue;
+
+            java.util.List<Player> hitPlayers = hitDetection.detectMeleeHits(attacker, dir, this);
+            float damage = combat.getEquippedWeapon() != null ? combat.getEquippedWeapon().getDamage() : 10.0f;
+
+            java.util.List<AttackResultData> results = new java.util.ArrayList<>();
+            for (Player target : hitPlayers) {
+                PlayerCombatComponent tc = target.getCombatComponent();
+                if (tc != null) {
+                    tc.takeDamage(damage, attacker);
+                    results.add(new AttackResultData(target.getIdAsString(), damage, tc.getHealth(), false));
+                }
+            }
+
+            combat.setAttackProcessed(true);
+
+            if (!results.isEmpty()) {
+                AttackResultBroadcast br = new AttackResultBroadcast(attacker.getIdAsString(), dir.x, dir.y, results);
+                broadcastToGame(br);
+            }
+        }
     }
     
 
