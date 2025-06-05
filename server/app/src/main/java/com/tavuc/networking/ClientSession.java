@@ -203,12 +203,13 @@ public class ClientSession implements Runnable {
                     loggedInPlayer.getLastSpaceX(),
                     loggedInPlayer.getLastSpaceY(),
                     loggedInPlayer.getLastSpaceAngle(),
-                    0, 
-                    0, 
-                    false, 
-                    true, 
+                    0,
+                    0,
+                    false,
+                    true,
                     this
                 );
+                networkManager.sendActiveShipsToSession(this);
                 System.out.println("Session " + sessionId + ": Player " + loggedInPlayer.getId() + " logged in. Ship restored/created in space at X: " + loggedInPlayer.getLastSpaceX() + ", Y: " + loggedInPlayer.getLastSpaceY());
             }
 
@@ -597,34 +598,44 @@ public class ClientSession implements Runnable {
     }
 
     private void handleFireRequest(String jsonMessage) {
-    if (!isAuthenticated() || player == null) {
-        sendMessage(gson.toJson(new ErrorMessage("Not authenticated or player data missing.")));
-        return;
-    }
+        if (!isAuthenticated() || player == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not authenticated or player data missing.")));
+            return;
+        }
 
-    if (networkManager == null) {
-        sendMessage(gson.toJson(new ErrorMessage("Network service unavailable to process fire request.")));
-        return;
-    }
-    
-    // Get reference to the combat manager through network manager
-    CombatManager combatManager = networkManager.getCombatManager();
-    if (combatManager == null) {
-        System.out.println("Session " + sessionId + ": Player " + player.getId() + " tried to fire but CombatManager is null.");
-        return;
-    }
+        if (networkManager == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Network service unavailable to process fire request.")));
+            return;
+        }
 
-    PlayerShip playerShip = networkManager.getPlayerShip(player.getId());
-    if (playerShip == null) {
-        System.out.println("Session " + sessionId + ": Player " + player.getId() + " tried to fire but has no active ship instance.");
-        return;
+        FireRequest req = gson.fromJson(jsonMessage, FireRequest.class);
+
+        CombatManager combatManager = networkManager.getCombatManager();
+        if (combatManager == null) {
+            System.out.println("Session " + sessionId + ": Player " + player.getId() + " tried to fire but CombatManager is null.");
+            return;
+        }
+
+        PlayerShip playerShip = networkManager.getPlayerShip(player.getId());
+        boolean fireSuccessful = false;
+
+        if (playerShip != null) {
+            fireSuccessful = combatManager.processFireRequest(String.valueOf(player.getId()), this);
+        } else if (req != null) {
+            fireSuccessful = combatManager.processFireRequest(
+                String.valueOf(player.getId()),
+                req.shipX,
+                req.shipY,
+                req.shipAngle,
+                req.shipDx,
+                req.shipDy
+            );
+        } else {
+            System.out.println("Session " + sessionId + ": FireRequest data missing and no active ship instance.");
+        }
+
+        if (!fireSuccessful) {
+            // Optional: send cooldown or error message
+        }
     }
-    
-    // Process fire request through combat manager
-    boolean fireSuccessful = combatManager.processFireRequest(String.valueOf(player.getId()), this);
-    if (!fireSuccessful) {
-        // Optional: Notify client of cooldown (or just silently ignore)
-        // sendMessage(gson.toJson(new ErrorMessage("Weapon still on cooldown.")));
-    }
-}
 }

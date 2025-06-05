@@ -116,7 +116,13 @@ public class NetworkManager implements ClientSessionListener {
         if (combatManager != null) {
             combatManager.update(deltaTime);
         }
-        
+
+        if (lobbyManager != null) {
+            for (GameManager gm : lobbyManager.getActiveGameServices()) {
+                gm.update();
+            }
+        }
+
         // Check for ship collisions
         checkShipCollisions();
     }
@@ -319,10 +325,32 @@ public class NetworkManager implements ClientSessionListener {
         }
     }
 
-    public void broadcastMessageToAllActiveSessions(String message) { 
+    public void broadcastMessageToAllActiveSessions(String message) {
         for (ClientSession session : sessions) {
-            if (session.getPlayerId() != 0) { 
-                session.sendRawMessage(message); 
+            if (session.getPlayerId() != 0) {
+                session.sendRawMessage(message);
+            }
+        }
+    }
+
+    /**
+     * Sends the current active ships to the specified session. Used when a player
+     * first logs in so they can see existing ships.
+     */
+    public void sendActiveShipsToSession(ClientSession session) {
+        for (BaseShip ship : activeEntityShips.values()) {
+            if (ship instanceof PlayerShip) {
+                PlayerShip ps = (PlayerShip) ship;
+                ShipUpdateBroadcast msg = new ShipUpdateBroadcast(
+                    ps.getPlayerId(),
+                    ps.getX(),
+                    ps.getY(),
+                    ps.getOrientation(),
+                    ps.getVelocityX(),
+                    ps.getVelocityY(),
+                    false
+                );
+                session.sendMessage(msg);
             }
         }
     }
