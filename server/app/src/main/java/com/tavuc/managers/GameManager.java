@@ -122,24 +122,6 @@ public class GameManager {
         );
         broadcastToGameExceptSender(newPlayerJoinedMsg, session);
 
-        // Send existing players' info to the new player
-        for (Map.Entry<Player, ClientSession> entry : playerSessions.entrySet()) {
-            Player existingPlayer = entry.getKey();
-            // Don't send the new player's own info back to them
-            if (!existingPlayer.getIdAsString().equals(player.getIdAsString())) {
-                PlayerJoinedBroadcast existingPlayerMsg = new PlayerJoinedBroadcast(
-                        existingPlayer.getIdAsString(),
-                        existingPlayer.getUsername(),
-                        existingPlayer.getX(),
-                        existingPlayer.getY(),
-                        existingPlayer.getDx(),
-                        existingPlayer.getDy(),
-                        existingPlayer.getDirectionAngle()
-                );
-                System.out.println("GameService " + gameId + ": Sending existing player " + existingPlayer.getUsername() + " (ID: " + existingPlayer.getIdAsString() + ") info to new player " + player.getUsername() + " (ID: " + player.getIdAsString() + ")");
-                session.sendMessage(existingPlayerMsg);
-            }
-        }
 
         System.out.println("GameService " + gameId + ": Player " + player.getUsername() + " (ID: " + player.getId() + ") with session " + session.getSessionId() + " added to game.");
         return true;

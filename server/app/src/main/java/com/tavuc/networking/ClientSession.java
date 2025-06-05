@@ -265,6 +265,21 @@ public class ClientSession implements Runnable {
 
                 sendMessage(gson.toJson(new JoinGameResponse(true, "Successfully joined game.", String.valueOf(joinedGame.getGameId()), joinedGame.getPlanetName(), playersInGameData)));
 
+                for (Player p : joinedGame.getPlayersInGame()) {
+                    if (!p.getIdAsString().equals(player.getIdAsString())) {
+                        PlayerJoinedBroadcast existingPlayerMsg = new PlayerJoinedBroadcast(
+                                p.getIdAsString(),
+                                p.getUsername(),
+                                p.getX(),
+                                p.getY(),
+                                p.getDx(),
+                                p.getDy(),
+                                p.getDirectionAngle()
+                        );
+                        sendMessage(existingPlayerMsg);
+                    }
+                }
+
             } catch (NumberFormatException ex) {
                 sendMessage(gson.toJson(new JoinGameResponse(false, "Invalid game ID format", req.gameId, null, null)));
             } catch (GameJoinException e) {
