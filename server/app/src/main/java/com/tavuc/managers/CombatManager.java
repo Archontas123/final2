@@ -138,7 +138,7 @@ public class CombatManager {
 
             boolean removed = false;
 
-            if (projectile.getLifetime() > 5.0f) {
+            if (projectile.getLifetime() > 15.0f) {
                 projectileIterator.remove();
                 removed = true;
             } else if (checkProjectileCollisions(projectile)) {
