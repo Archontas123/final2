@@ -414,15 +414,14 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
         if (!gameOver) {
             gameOver = true;
             combatSystem.handlePlayerDestroyed();
-            
-            // Show game over screen after a delay
+
+            // Show game over screen after a short delay
             Timer gameOverTimer = new Timer(3000, e -> {
-                // Return to main menu or show game over screen
                 SwingUtilities.invokeLater(() -> {
-                    // Implementation depends on your game flow
-                    // Could return to main menu or show specific game over screen
-                    //parentScreen.dispose();
-                    //new GameOverScreen(playerId, username).setVisible(true);
+                    if (parentScreen != null) {
+                        parentScreen.dispose();
+                    }
+                    new GameOverScreen(playerId, username).setVisible(true);
                 });
             });
             gameOverTimer.setRepeats(false);
