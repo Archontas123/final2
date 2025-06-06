@@ -192,7 +192,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
 
 
-        int playerSize = 40;
+        // Increase the player rendering size for better visibility
+        int playerSize = 80;
         int handSize = playerSize / 3;
         double handDistance = playerSize * 0.6;
         double handOffsetAngle = Math.PI / 7;
