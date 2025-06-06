@@ -21,6 +21,7 @@ import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
+import com.tavuc.networking.models.PlayerKilledBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
 
 
@@ -209,6 +210,14 @@ public class GameManager {
                 target.getHealth()
         );
         broadcastToGame(dmg);
+
+        if (target.getHealth() <= 0) {
+            PlayerKilledBroadcast killed = new PlayerKilledBroadcast(
+                    target.getIdAsString(),
+                    attacker.getIdAsString()
+            );
+            broadcastToGame(killed);
+        }
     }
 
     /**
