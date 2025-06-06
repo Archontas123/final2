@@ -96,6 +96,18 @@ public class Entity extends GameObject {
     }
 
     /**
+     * Reduces the entity's health by the specified amount.
+     * Health will not drop below zero.
+     * @param amount The damage amount
+     */
+    public void takeDamage(double amount) {
+        this.health -= amount;
+        if (this.health < 0) {
+            this.health = 0;
+        }
+    }
+
+    /**
      * Gets the acceleration of the player.
      * @return the acceleration
      */
