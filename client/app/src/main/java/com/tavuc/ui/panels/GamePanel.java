@@ -31,6 +31,10 @@ import java.util.concurrent.TimeoutException;
 import javax.swing.SwingUtilities;
 import java.util.stream.Collectors;
 import java.awt.geom.AffineTransform;
+import java.awt.image.BufferedImage;
+import javax.imageio.ImageIO;
+import java.io.InputStream;
+import java.io.IOException;
 
 
 
@@ -54,6 +58,9 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     private long lastPushUse = 0;
     private long lastPullUse = 0;
 
+    private java.awt.image.BufferedImage playerSprite;
+    private java.awt.image.BufferedImage[] healthbarSprites = new java.awt.image.BufferedImage[7];
+
 
     /**
      * Constructor for GamePanel
@@ -71,7 +78,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         this.inputManager = InputManager.getInstance();
         this.inputManager.setPlayerTarget(this.player);
         this.inputManager.setControlTarget(InputManager.ControlTargetType.PLAYER);
-        
+
         // Use Client's WorldManager if available, otherwise create a new one
         if (Client.worldManager != null && Client.worldManager.getGameId() == gameId) {
             this.worldManager = Client.worldManager;
@@ -92,6 +99,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         gameLoopTimer.start();
 
         Client.currentGamePanel = this;
+
+        loadSprites();
 
         try {
             Client.requestPlanetPalette(this.gameId);
@@ -204,9 +213,9 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
 
         int playerSize = 40;
-        int handSize = playerSize / 3;
-        double handDistance = playerSize * 0.6;
-        double handOffsetAngle = Math.PI / 7;
+        int handSize = playerSize / 3; // unused now but kept for compatibility
+        double handDistance = playerSize * 0.6; // unused
+        double handOffsetAngle = Math.PI / 7; // unused
         int textPadding = 5;
         int arcSize = 10;
         int nametagYOffset = 15;
@@ -215,29 +224,20 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         java.awt.Font boldFont = originalFont.deriveFont(java.awt.Font.BOLD);
 
      
-        g2d.setColor(Color.BLUE);
         int playerBodyWorldCenterX = player.getX() + playerSize / 2;
         int playerBodyWorldCenterY = player.getY() + playerSize / 2;
 
-        g2d.fillOval(player.getX(), player.getY(), playerSize, playerSize); 
-
-        double playerAngle = player.getDirection();
-        double leftHandAngle = playerAngle - handOffsetAngle;
-        int leftHandWorldCenterX = playerBodyWorldCenterX + (int) (handDistance * Math.cos(leftHandAngle));
-        int leftHandWorldCenterY = playerBodyWorldCenterY + (int) (handDistance * Math.sin(leftHandAngle));
-        g2d.fillOval(leftHandWorldCenterX - handSize / 2, leftHandWorldCenterY - handSize / 2, handSize, handSize);
-
-        double rightHandAngle = playerAngle + handOffsetAngle;
-        int rightHandWorldCenterX = playerBodyWorldCenterX + (int) (handDistance * Math.cos(rightHandAngle));
-        int rightHandWorldCenterY = playerBodyWorldCenterY + (int) (handDistance * Math.sin(rightHandAngle));
-        g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize);
+        if (playerSprite != null) {
+            g2d.drawImage(playerSprite, player.getX(), player.getY(), playerSize, playerSize, null);
+        } else {
+            g2d.setColor(Color.BLUE);
+            g2d.fillOval(player.getX(), player.getY(), playerSize, playerSize);
+        }
 
         if (player.getDamageEffect() > 0f) {
             int alpha = (int)(player.getDamageEffect() * 150);
             g2d.setColor(new Color(255, 0, 0, alpha));
             g2d.fillOval(player.getX(), player.getY(), playerSize, playerSize);
-            g2d.fillOval(leftHandWorldCenterX - handSize / 2, leftHandWorldCenterY - handSize / 2, handSize, handSize);
-            g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize);
         }
 
         // Draw other players
@@ -248,30 +248,16 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
                 other.updateDamageEffect();
 
                 g2d.setColor(Color.RED);
-            int otherPlayerBodyWorldCenterX = other.getX() + playerSize / 2;
-            int otherPlayerBodyWorldCenterY = other.getY() + playerSize / 2;
-
-            g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize); 
-
-            g2d.setColor(new Color(200, 0, 0)); 
-            double otherPlayerAngle = other.getDirection();
-
-            double otherLeftHandAngle = otherPlayerAngle - handOffsetAngle;
-            int otherLeftHandWorldCenterX = otherPlayerBodyWorldCenterX + (int) (handDistance * Math.cos(otherLeftHandAngle));
-            int otherLeftHandWorldCenterY = otherPlayerBodyWorldCenterY + (int) (handDistance * Math.sin(otherLeftHandAngle));
-            g2d.fillOval(otherLeftHandWorldCenterX - handSize / 2, otherLeftHandWorldCenterY - handSize / 2, handSize, handSize);
-
-            double otherRightHandAngle = otherPlayerAngle + handOffsetAngle;
-            int otherRightHandWorldCenterX = otherPlayerBodyWorldCenterX + (int) (handDistance * Math.cos(otherRightHandAngle));
-            int otherRightHandWorldCenterY = otherPlayerBodyWorldCenterY + (int) (handDistance * Math.sin(otherRightHandAngle));
-            g2d.fillOval(otherRightHandWorldCenterX - handSize / 2, otherRightHandWorldCenterY - handSize / 2, handSize, handSize);
+            if (playerSprite != null) {
+                g2d.drawImage(playerSprite, other.getX(), other.getY(), playerSize, playerSize, null);
+            } else {
+                g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
+            }
 
             if (other.getDamageEffect() > 0f) {
                 int oAlpha = (int)(other.getDamageEffect() * 150);
                 g2d.setColor(new Color(255, 0, 0, oAlpha));
                 g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
-                g2d.fillOval(otherLeftHandWorldCenterX - handSize / 2, otherLeftHandWorldCenterY - handSize / 2, handSize, handSize);
-                g2d.fillOval(otherRightHandWorldCenterX - handSize / 2, otherRightHandWorldCenterY - handSize / 2, handSize, handSize);
             }
             }
         }
@@ -334,6 +320,12 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
 
         g2d.setTransform(originalTransform);
+
+        // Draw player health bar
+        int healthIdx = Math.max(0, Math.min(6, player.getHealth()));
+        if (healthbarSprites[healthIdx] != null) {
+            g2d.drawImage(healthbarSprites[healthIdx], 10, 10, null);
+        }
 
         // --- Fog of war / lighting effect ---
         int panelWidth = getWidth();
@@ -529,6 +521,27 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
         } else {
             System.out.println("[GamePanel] No target in melee range");
+        }
+    }
+
+    private void loadSprites() {
+        try (InputStream is = getClass().getClassLoader().getResourceAsStream("assets/player/base_main_pixel.png")) {
+            if (is != null) {
+                playerSprite = ImageIO.read(is);
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to load player sprite: " + e.getMessage());
+        }
+
+        for (int i = 0; i <= 6; i++) {
+            String path = "assets/healthbar/healthbar_" + i + "-6.png";
+            try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
+                if (is != null) {
+                    healthbarSprites[i] = ImageIO.read(is);
+                }
+            } catch (IOException e) {
+                System.err.println("Failed to load healthbar sprite " + path + ": " + e.getMessage());
+            }
         }
     }
 }

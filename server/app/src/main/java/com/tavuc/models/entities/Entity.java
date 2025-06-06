@@ -180,9 +180,6 @@ public class Entity extends GameObject {
 
             newX += (int) this.dx;
             newY += (int) this.dy;
-
-            int newX = getX() + (int) this.dx;
-            int newY = getY() + (int) this.dy;
             setPosition(newX, newY);
         }
         updateHurtbox();
