@@ -132,7 +132,17 @@ public class Entity extends GameObject {
         int newX = getX() + (int)this.dx;
         int newY = getY() + (int)this.dy;
         setPosition(newX, newY);
-        this.hurtbox.setLocation(newX + (getWidth() - this.hurtbox.width) / 2, newY + (getHeight() - this.hurtbox.height) / 2);
+        updateHurtbox();
+    }
+
+    /**
+     * Repositions the hurtbox to stay centered on the entity.
+     */
+    private void updateHurtbox() {
+        this.hurtbox.setLocation(
+            getX() + (getWidth() - this.hurtbox.width) / 2,
+            getY() + (getHeight() - this.hurtbox.height) / 2
+        );
     }
 
     /**
@@ -140,7 +150,8 @@ public class Entity extends GameObject {
      * @return the hurtbox
      */
     public Rectangle getHurtbox() {
-        return hurtbox;
+        updateHurtbox();
+        return hurtbox.getBounds();
     }
 
     /**
