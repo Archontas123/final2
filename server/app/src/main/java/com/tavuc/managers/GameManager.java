@@ -7,7 +7,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 import com.tavuc.models.GameObject;
-import com.tavuc.models.entities.Dummy;
 import com.tavuc.models.entities.Entity;
 import com.tavuc.models.entities.Player;
 import com.tavuc.models.planets.Chunk;
@@ -15,8 +14,6 @@ import com.tavuc.models.planets.ColorPallete;
 import com.tavuc.models.planets.Planet;
 import com.tavuc.models.planets.Tile;
 import com.tavuc.networking.ClientSession;
-import com.tavuc.networking.models.DummyUpdateBroadcast;
-import com.tavuc.networking.models.DummyRemovedBroadcast;
 import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
@@ -34,8 +31,6 @@ public class GameManager {
     private final Map<Player, ClientSession> playerSessions = new ConcurrentHashMap<>();
     private final Map<String, Player> sessionToPlayer = new ConcurrentHashMap<>();
     private final Map<String, BaseShip> aiShips = new ConcurrentHashMap<>(); // Implemented AI ship tracking
-    private final Map<Integer, Dummy> dummies = new ConcurrentHashMap<>();
-    private int nextDummyId = 0;
 
     // Damage dealt by players while on the ground
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
@@ -53,40 +48,7 @@ public class GameManager {
         this.planet = planet;
         this.planetName = planet.getName();
         this.maxPlayers = maxPlayers;
-        // Spawn some Dummies
-        spawnDummies(5); // Example: Spawn 5 dummies
         System.out.println("GameService " + gameId + " (" + planetName + ") initialized with max " + maxPlayers + " players.");
-    }
-
-    private void spawnDummies(int count) {
-        if (playerSessions.isEmpty()) {
-            System.out.println("GameManager " + gameId + ": No players in game, not spawning dummies.");
-            return;
-        }
-
-        List<Player> currentPlayers = new ArrayList<>(playerSessions.keySet());
-        java.util.Random random = new java.util.Random();
-
-        for (int i = 0; i < count; i++) {
-            Player targetPlayer = currentPlayers.get(random.nextInt(currentPlayers.size()));
-            
-            float spawnRadius = 100.0f; // Max distance from player
-            float angle = (float) (random.nextDouble() * 2 * Math.PI);
-            float distance = (float) (random.nextDouble() * spawnRadius);
-            
-            float x = targetPlayer.getX() + (float) (Math.cos(angle) * distance);
-            float y = targetPlayer.getY() + (float) (Math.sin(angle) * distance);
-
-            // Ensure dummies are within planet bounds if applicable - for now, simple offset
-            // This might need adjustment based on how planet boundaries are defined and checked.
-            // Example: Clamp to a generic 0-500 range if no specific planet bounds logic is available here.
-            // x = Math.max(0, Math.min(x, 500)); 
-            // y = Math.max(0, Math.min(y, 500));
-
-            Dummy dummy = new Dummy(nextDummyId++, x, y);
-            dummies.put(dummy.getId(), dummy);
-            System.out.println("GameManager " + gameId + ": Spawned Dummy " + dummy.getId() + " at (" + x + ", " + y + ") near Player " + targetPlayer.getId());
-        }
     }
 
     /**
@@ -116,10 +78,6 @@ public class GameManager {
         playerSessions.put(player, session);
         sessionToPlayer.put(session.getSessionId(), player);
 
-        // If this is the first player, try spawning dummies
-        if (playerSessions.size() == 1) {
-            spawnDummies(5); // Or a configurable number
-        }
 
         PlayerJoinedBroadcast newPlayerJoinedMsg = new PlayerJoinedBroadcast(
                 player.getIdAsString(), 
@@ -312,12 +270,6 @@ public class GameManager {
                aiShip.update();
             }
 
-            // Update Dummies
-            for (Dummy dummy : dummies.values()) {
-                dummy.update();
-                DummyUpdateBroadcast dummyUpdateMsg = new DummyUpdateBroadcast(dummy.getId(), dummy.getX(), dummy.getY(), dummy.getDx(), dummy.getDy());
-                broadcastToGame(dummyUpdateMsg);
-            }
 
 
             for (Player player : players) {
