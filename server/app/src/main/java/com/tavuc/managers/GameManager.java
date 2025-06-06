@@ -178,6 +178,14 @@ public class GameManager {
             return;
         }
 
+        // Update the player's absolute position based on the values supplied by
+        // the client. Previously only the velocity (dx/dy) was recorded which
+        // caused the server to integrate movement independently and quickly lead
+        // to desynchronised positions between clients. By explicitly updating
+        // the player's coordinates here we ensure the server state mirrors the
+        // client's authoritative position for the current tick.
+        playerToUpdate.setPosition(x, y);
+
         playerToUpdate.setDx(dx);
         playerToUpdate.setDy(dy);
         playerToUpdate.setDirectionAngle(directionAngle);
