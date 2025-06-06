@@ -199,6 +199,7 @@ public class GameManager {
         }
 
         target.takeDamage(PLAYER_ATTACK_DAMAGE);
+        target.unfreeze();
 
         PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(
                 target.getIdAsString(),
@@ -216,6 +217,42 @@ public class GameManager {
             // Remove the target from the game so other clients stop receiving
             // position updates and the player disappears from the planet.
             removePlayer(target, playerSessions.get(target));
+        }
+    }
+
+    /**
+     * Processes a player ability action such as freeze, push, or pull.
+     */
+    public synchronized void handlePlayerAbility(int casterId, int targetId, int abilityType) {
+        Player caster = null;
+        Player target = null;
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == casterId) caster = p;
+            if (p.getId() == targetId) target = p;
+        }
+        if (caster == null || target == null) return;
+
+        double dx = target.getX() - caster.getX();
+        double dy = target.getY() - caster.getY();
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist == 0) dist = 1;
+
+        switch (abilityType) {
+            case 1: // freeze
+                target.freeze(2000);
+                break;
+            case 2: // push
+            {
+                double vel = 2.0;
+                target.applyPush(dx / dist * vel, dy / dist * vel, 500);
+                break;
+            }
+            case 3: // pull
+            {
+                double vel = 2.0;
+                target.applyPush(-dx / dist * vel, -dy / dist * vel, 500);
+                break;
+            }
         }
     }
 

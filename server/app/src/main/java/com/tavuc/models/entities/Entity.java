@@ -14,6 +14,10 @@ public class Entity extends GameObject {
     private double dy;
     private double health;
     private double acceleration;
+    private long frozenUntil = 0;
+    private double pushVelX = 0;
+    private double pushVelY = 0;
+    private long pushUntil = 0;
 
     /**
      * Constructor for Entity
@@ -105,6 +109,8 @@ public class Entity extends GameObject {
         if (this.health < 0) {
             this.health = 0;
         }
+        // Taking damage breaks any freeze effect
+        this.frozenUntil = 0;
     }
 
     /**
@@ -124,14 +130,58 @@ public class Entity extends GameObject {
     }
 
     /**
+     * Freezes the entity for the specified duration in milliseconds.
+     */
+    public void freeze(long durationMs) {
+        this.frozenUntil = System.currentTimeMillis() + durationMs;
+    }
+
+    /**
+     * Removes any active freeze effect.
+     */
+    public void unfreeze() {
+        this.frozenUntil = 0;
+    }
+
+    /**
+     * Returns whether the entity is currently frozen.
+     */
+    public boolean isFrozen() {
+        return System.currentTimeMillis() < this.frozenUntil;
+    }
+
+    /**
+     * Applies a push or pull velocity for the specified duration.
+     */
+    public void applyPush(double velX, double velY, long durationMs) {
+        this.pushVelX = velX;
+        this.pushVelY = velY;
+        this.pushUntil = System.currentTimeMillis() + durationMs;
+    }
+
+    /**
      * Updates the player state based on dx and dy.
      * This method should be called by the server to reflect changes from client or server-side logic.
      */
     @Override
     public void update() {
-        int newX = getX() + (int)this.dx;
-        int newY = getY() + (int)this.dy;
-        setPosition(newX, newY);
+        if (!isFrozen()) {
+            int newX = getX();
+            int newY = getY();
+
+            if (System.currentTimeMillis() < this.pushUntil) {
+                newX += (int) this.pushVelX;
+                newY += (int) this.pushVelY;
+            } else if (this.pushVelX != 0 || this.pushVelY != 0) {
+                this.pushVelX = 0;
+                this.pushVelY = 0;
+            }
+
+            newX += (int) this.dx;
+            newY += (int) this.dy;
+
+            setPosition(newX, newY);
+        }
         updateHurtbox();
     }
 
