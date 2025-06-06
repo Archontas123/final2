@@ -149,6 +149,9 @@ public class ClientSession implements Runnable {
                 case "PLAYER_ATTACK_REQUEST":
                     handlePlayerAttackRequest(jsonMessage);
                     break;
+                case "PLAYER_ABILITY_REQUEST":
+                    handlePlayerAbilityRequest(jsonMessage);
+                    break;
                 case "FIRE_REQUEST":
                     handleFireRequest(jsonMessage);
                     break;
@@ -347,6 +350,24 @@ public class ClientSession implements Runnable {
         try {
             int targetId = Integer.parseInt(req.targetId);
             currentGameService.handlePlayerAttack(player.getId(), targetId);
+        } catch (NumberFormatException e) {
+            sendMessage(gson.toJson(new ErrorMessage("Invalid target ID.")));
+        }
+    }
+
+    private void handlePlayerAbilityRequest(String jsonMessage) {
+        PlayerAbilityRequest req = gson.fromJson(jsonMessage, PlayerAbilityRequest.class);
+        if (currentGameService == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not in a game.")));
+            return;
+        }
+        if (player == null || !String.valueOf(player.getId()).equals(req.casterId)) {
+            sendMessage(gson.toJson(new ErrorMessage("Caster ID mismatch or not authenticated.")));
+            return;
+        }
+        try {
+            int targetId = Integer.parseInt(req.targetId);
+            currentGameService.handlePlayerAbility(player.getId(), targetId, req.abilityType);
         } catch (NumberFormatException e) {
             sendMessage(gson.toJson(new ErrorMessage("Invalid target ID.")));
         }

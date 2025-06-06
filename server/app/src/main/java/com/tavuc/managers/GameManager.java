@@ -1,10 +1,14 @@
 package com.tavuc.managers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.awt.Rectangle;
+
+import java.awt.Rectangle;
 
 import com.tavuc.models.GameObject;
 import com.tavuc.models.entities.Entity;
@@ -172,10 +176,18 @@ public class GameManager {
 
         double dx = target.getX() - attacker.getX();
         double dy = target.getY() - attacker.getY();
-        double distance = Math.sqrt(dx * dx + dy * dy);
         double range = attacker.getAttackRange();
-        if (distance > range) {
-            System.out.println("GameService " + gameId + ": Attack out of range (" + distance + "/" + range + ")");
+
+        Rectangle attackArea = new Rectangle(
+                attacker.getX() - (int) range,
+                attacker.getY() - (int) range,
+                attacker.getWidth() + (int) (range * 2),
+                attacker.getHeight() + (int) (range * 2)
+        );
+
+        Rectangle targetHurtbox = target.getHurtbox();
+        if (!attackArea.intersects(targetHurtbox)) {
+            System.out.println("GameService " + gameId + ": Attack out of range (no intersection)");
             return;
         }
 
@@ -187,6 +199,7 @@ public class GameManager {
         }
 
         target.takeDamage(PLAYER_ATTACK_DAMAGE);
+        target.unfreeze();
 
         PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(
                 target.getIdAsString(),
@@ -204,6 +217,46 @@ public class GameManager {
             // Remove the target from the game so other clients stop receiving
             // position updates and the player disappears from the planet.
             removePlayer(target, playerSessions.get(target));
+        }
+    }
+
+    /**
+     * Processes a player ability action such as freeze, push, or pull.
+     */
+    public synchronized void handlePlayerAbility(int casterId, int targetId, int abilityType) {
+        Player caster = null;
+        Player target = null;
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == casterId) caster = p;
+            if (p.getId() == targetId) target = p;
+        }
+        if (caster == null || target == null) return;
+
+        double dx = target.getX() - caster.getX();
+        double dy = target.getY() - caster.getY();
+        double dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist == 0) dist = 1;
+
+        switch (abilityType) {
+            case 1: // freeze
+                target.freeze(2000);
+                break;
+            case 2: // push
+            {
+                int strength = 50;
+                int nx = target.getX() + (int) (dx / dist * strength);
+                int ny = target.getY() + (int) (dy / dist * strength);
+                target.setPosition(nx, ny);
+                break;
+            }
+            case 3: // pull
+            {
+                int strength = 50;
+                int nx = target.getX() - (int) (dx / dist * strength);
+                int ny = target.getY() - (int) (dy / dist * strength);
+                target.setPosition(nx, ny);
+                break;
+            }
         }
     }
 
@@ -269,9 +322,69 @@ public class GameManager {
     public void update() {
         synchronized (playerSessions) {
             List<Player> players = new ArrayList<>(playerSessions.keySet());
+            Map<Player, int[]> prevPositions = new HashMap<>();
 
             for (Player player : players) {
-                player.update(); 
+                int prevX = player.getX();
+                int prevY = player.getY();
+                prevPositions.put(player, new int[] { prevX, prevY });
+
+                player.update();
+
+                if (planet != null) {
+                    Rectangle box = player.getHurtbox();
+                    List<Tile> solids = planet.getNearbySolidTiles(
+                            box.x,
+                            box.y,
+                            box.width,
+                            box.height,
+                            1
+                    );
+                    for (Tile t : solids) {
+                        if (box.intersects(t.getHitBox())) {
+                            player.setPosition(prevX, prevY);
+                            player.setDx(0);
+                            player.setDy(0);
+                            box.setLocation(
+                                prevX + (player.getWidth() - box.width) / 2,
+                                prevY + (player.getHeight() - box.height) / 2
+                            );
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Resolve collisions between players
+            for (int i = 0; i < players.size(); i++) {
+                Player a = players.get(i);
+                for (int j = i + 1; j < players.size(); j++) {
+                    Player b = players.get(j);
+                    if (a.getHurtbox().intersects(b.getHurtbox())) {
+                        int[] posA = prevPositions.get(a);
+                        int[] posB = prevPositions.get(b);
+                        if (posA != null) {
+                            a.setPosition(posA[0], posA[1]);
+                            a.setDx(0);
+                            a.setDy(0);
+                            Rectangle boxA = a.getHurtbox();
+                            boxA.setLocation(
+                                posA[0] + (a.getWidth() - boxA.width) / 2,
+                                posA[1] + (a.getHeight() - boxA.height) / 2
+                            );
+                        }
+                        if (posB != null) {
+                            b.setPosition(posB[0], posB[1]);
+                            b.setDx(0);
+                            b.setDy(0);
+                            Rectangle boxB = b.getHurtbox();
+                            boxB.setLocation(
+                                posB[0] + (b.getWidth() - boxB.width) / 2,
+                                posB[1] + (b.getHeight() - boxB.height) / 2
+                            );
+                        }
+                    }
+                }
             }
 
             // Iterate through and update AI ships
