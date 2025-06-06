@@ -16,6 +16,7 @@ public class Player extends Entity {
     private double lastSpaceX;
     private double lastSpaceY;
     private double lastSpaceAngle;
+    private double attackRange = 40.0;
 
     /**
      * Constructor for Player
@@ -87,6 +88,20 @@ public class Player extends Entity {
 
     public void setLastSpaceAngle(double lastSpaceAngle) {
         this.lastSpaceAngle = lastSpaceAngle;
+    }
+
+    /**
+     * Gets the melee attack range for this player.
+     */
+    public double getAttackRange() {
+        return attackRange;
+    }
+
+    /**
+     * Sets the melee attack range for this player.
+     */
+    public void setAttackRange(double attackRange) {
+        this.attackRange = attackRange;
     }
 
     public String getIdAsString() {
