@@ -271,17 +271,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             }
         }
 
-        // Draw Dummies
-        if (renderOtherPlayers && worldManager != null) {
-            g2d.setColor(Color.GREEN); // Dummies color
-            for (com.tavuc.models.entities.Dummy dummy : worldManager.getDummies()) {
-                // Simple circle for dummies for now
-                g2d.fillOval((int)dummy.getX(), (int)dummy.getY(), playerSize / 2, playerSize / 2); 
-                g2d.setColor(Color.WHITE);
-                g2d.drawString("D" + dummy.getId(), (int)dummy.getX(), (int)dummy.getY() - 5);
-                g2d.setColor(Color.GREEN); // Reset color for next dummy
-            }
-        }
 
         g2d.setFont(boldFont);
         String playerText = player.getUsername() + " (You)";

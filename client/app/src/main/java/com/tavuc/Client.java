@@ -56,8 +56,6 @@ import com.tavuc.networking.models.ShipUpdateBroadcast;
 import com.tavuc.networking.models.ShipDamagedBroadcast;
 import com.tavuc.networking.models.ShipDestroyedBroadcast;
 import com.tavuc.networking.models.ShipUpdateRequest;
-import com.tavuc.networking.models.DummyUpdateBroadcast; // Added import
-import com.tavuc.networking.models.DummyRemovedBroadcast; // Added import
 import com.tavuc.ui.panels.GamePanel;
 import com.tavuc.ui.panels.ISpacePanel;
 import com.tavuc.ui.panels.SpacePanel;
@@ -669,18 +667,6 @@ public class Client {
                             case "ERROR_MESSAGE":
                                 ErrorMessage errMsg = gson.fromJson(processedJson, ErrorMessage.class); 
                                 System.err.println("Listener: Received ERROR_MESSAGE from server: " + errMsg.errorMessageContent);
-                                break;
-                            case "DUMMY_UPDATE_BROADCAST":
-                                if (worldManager != null) {
-                                    DummyUpdateBroadcast dummyEvent = gson.fromJson(processedJson, DummyUpdateBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> worldManager.updateDummy(dummyEvent.id, dummyEvent.x, dummyEvent.y));
-                                }
-                                break;
-                            case "DUMMY_REMOVED_BROADCAST":
-                                if (worldManager != null) {
-                                    DummyRemovedBroadcast dummyRemovedEvent = gson.fromJson(processedJson, DummyRemovedBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> worldManager.removeDummy(dummyRemovedEvent.id));
-                                }
                                 break;
                             default:
                                 System.out.println("Listener: Unhandled broadcast/async message type: " + baseMsg.type);
