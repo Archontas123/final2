@@ -627,6 +627,15 @@ public class Client {
                             case "PLAYER_KILLED_BROADCAST":
                                 PlayerKilledBroadcast killedEvent = gson.fromJson(processedJson, PlayerKilledBroadcast.class);
                                 System.out.println("Player " + killedEvent.playerId + " was killed by " + killedEvent.killerId);
+                                try {
+                                    int killedId = Integer.parseInt(killedEvent.playerId);
+                                    if (killedId == getInstance().getPlayerId()) {
+                                        SwingUtilities.invokeLater(Client::returnToShip);
+                                    } else if (worldManager != null) {
+                                        SwingUtilities.invokeLater(() -> worldManager.removePlayer(killedEvent.playerId));
+                                    }
+                                } catch (NumberFormatException ignore) {
+                                }
                                 break;
                             case "PROJECTILE_SPAWNED_BROADCAST":
                                 if (currentSpacePanel != null) {
