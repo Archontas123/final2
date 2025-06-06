@@ -40,7 +40,8 @@ public class Player extends Entity {
      * @param username the username of the player
      */
     public Player(int playerId, String username) {
-        super(50, 50, PLAYER_BASE_WIDTH, PLAYER_BASE_HEIGHT, 0.0, 100);
+        // Health is measured in half-hearts (0-6)
+        super(50, 50, PLAYER_BASE_WIDTH, PLAYER_BASE_HEIGHT, 0.0, 6);
         this.playerId = playerId;
         this.username = username;
         this.accelleration = 0.0;
@@ -152,8 +153,9 @@ public class Player extends Entity {
      * Sets the health of the player. Overrides Entity's setHealth to handle double.
      * @param health the health of the player
      */
-    public void setHealth(double health) { 
-        super.setHealth((int)health); 
+    public void setHealth(double health) {
+        // Server communicates health in heart units (0-3). Convert to half-heart integer.
+        super.setHealth((int)Math.round(health * 2));
     }
 
     /**
