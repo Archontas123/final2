@@ -23,6 +23,7 @@ import com.tavuc.networking.models.CruiserUpdateBroadcast;
 import com.tavuc.networking.models.EntityRemovedBroadcast;
 import com.tavuc.networking.models.ErrorMessage;
 import com.tavuc.networking.models.FireRequest;
+import com.tavuc.networking.models.PlayerAttackRequest;
 import com.tavuc.networking.models.GetPlayersRequest;
 import com.tavuc.networking.models.GetPlayersResponse;
 import com.tavuc.networking.models.JoinGameRequest;
@@ -447,6 +448,24 @@ public class Client {
         } catch (Exception e) {
             System.err.println("Error sending fire request: " + e.getMessage());
         }
+    }
+
+    /**
+     * Sends a player attack request to the server.
+     * @param attackerId ID of the attacking player
+     * @param targetId   ID of the target player
+     */
+    public static void sendPlayerAttack(int attackerId, int targetId) {
+        if (out == null) {
+            System.err.println("Client not connected, cannot send attack request.");
+            return;
+        }
+        PlayerAttackRequest req = new PlayerAttackRequest(
+                String.valueOf(attackerId),
+                String.valueOf(targetId),
+                0.0
+        );
+        out.println(gson.toJson(req));
     }
 
     /**

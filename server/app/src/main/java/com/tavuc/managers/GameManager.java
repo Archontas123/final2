@@ -20,6 +20,7 @@ import com.tavuc.networking.models.DummyRemovedBroadcast;
 import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
+import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
 
 
@@ -34,6 +35,9 @@ public class GameManager {
     private final Map<String, BaseShip> aiShips = new ConcurrentHashMap<>(); // Implemented AI ship tracking
     private final Map<Integer, Dummy> dummies = new ConcurrentHashMap<>();
     private int nextDummyId = 0;
+
+    private static final double PLAYER_ATTACK_DAMAGE = 10.0;
+    private static final double PLAYER_ATTACK_RANGE = 40.0;
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
@@ -176,6 +180,35 @@ public class GameManager {
         playerToUpdate.setDx(dx);
         playerToUpdate.setDy(dy);
         playerToUpdate.setDirectionAngle(directionAngle);
+    }
+
+    /**
+     * Handles a player attacking another player on the ground.
+     * @param attackerId The ID of the attacking player
+     * @param targetId   The ID of the target player
+     */
+    public synchronized void handlePlayerAttack(int attackerId, int targetId) {
+        Player attacker = null;
+        Player target = null;
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == attackerId) attacker = p;
+            if (p.getId() == targetId) target = p;
+        }
+        if (attacker == null || target == null) return;
+
+        double dx = attacker.getX() - target.getX();
+        double dy = attacker.getY() - target.getY();
+        double distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > PLAYER_ATTACK_RANGE) return;
+
+        target.takeDamage(PLAYER_ATTACK_DAMAGE);
+
+        PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(
+                target.getIdAsString(),
+                PLAYER_ATTACK_DAMAGE,
+                target.getHealth()
+        );
+        broadcastToGame(dmg);
     }
 
     /**

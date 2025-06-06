@@ -20,6 +20,7 @@ import java.awt.FontMetrics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,7 +32,7 @@ import java.awt.geom.AffineTransform;
 
 
 
-public class GamePanel extends GPanel implements ActionListener, MouseMotionListener {
+public class GamePanel extends GPanel implements ActionListener, MouseMotionListener, MouseListener {
 
     private int playerId;
     private String username;
@@ -42,7 +43,11 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     // private Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Managed by WorldManager
     private Timer playerUpdateRequester;
     private WorldManager worldManager; 
-    private boolean renderOtherPlayers = false; // Flag to control rendering
+    // Rendering of other players was previously disabled which meant a player
+    // could not see anyone else walking around on a planet.  Enabling this flag
+    // by default allows the GamePanel to draw the players managed by
+    // WorldManager.
+    private boolean renderOtherPlayers = true; // Flag to control rendering
 
 
     /**
@@ -74,6 +79,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
         addKeyListener(this.inputManager);
         addMouseMotionListener(this);
+        addMouseListener(this);
         setFocusable(true);
         requestFocusInWindow();
 
@@ -365,6 +371,38 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     public void mouseMoved(MouseEvent e) {
         updatePlayerDirection(e);
     }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        if (e.getButton() == MouseEvent.BUTTON1 && worldManager != null && player != null) {
+            Player closest = null;
+            double closestDist = Double.MAX_VALUE;
+            for (Player other : worldManager.getOtherPlayers()) {
+                double dx = other.getX() - player.getX();
+                double dy = other.getY() - player.getY();
+                double dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < closestDist) {
+                    closestDist = dist;
+                    closest = other;
+                }
+            }
+            if (closest != null && closestDist <= 40.0) {
+                Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
+            }
+        }
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {}
+
+    @Override
+    public void mouseClicked(MouseEvent e) {}
+
+    @Override
+    public void mouseEntered(MouseEvent e) {}
+
+    @Override
+    public void mouseExited(MouseEvent e) {}
 
     /**
      * Updates the player's direction based on mouse movement.
