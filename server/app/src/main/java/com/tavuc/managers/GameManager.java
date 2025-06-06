@@ -37,8 +37,10 @@ public class GameManager {
     private final Map<Integer, Dummy> dummies = new ConcurrentHashMap<>();
     private int nextDummyId = 0;
 
-    private static final double PLAYER_ATTACK_DAMAGE = 10.0;
-    private static final double PLAYER_START_HEALTH = 100.0;
+    // Damage dealt by players while on the ground
+    private static final double PLAYER_ATTACK_DAMAGE = 0.5;
+    // Starting health for players when on the ground
+    private static final double PLAYER_START_HEALTH = 3.0;
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
