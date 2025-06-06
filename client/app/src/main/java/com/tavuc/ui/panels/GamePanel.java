@@ -220,17 +220,27 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         double leftHandAngle = playerAngle - handOffsetAngle;
         int leftHandWorldCenterX = playerBodyWorldCenterX + (int) (handDistance * Math.cos(leftHandAngle));
         int leftHandWorldCenterY = playerBodyWorldCenterY + (int) (handDistance * Math.sin(leftHandAngle));
-        g2d.fillOval(leftHandWorldCenterX - handSize / 2, leftHandWorldCenterY - handSize / 2, handSize, handSize); 
+        g2d.fillOval(leftHandWorldCenterX - handSize / 2, leftHandWorldCenterY - handSize / 2, handSize, handSize);
 
         double rightHandAngle = playerAngle + handOffsetAngle;
         int rightHandWorldCenterX = playerBodyWorldCenterX + (int) (handDistance * Math.cos(rightHandAngle));
         int rightHandWorldCenterY = playerBodyWorldCenterY + (int) (handDistance * Math.sin(rightHandAngle));
-        g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize); 
+        g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize);
+
+        if (player.getDamageEffect() > 0f) {
+            int alpha = (int)(player.getDamageEffect() * 150);
+            g2d.setColor(new Color(255, 0, 0, alpha));
+            g2d.fillOval(player.getX(), player.getY(), playerSize, playerSize);
+            g2d.fillOval(leftHandWorldCenterX - handSize / 2, leftHandWorldCenterY - handSize / 2, handSize, handSize);
+            g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize);
+        }
 
         // Draw other players
         if (renderOtherPlayers && worldManager != null) {
             for (Player other : worldManager.getOtherPlayers()) {
                 if (other.getPlayerId() == this.playerId) continue;
+
+                other.updateDamageEffect();
 
                 g2d.setColor(Color.RED);
             int otherPlayerBodyWorldCenterX = other.getX() + playerSize / 2;
@@ -250,6 +260,14 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             int otherRightHandWorldCenterX = otherPlayerBodyWorldCenterX + (int) (handDistance * Math.cos(otherRightHandAngle));
             int otherRightHandWorldCenterY = otherPlayerBodyWorldCenterY + (int) (handDistance * Math.sin(otherRightHandAngle));
             g2d.fillOval(otherRightHandWorldCenterX - handSize / 2, otherRightHandWorldCenterY - handSize / 2, handSize, handSize);
+
+            if (other.getDamageEffect() > 0f) {
+                int oAlpha = (int)(other.getDamageEffect() * 150);
+                g2d.setColor(new Color(255, 0, 0, oAlpha));
+                g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
+                g2d.fillOval(otherLeftHandWorldCenterX - handSize / 2, otherLeftHandWorldCenterY - handSize / 2, handSize, handSize);
+                g2d.fillOval(otherRightHandWorldCenterX - handSize / 2, otherRightHandWorldCenterY - handSize / 2, handSize, handSize);
+            }
             }
         }
 

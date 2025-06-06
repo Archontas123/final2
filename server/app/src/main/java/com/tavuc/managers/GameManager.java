@@ -21,6 +21,7 @@ import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
+import com.tavuc.networking.models.PlayerKilledBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
 
 
@@ -177,6 +178,14 @@ public class GameManager {
             return;
         }
 
+        // Update the player's absolute position based on the values supplied by
+        // the client. Previously only the velocity (dx/dy) was recorded which
+        // caused the server to integrate movement independently and quickly lead
+        // to desynchronised positions between clients. By explicitly updating
+        // the player's coordinates here we ensure the server state mirrors the
+        // client's authoritative position for the current tick.
+        playerToUpdate.setPosition(x, y);
+
         playerToUpdate.setDx(dx);
         playerToUpdate.setDy(dy);
         playerToUpdate.setDirectionAngle(directionAngle);
@@ -209,6 +218,14 @@ public class GameManager {
                 target.getHealth()
         );
         broadcastToGame(dmg);
+
+        if (target.getHealth() <= 0) {
+            PlayerKilledBroadcast killed = new PlayerKilledBroadcast(
+                    target.getIdAsString(),
+                    attacker.getIdAsString()
+            );
+            broadcastToGame(killed);
+        }
     }
 
     /**

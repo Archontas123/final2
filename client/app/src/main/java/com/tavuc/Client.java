@@ -37,7 +37,9 @@ import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerUpdateRequest;
-import com.tavuc.networking.models.PlayerInitialData; 
+import com.tavuc.networking.models.PlayerInitialData;
+import com.tavuc.networking.models.PlayerKilledBroadcast;
+import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.networking.models.ProjectileUpdateBroadcast;
 import com.tavuc.networking.models.ProjectileRemovedBroadcast;
@@ -62,6 +64,7 @@ import com.tavuc.ui.panels.SpacePanel;
 import com.tavuc.ui.screens.GameScreen;
 import com.tavuc.ui.screens.SpaceScreen;
 import com.tavuc.ui.screens.StartScreen;
+import com.tavuc.models.entities.Player;
 
 import javax.swing.JFrame;
 import java.awt.Window;
@@ -598,6 +601,32 @@ public class Client {
                                     ShipDestroyedBroadcast destroyedEvent = gson.fromJson(processedJson, ShipDestroyedBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.handleShipDestroyed(destroyedEvent));
                                 }
+                                break;
+                            case "PLAYER_DAMAGED_BROADCAST":
+                                PlayerDamagedBroadcast pdEvent = gson.fromJson(processedJson, PlayerDamagedBroadcast.class);
+                                SwingUtilities.invokeLater(() -> {
+                                    int id;
+                                    try {
+                                        id = Integer.parseInt(pdEvent.playerId);
+                                    } catch (NumberFormatException ex) {
+                                        return;
+                                    }
+                                    if (currentGamePanel != null && currentGamePanel.getPlayer().getPlayerId() == id) {
+                                        Player p = currentGamePanel.getPlayer();
+                                        p.setHealth(pdEvent.currentHealth);
+                                        p.triggerDamageEffect();
+                                    } else if (worldManager != null) {
+                                        Player other = worldManager.getOtherPlayer(id);
+                                        if (other != null) {
+                                            other.setHealth(pdEvent.currentHealth);
+                                            other.triggerDamageEffect();
+                                        }
+                                    }
+                                });
+                                break;
+                            case "PLAYER_KILLED_BROADCAST":
+                                PlayerKilledBroadcast killedEvent = gson.fromJson(processedJson, PlayerKilledBroadcast.class);
+                                System.out.println("Player " + killedEvent.playerId + " was killed by " + killedEvent.killerId);
                                 break;
                             case "PROJECTILE_SPAWNED_BROADCAST":
                                 if (currentSpacePanel != null) {

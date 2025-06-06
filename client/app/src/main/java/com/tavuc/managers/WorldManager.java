@@ -62,6 +62,10 @@ public class WorldManager {
         return new ArrayList<>(otherPlayers.values());
     }
 
+    public Player getOtherPlayer(int id) {
+        return otherPlayers.get(id);
+    }
+
     public void addPlayer(PlayerJoinedBroadcast event) {
         System.out.println("WorldManager.addPlayer: Received event for player ID: " + event.playerId + ", username: " + event.username + ". Current client player ID: " + Client.getInstance().getPlayerId());
         if (event.playerId.equals(String.valueOf(Client.getInstance().getPlayerId()))) {
