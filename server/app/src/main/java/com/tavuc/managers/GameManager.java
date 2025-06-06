@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
+import java.awt.Rectangle;
+
 import com.tavuc.models.GameObject;
 import com.tavuc.models.entities.Entity;
 import com.tavuc.models.entities.Player;
@@ -271,7 +273,33 @@ public class GameManager {
             List<Player> players = new ArrayList<>(playerSessions.keySet());
 
             for (Player player : players) {
-                player.update(); 
+                int prevX = player.getX();
+                int prevY = player.getY();
+
+                player.update();
+
+                if (planet != null) {
+                    Rectangle box = player.getHurtbox();
+                    List<Tile> solids = planet.getNearbySolidTiles(
+                            box.x,
+                            box.y,
+                            box.width,
+                            box.height,
+                            1
+                    );
+                    for (Tile t : solids) {
+                        if (box.intersects(t.getHitbox())) {
+                            player.setPosition(prevX, prevY);
+                            player.setDx(0);
+                            player.setDy(0);
+                            box.setLocation(
+                                prevX + (player.getWidth() - box.width) / 2,
+                                prevY + (player.getHeight() - box.height) / 2
+                            );
+                            break;
+                        }
+                    }
+                }
             }
 
             // Iterate through and update AI ships

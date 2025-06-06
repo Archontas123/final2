@@ -16,6 +16,7 @@ public class Tile {
     private String type;
     private ColorType colorType;
     private Rectangle hitbox;
+    private boolean solid;
 
     /**
      * Constructor for Tile
@@ -27,11 +28,14 @@ public class Tile {
      */
     public Tile(int x, int y, Planet planet, String type, ColorType colorType) {
         this.colorType = colorType;
-        this.x = x; 
+        this.x = x;
         this.y = y;
         this.planet = planet;
         this.type = type;
         this.hitbox = new Rectangle(x, y, TILE_WIDTH, TILE_HEIGHT);
+        // Only certain tile types are solid for collision purposes. For now
+        // treat "rock" tiles as impassable terrain.
+        this.solid = "rock".equalsIgnoreCase(type);
     }
 
     /**
@@ -39,7 +43,11 @@ public class Tile {
      * @return true if the tile is solid, false otherwise.
      */
     public boolean isSolid() {
-        return false; // Collision detection removed
+        return solid;
+    }
+
+    public void setSolid(boolean solid) {
+        this.solid = solid;
     }
 
     /**
