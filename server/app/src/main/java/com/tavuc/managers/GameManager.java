@@ -36,6 +36,8 @@ public class GameManager {
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
     // Starting health for players when on the ground
     private static final double PLAYER_START_HEALTH = 3.0;
+    // Allowed facing arc (in radians) for melee attacks
+    private static final double PLAYER_ATTACK_ARC = Math.toRadians(45.0);
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
@@ -168,12 +170,19 @@ public class GameManager {
         }
         if (attacker == null || target == null) return;
 
-        double dx = attacker.getX() - target.getX();
-        double dy = attacker.getY() - target.getY();
+        double dx = target.getX() - attacker.getX();
+        double dy = target.getY() - attacker.getY();
         double distance = Math.sqrt(dx * dx + dy * dy);
         double range = attacker.getAttackRange();
         if (distance > range) {
             System.out.println("GameService " + gameId + ": Attack out of range (" + distance + "/" + range + ")");
+            return;
+        }
+
+        double angleToTarget = Math.atan2(dy, dx);
+        double angleDiff = angleDifference(angleToTarget, attacker.getDirectionAngle());
+        if (angleDiff > PLAYER_ATTACK_ARC) {
+            System.out.println("GameService " + gameId + ": Attack outside arc(" + Math.toDegrees(angleDiff) + "°)");
             return;
         }
 
@@ -354,5 +363,15 @@ public class GameManager {
 
     public Map<String, BaseShip> getAiShips() {
         return aiShips;
+    }
+
+    /**
+     * Calculates the absolute smallest difference between two angles.
+     * The result is always in the range [0, Math.PI].
+     */
+    private static double angleDifference(double a, double b) {
+        double diff = a - b;
+        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+        return Math.abs(diff);
     }
 }
