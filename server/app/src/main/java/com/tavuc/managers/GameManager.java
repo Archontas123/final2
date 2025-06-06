@@ -1,6 +1,7 @@
 package com.tavuc.managers;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -271,10 +272,12 @@ public class GameManager {
     public void update() {
         synchronized (playerSessions) {
             List<Player> players = new ArrayList<>(playerSessions.keySet());
+            Map<Player, int[]> prevPositions = new HashMap<>();
 
             for (Player player : players) {
                 int prevX = player.getX();
                 int prevY = player.getY();
+                prevPositions.put(player, new int[] { prevX, prevY });
 
                 player.update();
 
@@ -288,7 +291,7 @@ public class GameManager {
                             1
                     );
                     for (Tile t : solids) {
-                        if (box.intersects(t.getHitbox())) {
+                        if (box.intersects(t.getHitBox())) {
                             player.setPosition(prevX, prevY);
                             player.setDx(0);
                             player.setDy(0);
@@ -297,6 +300,38 @@ public class GameManager {
                                 prevY + (player.getHeight() - box.height) / 2
                             );
                             break;
+                        }
+                    }
+                }
+            }
+
+            // Resolve collisions between players
+            for (int i = 0; i < players.size(); i++) {
+                Player a = players.get(i);
+                for (int j = i + 1; j < players.size(); j++) {
+                    Player b = players.get(j);
+                    if (a.getHurtbox().intersects(b.getHurtbox())) {
+                        int[] posA = prevPositions.get(a);
+                        int[] posB = prevPositions.get(b);
+                        if (posA != null) {
+                            a.setPosition(posA[0], posA[1]);
+                            a.setDx(0);
+                            a.setDy(0);
+                            Rectangle boxA = a.getHurtbox();
+                            boxA.setLocation(
+                                posA[0] + (a.getWidth() - boxA.width) / 2,
+                                posA[1] + (a.getHeight() - boxA.height) / 2
+                            );
+                        }
+                        if (posB != null) {
+                            b.setPosition(posB[0], posB[1]);
+                            b.setDx(0);
+                            b.setDy(0);
+                            Rectangle boxB = b.getHurtbox();
+                            boxB.setLocation(
+                                posB[0] + (b.getWidth() - boxB.width) / 2,
+                                posB[1] + (b.getHeight() - boxB.height) / 2
+                            );
                         }
                     }
                 }

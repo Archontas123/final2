@@ -51,14 +51,6 @@ public class Tile {
     }
 
     /**
-     * Gets the hitbox of the tile.
-     * @return The hitbox of the tile.
-     */
-    public Rectangle getHitbox() {
-        return this.hitbox.getBounds(); // Hitbox might still be needed for other purposes
-    }
-
-    /**
      * Gets the x coordinate of the tile
      * @return the x coordinate
      */
