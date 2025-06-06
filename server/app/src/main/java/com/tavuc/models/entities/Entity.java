@@ -19,6 +19,7 @@ public class Entity extends GameObject {
     private double pushVelY = 0;
     private long pushUntil = 0;
 
+
     /**
      * Constructor for Entity
      * @param id The ID of the entity
@@ -180,6 +181,8 @@ public class Entity extends GameObject {
             newX += (int) this.dx;
             newY += (int) this.dy;
 
+            int newX = getX() + (int) this.dx;
+            int newY = getY() + (int) this.dy;
             setPosition(newX, newY);
         }
         updateHurtbox();

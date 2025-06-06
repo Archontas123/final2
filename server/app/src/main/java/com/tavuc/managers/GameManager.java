@@ -245,12 +245,22 @@ public class GameManager {
             {
                 double vel = 2.0;
                 target.applyPush(dx / dist * vel, dy / dist * vel, 500);
+
+                int strength = 50;
+                int nx = target.getX() + (int) (dx / dist * strength);
+                int ny = target.getY() + (int) (dy / dist * strength);
+                target.setPosition(nx, ny);
                 break;
             }
             case 3: // pull
             {
                 double vel = 2.0;
                 target.applyPush(-dx / dist * vel, -dy / dist * vel, 500);
+
+                int strength = 50;
+                int nx = target.getX() - (int) (dx / dist * strength);
+                int ny = target.getY() - (int) (dy / dist * strength);
+                target.setPosition(nx, ny);
                 break;
             }
         }
