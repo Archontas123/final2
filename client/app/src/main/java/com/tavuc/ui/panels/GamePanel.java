@@ -17,6 +17,8 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Color;
 import java.awt.FontMetrics;
+import java.awt.RadialGradientPaint;
+import java.awt.geom.Point2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
@@ -329,6 +331,21 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
 
         g2d.setTransform(originalTransform);
+
+        // --- Fog of war / lighting effect ---
+        int panelWidth = getWidth();
+        int panelHeight = getHeight();
+        Point2D center = new Point2D.Float(panelWidth / 2f, panelHeight / 2f);
+        float radius = Math.max(panelWidth, panelHeight) * 0.6f;
+        float[] dist = {0f, 0.4f, 1f};
+        Color[] colors = {
+            new Color(0, 0, 0, 0),
+            new Color(0, 0, 0, 150),
+            new Color(0, 0, 0, 220)
+        };
+        RadialGradientPaint fog = new RadialGradientPaint(center, radius, dist, colors);
+        g2d.setPaint(fog);
+        g2d.fillRect(0, 0, panelWidth, panelHeight);
     }
 
     /**
