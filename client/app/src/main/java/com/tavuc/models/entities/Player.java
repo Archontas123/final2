@@ -15,6 +15,8 @@ public class Player extends Entity {
     private double lastSentDirection;
     // Attack radius for melee actions
     private double attackRange = 40.0;
+    // Toggle drawing of hitboxes and attack ranges for debugging
+    private static final boolean DEBUG_DRAW_AREAS = false;
     private Ellipse2D.Double playerBody;
     private Ellipse2D.Double playerLeftHand;
     private Ellipse2D.Double playerRightHand;
@@ -258,25 +260,33 @@ public class Player extends Entity {
             g2d.fill(playerRightHand);
         }
 
-        // VISUAL DEBUGGING FOR HITBOX/HURTBOX
-        // if (getHitbox() != null) {
-        //     g2d.setColor(Color.RED);
-        //     g2d.drawRect(
-        //         (int)(getHitbox().x - offsetX), 
-        //         (int)(getHitbox().y - offsetY), 
-        //         getHitbox().width, 
-        //         getHitbox().height
-        //     );
-        // }
-        // if (getHurtbox() != null) {
-        //     g2d.setColor(Color.GREEN); 
-        //     g2d.drawRect(
-        //         (int)(getHurtbox().x - offsetX), 
-        //         (int)(getHurtbox().y - offsetY), 
-        //         getHurtbox().width, 
-        //         getHurtbox().height
-        //     );
-        // }
+        if (DEBUG_DRAW_AREAS) {
+            if (getHitbox() != null) {
+                g2d.setColor(Color.RED);
+                g2d.drawRect(
+                        (int)(getHitbox().x - offsetX),
+                        (int)(getHitbox().y - offsetY),
+                        getHitbox().width,
+                        getHitbox().height
+                );
+            }
+            if (getHurtbox() != null) {
+                g2d.setColor(Color.GREEN);
+                g2d.drawRect(
+                        (int)(getHurtbox().x - offsetX),
+                        (int)(getHurtbox().y - offsetY),
+                        getHurtbox().width,
+                        getHurtbox().height
+                );
+            }
+            g2d.setColor(Color.YELLOW);
+            g2d.drawOval(
+                    (int)(screenX - attackRange),
+                    (int)(screenY - attackRange),
+                    (int)(this.width + attackRange * 2),
+                    (int)(this.height + attackRange * 2)
+            );
+        }
     }
 
     /**

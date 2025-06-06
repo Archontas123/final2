@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
+import java.awt.Rectangle;
 
 import com.tavuc.models.GameObject;
 import com.tavuc.models.entities.Entity;
@@ -172,10 +173,18 @@ public class GameManager {
 
         double dx = target.getX() - attacker.getX();
         double dy = target.getY() - attacker.getY();
-        double distance = Math.sqrt(dx * dx + dy * dy);
         double range = attacker.getAttackRange();
-        if (distance > range) {
-            System.out.println("GameService " + gameId + ": Attack out of range (" + distance + "/" + range + ")");
+
+        Rectangle attackArea = new Rectangle(
+                attacker.getX() - (int) range,
+                attacker.getY() - (int) range,
+                attacker.getWidth() + (int) (range * 2),
+                attacker.getHeight() + (int) (range * 2)
+        );
+
+        Rectangle targetHurtbox = target.getHurtbox();
+        if (!attackArea.intersects(targetHurtbox)) {
+            System.out.println("GameService " + gameId + ": Attack out of range (no intersection)");
             return;
         }
 
