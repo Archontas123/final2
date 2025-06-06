@@ -38,6 +38,7 @@ public class GameManager {
     private int nextDummyId = 0;
 
     private static final double PLAYER_ATTACK_DAMAGE = 10.0;
+    private static final double PLAYER_START_HEALTH = 100.0;
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
@@ -106,6 +107,9 @@ public class GameManager {
             System.out.println("GameService " + gameId + ": Player " + player.getUsername() + " (ID: " + player.getId() + ") or session " + session.getSessionId() + " already in this game. Not re-adding.");
             return false;
         }
+
+        // Ensure the player starts the match with full health
+        player.setHealth(PLAYER_START_HEALTH);
 
         playerSessions.put(player, session);
         sessionToPlayer.put(session.getSessionId(), player);
@@ -228,6 +232,9 @@ public class GameManager {
                     attacker.getIdAsString()
             );
             broadcastToGame(killed);
+            // Remove the target from the game so other clients stop receiving
+            // position updates and the player disappears from the planet.
+            removePlayer(target, playerSessions.get(target));
         }
     }
 
