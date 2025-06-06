@@ -161,7 +161,9 @@ public abstract class Entity extends GameObject {
      * @return the hurtbox
      */
     public Rectangle getHurtbox() {
-        return hurtbox;
+        // Ensure the hurtbox location matches the current entity position
+        updateHitbox();
+        return new Rectangle(hurtbox);
     }
 
     /**
