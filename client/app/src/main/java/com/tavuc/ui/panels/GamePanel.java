@@ -321,12 +321,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
         g2d.setTransform(originalTransform);
 
-        // Draw player health bar
-        int healthIdx = Math.max(0, Math.min(6, player.getHealth()));
-        if (healthbarSprites[healthIdx] != null) {
-            g2d.drawImage(healthbarSprites[healthIdx], 10, 10, null);
-        }
-
         // --- Fog of war / lighting effect ---
         int panelWidth = getWidth();
         int panelHeight = getHeight();
@@ -341,6 +335,22 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         RadialGradientPaint fog = new RadialGradientPaint(center, radius, dist, colors);
         g2d.setPaint(fog);
         g2d.fillRect(0, 0, panelWidth, panelHeight);
+
+        // Draw player health bar above the lighting effect
+        int healthIdx = Math.max(0, Math.min(6, player.getHealth()));
+        if (healthbarSprites[healthIdx] != null) {
+            int scale = 3; // make the health bar much larger
+            int width = healthbarSprites[healthIdx].getWidth();
+            int height = healthbarSprites[healthIdx].getHeight();
+            g2d.drawImage(
+                healthbarSprites[healthIdx],
+                10,
+                10,
+                width * scale,
+                height * scale,
+                null
+            );
+        }
     }
 
     /**
