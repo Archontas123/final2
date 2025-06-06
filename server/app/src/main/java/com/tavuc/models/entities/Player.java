@@ -25,7 +25,8 @@ public class Player extends Entity {
      * @param password players password
      */
     public Player(int id, String username, String password) {
-        super(id, username.trim(), 0, 0, 100.0, 60, 60); 
+        // Players start with a small amount of health while on the ground
+        super(id, username.trim(), 0, 0, 3.0, 60, 60);
         this.username = username.trim();
         this.password = password;
         this.directionAngle = 0.0; 
