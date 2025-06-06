@@ -369,6 +369,10 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             player.setlastSentDirection(player.getDirection());
         }
 
+        if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_Q)) {
+            attemptPlayerAttack();
+        }
+
         repaint();
     }
 
@@ -392,22 +396,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
     @Override
     public void mousePressed(MouseEvent e) {
-        if (e.getButton() == MouseEvent.BUTTON1 && worldManager != null && player != null) {
-            Player closest = null;
-            double closestDist = Double.MAX_VALUE;
-            for (Player other : worldManager.getOtherPlayers()) {
-                double dx = other.getX() - player.getX();
-                double dy = other.getY() - player.getY();
-                double dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < closestDist) {
-                    closestDist = dist;
-                    closest = other;
-                }
-            }
-            if (closest != null && closestDist <= 40.0) {
-                Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
-            }
-        }
+        // Currently unused - melee is triggered with the Q key
     }
 
     @Override
@@ -447,7 +436,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
      */
     private Color getColorForTile(ColorType colorType, ColorPallete palette) {
         if (palette == null || colorType == null) {
-            return Color.MAGENTA; 
+            return Color.MAGENTA;
         }
         switch (colorType) {
             case PRIMARY_SURFACE: return palette.getPrimarySurface();
@@ -456,7 +445,34 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             case TERTIARY_SURFACE: return palette.getTertiarySurface();
             case HUE_SHIFT: return palette.getHueShift();
             case ROCK: return palette.getRock();
-            default: return Color.GRAY; 
+            default: return Color.GRAY;
+        }
+    }
+
+    /**
+     * Attempts a melee attack on the closest player within range.
+     */
+    private void attemptPlayerAttack() {
+        if (worldManager == null || player == null) return;
+
+        Player closest = null;
+        double closestDist = Double.MAX_VALUE;
+        for (Player other : worldManager.getOtherPlayers()) {
+            double dx = other.getX() - player.getX();
+            double dy = other.getY() - player.getY();
+            double dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < closestDist) {
+                closestDist = dist;
+                closest = other;
+            }
+        }
+
+        double range = player.getAttackRange();
+        if (closest != null && closestDist <= range) {
+            System.out.println("[GamePanel] Attacking player " + closest.getPlayerId());
+            Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
+        } else {
+            System.out.println("[GamePanel] No target in melee range");
         }
     }
 }

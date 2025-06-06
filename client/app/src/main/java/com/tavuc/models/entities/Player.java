@@ -13,6 +13,8 @@ public class Player extends Entity {
     private double speed;
     private double direction;
     private double lastSentDirection;
+    // Attack radius for melee actions
+    private double attackRange = 40.0;
     private Ellipse2D.Double playerBody;
     private Ellipse2D.Double playerLeftHand;
     private Ellipse2D.Double playerRightHand;
@@ -75,6 +77,20 @@ public class Player extends Entity {
 
     public float getDamageEffect() {
         return damageEffect;
+    }
+
+    /**
+     * Gets the melee attack range for this player.
+     */
+    public double getAttackRange() {
+        return attackRange;
+    }
+
+    /**
+     * Sets the melee attack range for this player.
+     */
+    public void setAttackRange(double attackRange) {
+        this.attackRange = attackRange;
     }
 
     /**
