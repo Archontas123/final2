@@ -146,6 +146,9 @@ public class ClientSession implements Runnable {
                 case "SHIP_UPDATE_REQUEST":
                     handleShipUpdateCommand(jsonMessage);
                     break;
+                case "PLAYER_ATTACK_REQUEST":
+                    handlePlayerAttackRequest(jsonMessage);
+                    break;
                 case "FIRE_REQUEST":
                     handleFireRequest(jsonMessage);
                     break;
@@ -329,6 +332,24 @@ public class ClientSession implements Runnable {
             return;
         }
         currentGameService.handlePlayerUpdate(this, (int)req.x, (int)req.y, req.dx, req.dy, req.directionAngle);
+    }
+
+    private void handlePlayerAttackRequest(String jsonMessage) {
+        PlayerAttackRequest req = gson.fromJson(jsonMessage, PlayerAttackRequest.class);
+        if (currentGameService == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not in a game.")));
+            return;
+        }
+        if (player == null || !String.valueOf(player.getId()).equals(req.attackerId)) {
+            sendMessage(gson.toJson(new ErrorMessage("Attacker ID mismatch or not authenticated.")));
+            return;
+        }
+        try {
+            int targetId = Integer.parseInt(req.targetId);
+            currentGameService.handlePlayerAttack(player.getId(), targetId);
+        } catch (NumberFormatException e) {
+            sendMessage(gson.toJson(new ErrorMessage("Invalid target ID.")));
+        }
     }
 
     /**
