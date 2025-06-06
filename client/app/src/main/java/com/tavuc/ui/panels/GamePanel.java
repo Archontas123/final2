@@ -50,6 +50,9 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     // by default allows the GamePanel to draw the players managed by
     // WorldManager.
     private boolean renderOtherPlayers = true; // Flag to control rendering
+    private long lastFreezeUse = 0;
+    private long lastPushUse = 0;
+    private long lastPullUse = 0;
 
 
     /**
@@ -379,7 +382,54 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             attemptPlayerAttack();
         }
 
+        processAbilityInputs();
+
         repaint();
+    }
+
+    private void processAbilityInputs() {
+        if (!inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_F)) {
+            return;
+        }
+
+        long now = System.currentTimeMillis();
+        if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_1) && now - lastFreezeUse > 200) {
+            Player target = findTargetPlayer();
+            if (target != null) {
+                Client.sendPlayerAbility(player.getPlayerId(), target.getPlayerId(), 1);
+                lastFreezeUse = now;
+            }
+        } else if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_2) && now - lastPushUse > 200) {
+            Player target = findTargetPlayer();
+            if (target != null) {
+                Client.sendPlayerAbility(player.getPlayerId(), target.getPlayerId(), 2);
+                lastPushUse = now;
+            }
+        } else if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_3) && now - lastPullUse > 200) {
+            Player target = findTargetPlayer();
+            if (target != null) {
+                Client.sendPlayerAbility(player.getPlayerId(), target.getPlayerId(), 3);
+                lastPullUse = now;
+            }
+        }
+    }
+
+    private Player findTargetPlayer() {
+        if (worldManager == null) return null;
+        Player closest = null;
+        double closestDist = Double.MAX_VALUE;
+        for (Player other : worldManager.getOtherPlayers()) {
+            double dx = other.getX() - player.getX();
+            double dy = other.getY() - player.getY();
+            double dist = Math.sqrt(dx * dx + dy * dy);
+            double angleToTarget = Math.atan2(dy, dx);
+            double angleDiff = Math.abs(angleToTarget - player.getDirection());
+            if (angleDiff < Math.PI / 4 && dist < closestDist) {
+                closestDist = dist;
+                closest = other;
+            }
+        }
+        return closest;
     }
 
     /**
