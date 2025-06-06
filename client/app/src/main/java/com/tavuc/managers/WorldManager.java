@@ -8,7 +8,6 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.Gson;
-import com.tavuc.models.entities.Dummy;
 import com.tavuc.models.entities.Player; // Added import
 import com.tavuc.Client;
 import com.tavuc.networking.models.PlayerJoinedBroadcast; // Added import
@@ -28,7 +27,6 @@ public class WorldManager {
     public static final int TILE_SIZE = 32; 
     private static final int chunkLoadRadius = 2; 
     private static final Gson gson = new Gson();
-    private final Map<Integer, Dummy> dummies = new ConcurrentHashMap<>();
     private final Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Added for other players
 
     public WorldManager(int gameId) {
@@ -36,27 +34,6 @@ public class WorldManager {
         this.chunks = new ConcurrentHashMap<>();
     }
 
-    public void updateDummy(int id, float x, float y) {
-        Dummy dummy = dummies.get(id);
-        if (dummy == null) {
-            dummy = new Dummy(id, x, y);
-            dummies.put(id, dummy);
-        } else {
-            dummy.setX(x);
-            dummy.setY(y);
-        }
-        if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
-    }
-
-    public void removeDummy(int id) {
-        if (dummies.remove(id) != null) {
-            if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
-        }
-    }
-
-    public List<Dummy> getDummies() {
-        return new ArrayList<>(dummies.values());
-    }
 
     public List<Player> getOtherPlayers() {
         return new ArrayList<>(otherPlayers.values());
@@ -222,7 +199,6 @@ public class WorldManager {
 
     public void clearChunks() {
         chunks.clear();
-        dummies.clear();
         otherPlayers.clear();
     }
 
