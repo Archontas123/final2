@@ -20,12 +20,14 @@ public class Player extends Entity {
     private int lastSentY; 
     private double lastSentDx;
     private double lastSentDy;
-    private static final int PLAYER_BASE_WIDTH = 80; 
-    private static final int PLAYER_BASE_HEIGHT = 80; 
-    private static final int HAND_SIZE = 40; 
+    private static final int PLAYER_BASE_WIDTH = 80;
+    private static final int PLAYER_BASE_HEIGHT = 80;
+    private static final int HAND_SIZE = 40;
     private static final double MAX_SPEED = 5.0;
     private static final double ACCELERATION_RATE = 0.5;
     private static final double DECELERATION_RATE = 0.3;
+    // Visual damage flash strength (1.0 = fully visible, 0 = no effect)
+    private float damageEffect = 0f;
 
 
     /**
@@ -47,6 +49,32 @@ public class Player extends Entity {
         this.lastSentDirection = 0.0;
 
         updatePlayerShapes();
+    }
+
+    /**
+     * Triggers the damage flash effect without altering health.
+     */
+    public void triggerDamageEffect() {
+        damageEffect = 1.0f;
+    }
+
+    @Override
+    public void takeDamage(int amount) {
+        super.takeDamage(amount);
+        triggerDamageEffect();
+    }
+
+    /**
+     * Updates and fades the damage flash each frame.
+     */
+    public void updateDamageEffect() {
+        if (damageEffect > 0f) {
+            damageEffect = Math.max(0f, damageEffect - 0.05f);
+        }
+    }
+
+    public float getDamageEffect() {
+        return damageEffect;
     }
 
     /**
@@ -180,6 +208,7 @@ public class Player extends Entity {
         
         move();
         updatePlayerShapes();
+        updateDamageEffect();
     }
 
     /**
@@ -205,6 +234,13 @@ public class Player extends Entity {
 
         g2d.setColor(Color.WHITE);
         g2d.drawString(username, (float)screenX, (float)screenY - 5);
+
+        if (damageEffect > 0f) {
+            g2d.setColor(new Color(1f, 0f, 0f, damageEffect));
+            g2d.fill(playerBody);
+            g2d.fill(playerLeftHand);
+            g2d.fill(playerRightHand);
+        }
 
         // VISUAL DEBUGGING FOR HITBOX/HURTBOX
         // if (getHitbox() != null) {
