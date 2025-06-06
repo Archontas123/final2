@@ -37,7 +37,8 @@ import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerUpdateRequest;
-import com.tavuc.networking.models.PlayerInitialData; 
+import com.tavuc.networking.models.PlayerInitialData;
+import com.tavuc.networking.models.PlayerKilledBroadcast;
 import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
 import com.tavuc.networking.models.ProjectileUpdateBroadcast;
 import com.tavuc.networking.models.ProjectileRemovedBroadcast;
@@ -598,6 +599,10 @@ public class Client {
                                     ShipDestroyedBroadcast destroyedEvent = gson.fromJson(processedJson, ShipDestroyedBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.handleShipDestroyed(destroyedEvent));
                                 }
+                                break;
+                            case "PLAYER_KILLED_BROADCAST":
+                                PlayerKilledBroadcast killedEvent = gson.fromJson(processedJson, PlayerKilledBroadcast.class);
+                                System.out.println("Player " + killedEvent.playerId + " was killed by " + killedEvent.killerId);
                                 break;
                             case "PROJECTILE_SPAWNED_BROADCAST":
                                 if (currentSpacePanel != null) {
