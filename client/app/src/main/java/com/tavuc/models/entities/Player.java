@@ -34,11 +34,6 @@ public class Player extends Entity {
     private static final double DECELERATION_RATE = 0.3;
     // Visual damage flash strength (1.0 = fully visible, 0 = no effect)
     private float damageEffect = 0f;
-    // Mana and ability related fields
-    private double mana = 10.0;
-    private double maxMana = 10.0;
-    private boolean forceShieldActive = false;
-    private int glowTicks = 0;
 
 
     /**
@@ -60,9 +55,6 @@ public class Player extends Entity {
         this.lastSentDy = this.dy;
         this.lastSentDirection = 0.0;
 
-        this.mana = maxMana;
-        this.forceShieldActive = false;
-        this.glowTicks = 0;
 
         updatePlayerShapes();
     }
@@ -93,42 +85,6 @@ public class Player extends Entity {
         return damageEffect;
     }
 
-    /** Returns current mana amount. */
-    public double getMana() {
-        return mana;
-    }
-
-    /** Sets mana, clamped between 0 and maxMana. */
-    public void setMana(double mana) {
-        this.mana = Math.max(0, Math.min(mana, maxMana));
-    }
-
-    /** Whether force shield is active. */
-    public boolean isForceShieldActive() {
-        return forceShieldActive;
-    }
-
-    /** Activate or deactivate force shield. */
-    public void setForceShieldActive(boolean active) {
-        this.forceShieldActive = active;
-    }
-
-    /** Triggers a glow effect for the given number of frames. */
-    public void triggerGlow(int ticks) {
-        glowTicks = Math.max(glowTicks, ticks);
-    }
-
-    /** Updates the glow counter each frame. */
-    public void updateGlow() {
-        if (glowTicks > 0) {
-            glowTicks--;
-        }
-    }
-
-    /** Returns true if currently glowing. */
-    public boolean isGlowing() {
-        return glowTicks > 0;
-    }
 
     /**
      * Gets the melee attack range for this player.
@@ -301,7 +257,6 @@ public class Player extends Entity {
         move();
         updatePlayerShapes();
         updateDamageEffect();
-        updateGlow();
     }
 
     /**
@@ -351,10 +306,7 @@ public class Player extends Entity {
             g2d.fill(playerRightHand);
         }
 
-        if (isGlowing()) {
-            g2d.setColor(new Color(1f, 1f, 0f, 0.5f));
-            g2d.fillOval((int)screenX - 5, (int)screenY - 5, this.width + 10, this.height + 10);
-        }
+
 
         if (DEBUG_DRAW_AREAS) {
             if (getHitbox() != null) {
