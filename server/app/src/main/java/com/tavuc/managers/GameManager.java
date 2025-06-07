@@ -354,6 +354,8 @@ public class GameManager {
         }
     }
 
+    private static final double ATTACK_CONE_ANGLE = Math.PI / 2.0; // 90 degree cone
+
     private void processAttacks() {
         for (Player attacker : getPlayersInGame()) {
             PlayerCombatComponent combat = attacker.getCombatComponent();
@@ -368,6 +370,10 @@ public class GameManager {
 
             java.util.List<AttackResultData> results = new java.util.ArrayList<>();
             for (Player target : hitPlayers) {
+                if (!isWithinAttackCone(attacker, target, ATTACK_CONE_ANGLE)) {
+                    continue;
+                }
+
                 PlayerCombatComponent tc = target.getCombatComponent();
                 if (tc != null) {
                     tc.takeDamage(damage, attacker);
@@ -382,6 +388,32 @@ public class GameManager {
                 broadcastToGame(br);
             }
         }
+    }
+
+    /**
+     * Determines if the target player lies within the attack cone in front of the attacker.
+     *
+     * @param attacker Attacking player
+     * @param target Target player
+     * @param coneAngle Total width of the cone in radians
+     * @return True if the target is inside the cone
+     */
+    private boolean isWithinAttackCone(Player attacker, Player target, double coneAngle) {
+        double dx = target.getX() - attacker.getX();
+        double dy = target.getY() - attacker.getY();
+        double angleToTarget = Math.atan2(dy, dx);
+        double attackerAngle = attacker.getDirectionAngle();
+        double diff = normalizeAngle(angleToTarget - attackerAngle);
+        return Math.abs(diff) <= coneAngle / 2.0;
+    }
+
+    /**
+     * Normalizes an angle to the range [-PI, PI].
+     */
+    private double normalizeAngle(double a) {
+        while (a <= -Math.PI) a += 2.0 * Math.PI;
+        while (a > Math.PI) a -= 2.0 * Math.PI;
+        return a;
     }
     
 

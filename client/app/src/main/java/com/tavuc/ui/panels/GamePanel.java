@@ -220,7 +220,27 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         double rightHandAngle = playerAngle + handOffsetAngle;
         int rightHandWorldCenterX = playerBodyWorldCenterX + (int) (handDistance * Math.cos(rightHandAngle));
         int rightHandWorldCenterY = playerBodyWorldCenterY + (int) (handDistance * Math.sin(rightHandAngle));
-        g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize); 
+        g2d.fillOval(rightHandWorldCenterX - handSize / 2, rightHandWorldCenterY - handSize / 2, handSize, handSize);
+
+        // Draw facing direction arrow for the local player
+        int arrowLength = playerSize;
+        int arrowStartX = playerBodyWorldCenterX;
+        int arrowStartY = playerBodyWorldCenterY;
+        int arrowEndX = arrowStartX + (int) (arrowLength * Math.cos(playerAngle));
+        int arrowEndY = arrowStartY + (int) (arrowLength * Math.sin(playerAngle));
+
+        g2d.setColor(Color.YELLOW);
+        g2d.drawLine(arrowStartX, arrowStartY, arrowEndX, arrowEndY);
+
+        int headSize = 10;
+        double headAngle1 = playerAngle + Math.PI / 8;
+        double headAngle2 = playerAngle - Math.PI / 8;
+        int hx1 = arrowEndX - (int) (headSize * Math.cos(headAngle1));
+        int hy1 = arrowEndY - (int) (headSize * Math.sin(headAngle1));
+        int hx2 = arrowEndX - (int) (headSize * Math.cos(headAngle2));
+        int hy2 = arrowEndY - (int) (headSize * Math.sin(headAngle2));
+        g2d.drawLine(arrowEndX, arrowEndY, hx1, hy1);
+        g2d.drawLine(arrowEndX, arrowEndY, hx2, hy2);
 
         // Draw other players
         if (renderOtherPlayers && worldManager != null) {
