@@ -539,6 +539,19 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         if (closest != null && closestDist <= range) {
             System.out.println("[GamePanel] Attacking player " + closest.getPlayerId() +
                                " at distance " + String.format("%.2f", closestDist));
+
+            // Locally dash a short distance toward the target for immediate feedback
+            double dashDist = 20.0;
+            double dx = closest.getX() - player.getX();
+            double dy = closest.getY() - player.getY();
+            double dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist != 0) {
+                int nx = player.getX() + (int) (dx / dist * dashDist);
+                int ny = player.getY() + (int) (dy / dist * dashDist);
+                player.setX(nx);
+                player.setY(ny);
+            }
+
             Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
         } else {
             System.out.println("[GamePanel] No target in melee range");
