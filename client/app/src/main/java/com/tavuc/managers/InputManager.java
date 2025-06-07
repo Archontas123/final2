@@ -8,7 +8,8 @@ import java.util.Map;
 import com.tavuc.models.entities.Player;
 import com.tavuc.models.space.Ship;
 import com.tavuc.networking.models.FireRequest;
-import com.tavuc.Client; 
+import com.tavuc.networking.models.ParryRequest;
+import com.tavuc.Client;
 
 public class InputManager implements KeyListener {
 
@@ -93,6 +94,10 @@ public class InputManager implements KeyListener {
             if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) downPressed = true;
             if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT)  leftPressed = true;
             if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) rightPressed = true;
+            if (keyCode == KeyEvent.VK_P && player != null) {
+                ParryRequest req = new ParryRequest(String.valueOf(player.getPlayerId()));
+                Client.sendParryRequest(req);
+            }
             updatePlayerMovementInput();
         }
     }

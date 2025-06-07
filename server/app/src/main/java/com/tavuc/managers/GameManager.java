@@ -210,6 +210,14 @@ public class GameManager {
         }
     }
 
+    public void handleParryRequest(Player player) {
+        if (player == null) return;
+        PlayerCombatComponent combat = player.getCombatComponent();
+        if (combat != null) {
+            combat.attemptParry();
+        }
+    }
+
     /**
      * Retrieves the chunk data for a specific chunk in the planet associated with this game.
      * @param chunkX The x-coordinate of the chunk.
@@ -376,8 +384,12 @@ public class GameManager {
 
                 PlayerCombatComponent tc = target.getCombatComponent();
                 if (tc != null) {
-                    tc.takeDamage(damage, attacker);
-                    results.add(new AttackResultData(target.getIdAsString(), damage, tc.getHealth(), false));
+                    if (tc.isParrying()) {
+                        results.add(new AttackResultData(target.getIdAsString(), 0, tc.getHealth(), true));
+                    } else {
+                        tc.takeDamage(damage, attacker);
+                        results.add(new AttackResultData(target.getIdAsString(), damage, tc.getHealth(), false));
+                    }
                 }
             }
 

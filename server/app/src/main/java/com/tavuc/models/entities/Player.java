@@ -94,6 +94,15 @@ public class Player extends Entity {
         this.lastSpaceAngle = lastSpaceAngle;
     }
 
+    @Override
+    public void update() {
+        if (combatComponent != null && combatComponent.isParrying()) {
+            setDx(getDx() * 0.2);
+            setDy(getDy() * 0.2);
+        }
+        super.update();
+    }
+
     public PlayerCombatComponent getCombatComponent() {
         return combatComponent;
     }
