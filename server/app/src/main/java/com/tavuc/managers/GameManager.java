@@ -266,6 +266,37 @@ public class GameManager {
                 target.setPosition(nx, ny);
                 break;
             }
+            case 4: // dash
+            {
+                double vel = 4.0;
+                caster.applyPush(Math.cos(caster.getDirectionAngle()) * vel,
+                                 Math.sin(caster.getDirectionAngle()) * vel,
+                                 300);
+                break;
+            }
+            case 5: // shield
+                caster.activateShield(2000);
+                break;
+            case 6: // lightning
+                target.takeDamage(1.0);
+                target.freeze(500);
+                break;
+            case 7: // choke
+                target.takeDamage(1.0);
+                target.freeze(1500);
+                break;
+            case 8: // heal
+                target.setHealth(target.getHealth() + 1.0);
+                break;
+            case 9: // slam
+            {
+                double vel = 3.0;
+                target.applyPush(dx / dist * vel, dy / dist * vel, 500);
+                break;
+            }
+            case 10: // cloak
+                caster.activateCloak(2000);
+                break;
         }
     }
 
