@@ -339,13 +339,14 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         // Draw player health bar above the lighting effect
         int healthIdx = Math.max(0, Math.min(6, player.getHealth()));
         if (healthbarSprites[healthIdx] != null) {
-            int scale = 3; // make the health bar much larger
+            int scale = 2; // slightly smaller than before
+            int padding = 15;
             int width = healthbarSprites[healthIdx].getWidth();
             int height = healthbarSprites[healthIdx].getHeight();
             g2d.drawImage(
                 healthbarSprites[healthIdx],
-                10,
-                10,
+                padding,
+                padding,
                 width * scale,
                 height * scale,
                 null
