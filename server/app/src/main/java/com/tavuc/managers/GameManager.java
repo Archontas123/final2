@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.awt.Rectangle;
 
 import com.tavuc.models.GameObject;
@@ -32,6 +33,8 @@ public class GameManager {
     private final Map<Player, ClientSession> playerSessions = new ConcurrentHashMap<>();
     private final Map<String, Player> sessionToPlayer = new ConcurrentHashMap<>();
     private final Map<String, BaseShip> aiShips = new ConcurrentHashMap<>(); // Implemented AI ship tracking
+    // Track last melee attack times for cooldowns
+    private final ConcurrentMap<Integer, Long> lastMeleeAttackTimes = new ConcurrentHashMap<>();
 
     // Damage dealt by players while on the ground
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
@@ -39,6 +42,8 @@ public class GameManager {
     private static final double PLAYER_START_HEALTH = 6.0; // Changed from 3.0 to 6.0
     // Allowed facing arc (in radians) for melee attacks
     private static final double PLAYER_ATTACK_ARC = Math.toRadians(45.0);
+    // Cooldown between melee attacks (ms)
+    private static final long PLAYER_ATTACK_COOLDOWN_MS = 300;
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
@@ -123,6 +128,9 @@ public class GameManager {
         PlayerLeftBroadcast playerLeftMsg = new PlayerLeftBroadcast(player.getIdAsString());
         broadcastToGame(playerLeftMsg);
 
+        // Clean up cooldown tracking for the player
+        lastMeleeAttackTimes.remove(player.getId());
+
         System.out.println("GameService " + gameId + ": Player " + player.getUsername() + " (ID: " + player.getId() + ") removed from game.");
     }
 
@@ -171,6 +179,14 @@ public class GameManager {
         }
         if (attacker == null || target == null) return;
 
+        long now = System.currentTimeMillis();
+        Long lastTime = lastMeleeAttackTimes.get(attackerId);
+        if (lastTime != null && now - lastTime < PLAYER_ATTACK_COOLDOWN_MS) {
+            System.out.println("GameService " + gameId + ": Attack from " + attackerId + " on cooldown");
+            return;
+        }
+        lastMeleeAttackTimes.put(attackerId, now);
+
         double dx = target.getX() - attacker.getX();
         double dy = target.getY() - attacker.getY();
         double range = attacker.getAttackRange();
@@ -183,6 +199,9 @@ public class GameManager {
         );
 
         Rectangle targetHurtbox = target.getHurtbox();
+        System.out.println("GameService " + gameId + ": Attack attempt " + attackerId + " -> " +
+                targetId + " at " + System.currentTimeMillis() +
+                " attackArea=" + attackArea + " targetHurtbox=" + targetHurtbox);
         if (!attackArea.intersects(targetHurtbox)) {
             System.out.println("GameService " + gameId + ": Attack out of range (no intersection)");
             return;
@@ -193,6 +212,15 @@ public class GameManager {
         if (angleDiff > PLAYER_ATTACK_ARC) {
             System.out.println("GameService " + gameId + ": Attack outside arc(" + Math.toDegrees(angleDiff) + "°)");
             return;
+        }
+
+        // Dash the attacker slightly toward the target before applying damage
+        double dashDistance = 20.0;
+        double distToTarget = Math.sqrt(dx * dx + dy * dy);
+        if (distToTarget != 0) {
+            int dashX = attacker.getX() + (int) (dx / distToTarget * dashDistance);
+            int dashY = attacker.getY() + (int) (dy / distToTarget * dashDistance);
+            attacker.setPosition(dashX, dashY);
         }
 
         // Log the attack for debugging

@@ -13,8 +13,8 @@ public class Player extends Entity {
     private double speed;
     private double direction;
     private double lastSentDirection;
-    // Attack radius for melee actions
-    private double attackRange = 40.0;
+    // Attack radius for melee actions - increased to complement dash mechanic
+    private double attackRange = 60.0;
     // Toggle drawing of hitboxes and attack ranges for debugging
     private static final boolean DEBUG_DRAW_AREAS = false;
     private Ellipse2D.Double playerBody;
