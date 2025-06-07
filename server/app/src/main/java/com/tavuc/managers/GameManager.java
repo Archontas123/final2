@@ -5,9 +5,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
-import java.awt.Rectangle;
-
 import java.awt.Rectangle;
 
 import com.tavuc.models.GameObject;
@@ -38,8 +35,8 @@ public class GameManager {
 
     // Damage dealt by players while on the ground
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
-    // Starting health for players when on the ground
-    private static final double PLAYER_START_HEALTH = 3.0;
+    // Starting health for players when on the ground - changed to match client expectations
+    private static final double PLAYER_START_HEALTH = 6.0; // Changed from 3.0 to 6.0
     // Allowed facing arc (in radians) for melee attacks
     private static final double PLAYER_ATTACK_ARC = Math.toRadians(45.0);
 
@@ -78,7 +75,7 @@ public class GameManager {
             return false;
         }
 
-        // Ensure the player starts the match with full health
+        // Ensure the player starts the match with full health (6 half-hearts = 3 full hearts)
         player.setHealth(PLAYER_START_HEALTH);
 
         playerSessions.put(player, session);
@@ -97,7 +94,7 @@ public class GameManager {
         broadcastToGameExceptSender(newPlayerJoinedMsg, session);
 
 
-        System.out.println("GameService " + gameId + ": Player " + player.getUsername() + " (ID: " + player.getId() + ") with session " + session.getSessionId() + " added to game.");
+        System.out.println("GameService " + gameId + ": Player " + player.getUsername() + " (ID: " + player.getId() + ") with session " + session.getSessionId() + " added to game with " + PLAYER_START_HEALTH + " health.");
         return true;
     }
 
@@ -198,8 +195,14 @@ public class GameManager {
             return;
         }
 
+        // Log the attack for debugging
+        System.out.println("GameService " + gameId + ": Player " + attackerId + " attacks " + targetId + 
+                          " for " + PLAYER_ATTACK_DAMAGE + " damage. Target health before: " + target.getHealth());
+
         target.takeDamage(PLAYER_ATTACK_DAMAGE);
         target.unfreeze();
+
+        System.out.println("GameService " + gameId + ": Target health after damage: " + target.getHealth());
 
         PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(
                 target.getIdAsString(),
