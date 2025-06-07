@@ -59,16 +59,16 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     // by default allows the GamePanel to draw the players managed by
     // WorldManager.
     private boolean renderOtherPlayers = true; // Flag to control rendering
-    private long[] abilityCooldownEnd = new long[11];
-    private static final int[] abilityManaCost = {0,10,10,10,15,20,25,25,20,20,15};
-    private static final long[] abilityCooldownMs = {0,2000,2000,2000,3000,4000,4000,4000,3000,3000,5000};
-    private int frameCounter = 0;
     // Track time of last melee attack to avoid spamming the server
     private long lastAttackTime = 0;
 
     private java.awt.image.BufferedImage playerSprite;
     private java.awt.image.BufferedImage[] healthbarSprites = new java.awt.image.BufferedImage[7];
-    private java.awt.image.BufferedImage[] manabarSprites = new java.awt.image.BufferedImage[11];
+
+    private com.tavuc.managers.AbilityManager abilityManager;
+
+    private int shakeTicks = 0;
+    private double shakeStrength = 0;
 
     // Floating damage numbers
     private final List<DamagePopup> damagePopups = new ArrayList<>();
@@ -100,6 +100,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             Client.worldManager = this.worldManager; // Set it for the Client if we created it
             System.out.println("GamePanel: Initialized new WorldManager for game ID: " + gameId);
         }
+        this.abilityManager = new com.tavuc.managers.AbilityManager(this.player, this.worldManager, this.inputManager);
 
         addKeyListener(this.inputManager);
         addMouseMotionListener(this);
@@ -190,6 +191,12 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
         int translateX = getWidth() / 2 - playerVisualX;
         int translateY = getHeight() / 2 - playerVisualY;
+        if (shakeTicks > 0) {
+            translateX += (int)((Math.random()-0.5) * shakeStrength);
+            translateY += (int)((Math.random()-0.5) * shakeStrength);
+            shakeTicks--;
+            if (shakeTicks == 0) shakeStrength = 0;
+        }
 
         AffineTransform originalTransform = g2d.getTransform();
         g2d.translate(translateX, translateY);
@@ -253,6 +260,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
 
         // Draw other players
+        Player highlightTarget = abilityManager != null ? abilityManager.getCurrentTarget() : null;
         if (renderOtherPlayers && worldManager != null) {
             for (Player other : worldManager.getOtherPlayers()) {
                 if (other.getPlayerId() == this.playerId) continue;
@@ -264,6 +272,10 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
                 g2d.drawImage(playerSprite, other.getX(), other.getY(), playerSize, playerSize, null);
             } else {
                 g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
+            }
+            if (other == highlightTarget) {
+                g2d.setColor(new Color(255,255,0,100));
+                g2d.fillOval(other.getX()-5, other.getY()-5, playerSize+10, playerSize+10);
             }
 
             if (other.getDamageEffect() > 0f) {
@@ -376,33 +388,31 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             );
         }
 
-        int manaIdx = Math.max(0, Math.min(10, player.getMana() / 10));
-        if (manabarSprites[manaIdx] != null) {
-            int scale = 2;
+        if (abilityManager != null) {
             int padding = 15;
-            int width = manabarSprites[manaIdx].getWidth();
-            int height = manabarSprites[manaIdx].getHeight();
-            g2d.drawImage(
-                manabarSprites[manaIdx],
-                panelWidth - width * scale - padding,
-                padding,
-                width * scale,
-                height * scale,
-                null
-            );
-        }
+            int barWidth = 200;
+            int barHeight = 10;
+            double ratio = abilityManager.getMana() / 10.0;
+            g2d.setColor(Color.BLUE);
+            g2d.fillRect(padding, padding + 40, (int)(barWidth * ratio), barHeight);
+            g2d.setColor(Color.WHITE);
+            g2d.drawRect(padding, padding + 40, barWidth, barHeight);
 
-        long now = System.currentTimeMillis();
-        int cdPadding = 15;
-        int y = panelHeight - cdPadding - 20;
-        for (int i = 1; i <= 10; i++) {
-            if (now < abilityCooldownEnd[i]) {
-                String text = String.valueOf(i);
-                int x = panelWidth - cdPadding - i * 20;
-                g2d.setColor(new Color(0,0,0,150));
-                g2d.fillRect(x, y, 18, 18);
+            int iconY = padding + 60;
+            for (int i = 0; i < 7; i++) {
+                int x = padding + i * 30;
+                g2d.setColor(Color.DARK_GRAY);
+                g2d.fillRect(x, iconY, 24, 24);
                 g2d.setColor(Color.WHITE);
-                g2d.drawString(text, x + 5, y + 14);
+                g2d.drawRect(x, iconY, 24, 24);
+                String text = String.valueOf(i+1);
+                g2d.drawString(text, x+8, iconY+16);
+                int cd = abilityManager.getCooldown(i);
+                if (cd > 0) {
+                    float pct = cd/60f;
+                    g2d.setColor(new Color(0,0,0,150));
+                    g2d.fillRect(x, iconY, 24, (int)(24*pct));
+                }
             }
         }
     }
@@ -413,6 +423,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     @Override
     public void actionPerformed(ActionEvent e) {
         player.update();
+        if (abilityManager != null) abilityManager.update();
 
         if (worldManager != null) {
           
@@ -434,11 +445,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             player.setlastSentDirection(player.getDirection());
         }
 
-        frameCounter++;
-        if (frameCounter % 20 == 0 && player.getMana() < player.getMaxMana()) {
-            player.setMana(player.getMana() + 1);
-        }
-
         if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_Q)) {
             long now = System.currentTimeMillis();
             if (now - lastAttackTime > 500) {
@@ -450,51 +456,10 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             }
         }
 
-        processAbilityInputs();
-
         repaint();
     }
 
-    private void processAbilityInputs() {
-        if (!inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_F)) {
-            return;
-        }
 
-        long now = System.currentTimeMillis();
-        for (int i = 1; i <= 10; i++) {
-            int keyCode = (i % 10 == 0) ? java.awt.event.KeyEvent.VK_0
-                                         : java.awt.event.KeyEvent.VK_0 + i;
-            if (inputManager.isKeyPressed(keyCode)) {
-                if (now < abilityCooldownEnd[i]) continue;
-                if (player.getMana() < abilityManaCost[i]) continue;
-
-                Player target = findTargetPlayer();
-                if (target != null) {
-                    Client.sendPlayerAbility(player.getPlayerId(), target.getPlayerId(), i);
-                    abilityCooldownEnd[i] = now + abilityCooldownMs[i];
-                    player.setMana(player.getMana() - abilityManaCost[i]);
-                }
-            }
-        }
-    }
-
-    private Player findTargetPlayer() {
-        if (worldManager == null) return null;
-        Player closest = null;
-        double closestDist = Double.MAX_VALUE;
-        for (Player other : worldManager.getOtherPlayers()) {
-            double dx = other.getX() - player.getX();
-            double dy = other.getY() - player.getY();
-            double dist = Math.sqrt(dx * dx + dy * dy);
-            double angleToTarget = Math.atan2(dy, dx);
-            double angleDiff = Math.abs(angleToTarget - player.getDirection());
-            if (angleDiff < Math.PI / 4 && dist < closestDist) {
-                closestDist = dist;
-                closest = other;
-            }
-        }
-        return closest;
-    }
 
     /**
      * Handles mouse dragged events.
@@ -633,15 +598,17 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             }
         }
 
-        for (int i = 0; i <= 10; i++) {
-            String path = "assets/manabar/mana_" + i + ".png";
-            try (InputStream is = getClass().getClassLoader().getResourceAsStream(path)) {
-                if (is != null) {
-                    manabarSprites[i] = ImageIO.read(is);
-                }
-            } catch (IOException e) {
-                System.err.println("Failed to load manabar sprite " + path + ": " + e.getMessage());
-            }
-        }
+        // Mana bar sprites were part of the old ability system; nothing to load now
+    }
+
+    /** Trigger small screen shake for visual feedback. */
+    public void triggerScreenShake(int ticks, double strength) {
+        this.shakeTicks = Math.max(this.shakeTicks, ticks);
+        this.shakeStrength = Math.max(this.shakeStrength, strength);
+    }
+
+    /** Expose ability manager for rendering or other classes. */
+    public com.tavuc.managers.AbilityManager getAbilityManager() {
+        return abilityManager;
     }
 }

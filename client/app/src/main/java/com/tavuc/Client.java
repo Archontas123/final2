@@ -24,7 +24,7 @@ import com.tavuc.networking.models.EntityRemovedBroadcast;
 import com.tavuc.networking.models.ErrorMessage;
 import com.tavuc.networking.models.FireRequest;
 import com.tavuc.networking.models.PlayerAttackRequest;
-import com.tavuc.networking.models.PlayerAbilityRequest;
+import com.tavuc.networking.models.AbilityUseRequest;
 import com.tavuc.networking.models.GetPlayersRequest;
 import com.tavuc.networking.models.GetPlayersResponse;
 import com.tavuc.networking.models.JoinGameRequest;
@@ -472,18 +472,20 @@ public class Client {
         out.println(gson.toJson(req));
     }
 
-    public static void sendPlayerAbility(int casterId, int targetId, int abilityType) {
+    /** Sends a force ability usage to the server. */
+    public static void sendAbilityUse(int playerId, Integer targetId, String ability) {
         if (out == null) {
-            System.err.println("Client not connected, cannot send ability request.");
+            System.err.println("Client not connected, cannot send ability use.");
             return;
         }
-        PlayerAbilityRequest req = new PlayerAbilityRequest(
-                String.valueOf(casterId),
-                String.valueOf(targetId),
-                abilityType
+        AbilityUseRequest req = new AbilityUseRequest(
+                String.valueOf(playerId),
+                targetId != null ? String.valueOf(targetId) : null,
+                ability
         );
         out.println(gson.toJson(req));
     }
+
 
     /**
      * Gets the current color palette.

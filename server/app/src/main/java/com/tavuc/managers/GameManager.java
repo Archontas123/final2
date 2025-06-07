@@ -21,6 +21,7 @@ import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.networking.models.PlayerKilledBroadcast;
+import com.tavuc.networking.models.AbilityUsedBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
 
 
@@ -200,7 +201,6 @@ public class GameManager {
                           " for " + PLAYER_ATTACK_DAMAGE + " damage. Target health before: " + target.getHealth());
 
         target.takeDamage(PLAYER_ATTACK_DAMAGE);
-        target.unfreeze();
 
         System.out.println("GameService " + gameId + ": Target health after damage: " + target.getHealth());
 
@@ -224,81 +224,73 @@ public class GameManager {
     }
 
     /**
-     * Processes a player ability action such as freeze, push, or pull.
+     * Processes a force ability used by a player.
      */
-    public synchronized void handlePlayerAbility(int casterId, int targetId, int abilityType) {
-        Player caster = null;
+    public synchronized void handleAbilityUse(int playerId, int targetId, String ability) {
+        Player actor = null;
         Player target = null;
         for (Player p : playerSessions.keySet()) {
-            if (p.getId() == casterId) caster = p;
+            if (p.getId() == playerId) actor = p;
             if (p.getId() == targetId) target = p;
         }
-        if (caster == null || target == null) return;
+        if (actor == null) return;
 
-        double dx = target.getX() - caster.getX();
-        double dy = target.getY() - caster.getY();
-        double dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist == 0) dist = 1;
+        System.out.println("GameService " + gameId + ": Ability " + ability + " used by " + playerId + " on " + targetId);
 
-        switch (abilityType) {
-            case 1: // freeze
-                target.freeze(2000);
-                break;
-            case 2: // push
-            {
-                double vel = 2.0;
-                target.applyPush(dx / dist * vel, dy / dist * vel, 500);
-
-                int strength = 50;
-                int nx = target.getX() + (int) (dx / dist * strength);
-                int ny = target.getY() + (int) (dy / dist * strength);
-                target.setPosition(nx, ny);
-                break;
+        if (target != null) {
+            switch (ability) {
+                case "PULL":
+                    double dx = actor.getX() - target.getX();
+                    double dy = actor.getY() - target.getY();
+                    double dist = Math.hypot(dx, dy);
+                    if (dist > 0) {
+                        target.setDx(dx / dist * 0.3);
+                        target.setDy(dy / dist * 0.3);
+                    }
+                    break;
+                case "PUSH":
+                    dx = target.getX() - actor.getX();
+                    dy = target.getY() - actor.getY();
+                    dist = Math.hypot(dx, dy);
+                    if (dist > 0) {
+                        target.setDx(dx / dist * 0.3);
+                        target.setDy(dy / dist * 0.3);
+                    }
+                    break;
+                case "CHOKE":
+                    target.setDx(0);
+                    target.setDy(0);
+                    actor.setDx(0);
+                    actor.setDy(0);
+                    target.takeDamage(1);
+                    break;
+                case "HEAL":
+                    actor.setHealth(actor.getHealth() + 1);
+                    break;
+                case "DASH":
+                    double angle = actor.getDirectionAngle();
+                    actor.setDx(Math.cos(angle) * 10);
+                    actor.setDy(Math.sin(angle) * 10);
+                    break;
+                case "GRAB":
+                    angle = actor.getDirectionAngle();
+                    double distGrab = 100;
+                    if (target != null) {
+                        target.setX((int)(actor.getX() + Math.cos(angle) * distGrab));
+                        target.setY((int)(actor.getY() + Math.sin(angle) * distGrab));
+                    }
+                    break;
+                default:
+                    break;
             }
-            case 3: // pull
-            {
-                double vel = 2.0;
-                target.applyPush(-dx / dist * vel, -dy / dist * vel, 500);
-
-                int strength = 50;
-                int nx = target.getX() - (int) (dx / dist * strength);
-                int ny = target.getY() - (int) (dy / dist * strength);
-                target.setPosition(nx, ny);
-                break;
-            }
-            case 4: // dash
-            {
-                double vel = 4.0;
-                caster.applyPush(Math.cos(caster.getDirectionAngle()) * vel,
-                                 Math.sin(caster.getDirectionAngle()) * vel,
-                                 300);
-                break;
-            }
-            case 5: // shield
-                caster.activateShield(2000);
-                break;
-            case 6: // lightning
-                target.takeDamage(1.0);
-                target.freeze(500);
-                break;
-            case 7: // choke
-                target.takeDamage(1.0);
-                target.freeze(1500);
-                break;
-            case 8: // heal
-                target.setHealth(target.getHealth() + 1.0);
-                break;
-            case 9: // slam
-            {
-                double vel = 3.0;
-                target.applyPush(dx / dist * vel, dy / dist * vel, 500);
-                break;
-            }
-            case 10: // cloak
-                caster.activateCloak(2000);
-                break;
         }
+
+        AbilityUsedBroadcast broadcast = new AbilityUsedBroadcast(String.valueOf(playerId),
+                target != null ? String.valueOf(target.getId()) : null, ability);
+        broadcastToGame(broadcast);
     }
+
+
 
     /**
      * Retrieves the chunk data for a specific chunk in the planet associated with this game.

@@ -149,8 +149,8 @@ public class ClientSession implements Runnable {
                 case "PLAYER_ATTACK_REQUEST":
                     handlePlayerAttackRequest(jsonMessage);
                     break;
-                case "PLAYER_ABILITY_REQUEST":
-                    handlePlayerAbilityRequest(jsonMessage);
+                case "ABILITY_USE_REQUEST":
+                    handleAbilityUseRequest(jsonMessage);
                     break;
                 case "FIRE_REQUEST":
                     handleFireRequest(jsonMessage);
@@ -355,23 +355,24 @@ public class ClientSession implements Runnable {
         }
     }
 
-    private void handlePlayerAbilityRequest(String jsonMessage) {
-        PlayerAbilityRequest req = gson.fromJson(jsonMessage, PlayerAbilityRequest.class);
+    private void handleAbilityUseRequest(String jsonMessage) {
+        AbilityUseRequest req = gson.fromJson(jsonMessage, AbilityUseRequest.class);
         if (currentGameService == null) {
             sendMessage(gson.toJson(new ErrorMessage("Not in a game.")));
             return;
         }
-        if (player == null || !String.valueOf(player.getId()).equals(req.casterId)) {
-            sendMessage(gson.toJson(new ErrorMessage("Caster ID mismatch or not authenticated.")));
+        if (player == null || !String.valueOf(player.getId()).equals(req.playerId)) {
+            sendMessage(gson.toJson(new ErrorMessage("Player ID mismatch or not authenticated.")));
             return;
         }
         try {
-            int targetId = Integer.parseInt(req.targetId);
-            currentGameService.handlePlayerAbility(player.getId(), targetId, req.abilityType);
+            int targetId = req.targetId == null ? -1 : Integer.parseInt(req.targetId);
+            currentGameService.handleAbilityUse(player.getId(), targetId, req.ability);
         } catch (NumberFormatException e) {
             sendMessage(gson.toJson(new ErrorMessage("Invalid target ID.")));
         }
     }
+
 
     /**
      * Handles the GET_PLAYERS command from the client.
