@@ -149,6 +149,9 @@ public class ClientSession implements Runnable {
                 case "ATTACK_REQUEST":
                     handleAttackRequest(jsonMessage);
                     break;
+                case "PARRY_REQUEST":
+                    handleParryRequest(jsonMessage);
+                    break;
                 case "FIRE_REQUEST":
                     handleFireRequest(jsonMessage);
                     break;
@@ -597,9 +600,27 @@ public class ClientSession implements Runnable {
         currentGameService.handleAttackRequest(player, new com.tavuc.utils.Vector2D(req.directionX, req.directionY));
     }
 
+    private void handleParryRequest(String jsonMessage) {
+        ParryRequest req = gson.fromJson(jsonMessage, ParryRequest.class);
+        if (!isAuthenticated() || player == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not authenticated.")));
+            return;
+        }
+        if (currentGameService == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not in a game.")));
+            return;
+        }
+        currentGameService.handleParryRequest(player);
+    }
+
     private void handleFireRequest(String jsonMessage) {
         if (!isAuthenticated() || player == null) {
             sendMessage(gson.toJson(new ErrorMessage("Not authenticated or player data missing.")));
+            return;
+        }
+
+        if (player.getCombatComponent() != null && player.getCombatComponent().isParrying()) {
+            System.out.println("Session " + sessionId + ": Player " + player.getId() + " tried to fire while parrying.");
             return;
         }
 
