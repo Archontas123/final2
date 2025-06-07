@@ -149,33 +149,35 @@ public class InputManager implements KeyListener {
             return; 
         }
 
-        boolean isActuallyMoving = false;
-        double targetAngle = player.getDirection(); 
+        double vecX = 0.0;
+        double vecY = 0.0;
+        double angle = player.getDirection();
 
-        if (upPressed && !downPressed) { 
-            if (leftPressed && !rightPressed) targetAngle = -Math.PI * 3.0 / 4.0; 
-            else if (rightPressed && !leftPressed) targetAngle = -Math.PI / 4.0;    
-            else targetAngle = -Math.PI / 2.0;                                  
-            isActuallyMoving = true;
-        } else if (downPressed && !upPressed) { 
-            if (leftPressed && !rightPressed) targetAngle = Math.PI * 3.0 / 4.0;  
-            else if (rightPressed && !leftPressed) targetAngle = Math.PI / 4.0;     
-            else targetAngle = Math.PI / 2.0;                                   
-            isActuallyMoving = true;
-        } 
-        else if (leftPressed && !rightPressed) { 
-            targetAngle = Math.PI; 
-            isActuallyMoving = true;
-        } else if (rightPressed && !leftPressed) { 
-            targetAngle = 0;       
-            isActuallyMoving = true;
+        if (upPressed && !downPressed) {
+            vecX += Math.cos(angle);
+            vecY += Math.sin(angle);
+        }
+        if (downPressed && !upPressed) {
+            vecX -= Math.cos(angle);
+            vecY -= Math.sin(angle);
+        }
+        if (leftPressed && !rightPressed) {
+            vecX += Math.cos(angle - Math.PI / 2);
+            vecY += Math.sin(angle - Math.PI / 2);
+        }
+        if (rightPressed && !leftPressed) {
+            vecX += Math.cos(angle + Math.PI / 2);
+            vecY += Math.sin(angle + Math.PI / 2);
         }
 
-        if (isActuallyMoving) {
-            player.setDirection(targetAngle);
+        boolean moving = vecX != 0 || vecY != 0;
+
+        if (moving) {
+            player.setMoveVector(vecX, vecY);
             player.setAcceleration(1.0);
         } else {
-            player.setAcceleration(0.0); 
+            player.setMoveVector(0, 0);
+            player.setAcceleration(0.0);
         }
     }
 

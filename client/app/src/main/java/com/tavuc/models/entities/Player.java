@@ -13,8 +13,12 @@ public class Player extends Entity {
     private double speed;
     private double direction;
     private double lastSentDirection;
+    private double moveVecX = 0.0;
+    private double moveVecY = 0.0;
     // Attack radius for melee actions - increased to complement dash mechanic
     private double attackRange = 60.0;
+    private int mana = 100;
+    private int maxMana = 100;
     // Toggle drawing of hitboxes and attack ranges for debugging
     private static final boolean DEBUG_DRAW_AREAS = false;
     private Ellipse2D.Double playerBody;
@@ -24,9 +28,9 @@ public class Player extends Entity {
     private int lastSentY; 
     private double lastSentDx;
     private double lastSentDy;
-    private static final int PLAYER_BASE_WIDTH = 80;
-    private static final int PLAYER_BASE_HEIGHT = 80;
-    private static final int HAND_SIZE = 40;
+    private static final int PLAYER_BASE_WIDTH = 120;
+    private static final int PLAYER_BASE_HEIGHT = 120;
+    private static final int HAND_SIZE = 60;
     private static final double MAX_SPEED = 5.0;
     private static final double ACCELERATION_RATE = 0.5;
     private static final double DECELERATION_RATE = 0.3;
@@ -96,6 +100,23 @@ public class Player extends Entity {
         this.attackRange = attackRange;
     }
 
+    public int getMana() {
+        return mana;
+    }
+
+    public int getMaxMana() {
+        return maxMana;
+    }
+
+    public void setMana(int mana) {
+        this.mana = Math.max(0, Math.min(mana, maxMana));
+    }
+
+    public void setMaxMana(int maxMana) {
+        this.maxMana = maxMana;
+        if (this.mana > maxMana) this.mana = maxMana;
+    }
+
     /**
      * Gets the player ID.
      * @return the player ID
@@ -128,6 +149,16 @@ public class Player extends Entity {
     public double getDirection() {
         return direction;
     }
+
+    /** Sets the desired movement vector components. */
+    public void setMoveVector(double x, double y) {
+        this.moveVecX = x;
+        this.moveVecY = y;
+    }
+
+    public double getMoveVectorX() { return moveVecX; }
+
+    public double getMoveVectorY() { return moveVecY; }
 
     /**
      * Sets the x position of the player and updates the player shapes.
@@ -223,8 +254,16 @@ public class Player extends Entity {
         }
 
         if (speed > 0) {
-            this.dx = speed * Math.cos(direction);
-            this.dy = speed * Math.sin(direction);
+            double len = Math.sqrt(moveVecX * moveVecX + moveVecY * moveVecY);
+            if (len > 0) {
+                double normX = moveVecX / len;
+                double normY = moveVecY / len;
+                this.dx = speed * normX;
+                this.dy = speed * normY;
+            } else {
+                this.dx = 0;
+                this.dy = 0;
+            }
         } else {
             this.dx = 0;
             this.dy = 0;
@@ -258,6 +297,22 @@ public class Player extends Entity {
 
         g2d.setColor(Color.WHITE);
         g2d.drawString(username, (float)screenX, (float)screenY - 5);
+
+        // Draw facing direction arrow
+        double centerX = screenX + this.width / 2.0;
+        double centerY = screenY + this.height / 2.0;
+        int arrowLength = this.width / 2;
+        int endX = (int)(centerX + Math.cos(direction) * arrowLength);
+        int endY = (int)(centerY + Math.sin(direction) * arrowLength);
+        g2d.setColor(Color.YELLOW);
+        g2d.drawLine((int)centerX, (int)centerY, endX, endY);
+        int ah = 6;
+        int hx1 = (int)(endX - Math.cos(direction - Math.PI/6) * ah);
+        int hy1 = (int)(endY - Math.sin(direction - Math.PI/6) * ah);
+        int hx2 = (int)(endX - Math.cos(direction + Math.PI/6) * ah);
+        int hy2 = (int)(endY - Math.sin(direction + Math.PI/6) * ah);
+        g2d.drawLine(endX, endY, hx1, hy1);
+        g2d.drawLine(endX, endY, hx2, hy2);
 
         if (damageEffect > 0f) {
             g2d.setColor(new Color(1f, 0f, 0f, damageEffect));
