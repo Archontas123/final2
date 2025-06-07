@@ -200,7 +200,6 @@ public class GameManager {
                           " for " + PLAYER_ATTACK_DAMAGE + " damage. Target health before: " + target.getHealth());
 
         target.takeDamage(PLAYER_ATTACK_DAMAGE);
-        target.unfreeze();
 
         System.out.println("GameService " + gameId + ": Target health after damage: " + target.getHealth());
 
@@ -223,82 +222,7 @@ public class GameManager {
         }
     }
 
-    /**
-     * Processes a player ability action such as freeze, push, or pull.
-     */
-    public synchronized void handlePlayerAbility(int casterId, int targetId, int abilityType) {
-        Player caster = null;
-        Player target = null;
-        for (Player p : playerSessions.keySet()) {
-            if (p.getId() == casterId) caster = p;
-            if (p.getId() == targetId) target = p;
-        }
-        if (caster == null || target == null) return;
 
-        double dx = target.getX() - caster.getX();
-        double dy = target.getY() - caster.getY();
-        double dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist == 0) dist = 1;
-
-        switch (abilityType) {
-            case 1: // freeze
-                target.freeze(2000);
-                break;
-            case 2: // push
-            {
-                double vel = 2.0;
-                target.applyPush(dx / dist * vel, dy / dist * vel, 500);
-
-                int strength = 50;
-                int nx = target.getX() + (int) (dx / dist * strength);
-                int ny = target.getY() + (int) (dy / dist * strength);
-                target.setPosition(nx, ny);
-                break;
-            }
-            case 3: // pull
-            {
-                double vel = 2.0;
-                target.applyPush(-dx / dist * vel, -dy / dist * vel, 500);
-
-                int strength = 50;
-                int nx = target.getX() - (int) (dx / dist * strength);
-                int ny = target.getY() - (int) (dy / dist * strength);
-                target.setPosition(nx, ny);
-                break;
-            }
-            case 4: // dash
-            {
-                double vel = 4.0;
-                caster.applyPush(Math.cos(caster.getDirectionAngle()) * vel,
-                                 Math.sin(caster.getDirectionAngle()) * vel,
-                                 300);
-                break;
-            }
-            case 5: // shield
-                caster.activateShield(2000);
-                break;
-            case 6: // lightning
-                target.takeDamage(1.0);
-                target.freeze(500);
-                break;
-            case 7: // choke
-                target.takeDamage(1.0);
-                target.freeze(1500);
-                break;
-            case 8: // heal
-                target.setHealth(target.getHealth() + 1.0);
-                break;
-            case 9: // slam
-            {
-                double vel = 3.0;
-                target.applyPush(dx / dist * vel, dy / dist * vel, 500);
-                break;
-            }
-            case 10: // cloak
-                caster.activateCloak(2000);
-                break;
-        }
-    }
 
     /**
      * Retrieves the chunk data for a specific chunk in the planet associated with this game.
