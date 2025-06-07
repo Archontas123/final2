@@ -155,9 +155,11 @@ public class Player extends Entity {
      * @param health the health of the player in half-heart units
      */
     public void setHealth(double health) {
-        // Server now sends health already in half-heart units (0-6), so we
-        // simply round and apply the value without additional scaling.
-        super.setHealth((int) Math.round(health));
+        // Server sends fractional half-heart values (e.g. 5.5). If we round
+        // to the nearest integer the health bar would only update every other
+        // hit. Cast down instead so each half-heart of damage is reflected
+        // immediately on the client.
+        super.setHealth((int) Math.floor(health));
     }
 
     /**
