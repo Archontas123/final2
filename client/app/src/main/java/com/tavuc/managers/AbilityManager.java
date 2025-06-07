@@ -148,6 +148,13 @@ public class AbilityManager {
             useForcePush();
         }
         if (input.isKeyPressed(KeyEvent.VK_F) && input.isKeyPressed(KeyEvent.VK_3)) {
+        if (input.isKeyPressed(KeyEvent.VK_F1)) {
+            useForcePull();
+        }
+        if (input.isKeyPressed(KeyEvent.VK_F2)) {
+            useForcePush();
+        }
+        if (input.isKeyPressed(KeyEvent.VK_F3)) {
             startForceChoke();
         } else {
             chokeTicks = 0;
@@ -162,6 +169,17 @@ public class AbilityManager {
             handleForceShield();
         }
         if (input.isKeyPressed(KeyEvent.VK_F) && input.isKeyPressed(KeyEvent.VK_7)) {
+
+        if (input.isKeyPressed(KeyEvent.VK_F4)) {
+            useForceDash();
+        }
+        if (input.isKeyPressed(KeyEvent.VK_F5)) {
+            useForceHeal();
+        }
+        if (input.isKeyPressed(KeyEvent.VK_F6)) {
+            handleForceShield();
+        }
+        if (input.isKeyPressed(KeyEvent.VK_F7)) {
             useForceGrab();
         }
 
