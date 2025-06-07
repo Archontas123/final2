@@ -15,6 +15,8 @@ public class Player extends Entity {
     private double lastSentDirection;
     // Attack radius for melee actions - increased to complement dash mechanic
     private double attackRange = 60.0;
+    private int mana = 100;
+    private int maxMana = 100;
     // Toggle drawing of hitboxes and attack ranges for debugging
     private static final boolean DEBUG_DRAW_AREAS = false;
     private Ellipse2D.Double playerBody;
@@ -24,9 +26,9 @@ public class Player extends Entity {
     private int lastSentY; 
     private double lastSentDx;
     private double lastSentDy;
-    private static final int PLAYER_BASE_WIDTH = 80;
-    private static final int PLAYER_BASE_HEIGHT = 80;
-    private static final int HAND_SIZE = 40;
+    private static final int PLAYER_BASE_WIDTH = 120;
+    private static final int PLAYER_BASE_HEIGHT = 120;
+    private static final int HAND_SIZE = 60;
     private static final double MAX_SPEED = 5.0;
     private static final double ACCELERATION_RATE = 0.5;
     private static final double DECELERATION_RATE = 0.3;
@@ -94,6 +96,23 @@ public class Player extends Entity {
      */
     public void setAttackRange(double attackRange) {
         this.attackRange = attackRange;
+    }
+
+    public int getMana() {
+        return mana;
+    }
+
+    public int getMaxMana() {
+        return maxMana;
+    }
+
+    public void setMana(int mana) {
+        this.mana = Math.max(0, Math.min(mana, maxMana));
+    }
+
+    public void setMaxMana(int maxMana) {
+        this.maxMana = maxMana;
+        if (this.mana > maxMana) this.mana = maxMana;
     }
 
     /**

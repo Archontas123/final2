@@ -18,6 +18,12 @@ public class Player extends Entity {
     private double lastSpaceAngle;
     // Increased default melee range to compliment larger player size
     private double attackRange = 60.0;
+    // Mana pool for abilities
+    private int mana = 100;
+    private int maxMana = 100;
+    // Timers for ability effects
+    private long shieldUntil = 0;
+    private long cloakUntil = 0;
 
     /**
      * Constructor for Player
@@ -108,6 +114,49 @@ public class Player extends Entity {
         this.attackRange = attackRange;
     }
 
+    @Override
+    public void takeDamage(double amount) {
+        if (isShielded()) {
+            amount *= 0.5; // shield reduces damage
+        }
+        super.takeDamage(amount);
+    }
+
+    public boolean isShielded() {
+        return System.currentTimeMillis() < shieldUntil;
+    }
+
+    public void activateShield(long durationMs) {
+        this.shieldUntil = System.currentTimeMillis() + durationMs;
+    }
+
+    public boolean isCloaked() {
+        return System.currentTimeMillis() < cloakUntil;
+    }
+
+    public void activateCloak(long durationMs) {
+        this.cloakUntil = System.currentTimeMillis() + durationMs;
+    }
+
+    public int getMana() {
+        return mana;
+    }
+
+    public int getMaxMana() {
+        return maxMana;
+    }
+
+    public void setMana(int mana) {
+        this.mana = Math.max(0, Math.min(mana, maxMana));
+    }
+
+    public void setMaxMana(int maxMana) {
+        this.maxMana = maxMana;
+        if (this.mana > maxMana) {
+            this.mana = maxMana;
+        }
+    }
+
     public String getIdAsString() {
         return String.valueOf(this.getId());
     }
@@ -134,6 +183,8 @@ public class Player extends Entity {
             props.setProperty("lastSpaceX", String.valueOf(this.lastSpaceX));
             props.setProperty("lastSpaceY", String.valueOf(this.lastSpaceY));
             props.setProperty("lastSpaceAngle", String.valueOf(this.lastSpaceAngle));
+            props.setProperty("mana", String.valueOf(this.mana));
+            props.setProperty("maxMana", String.valueOf(this.maxMana));
 
             try (BufferedWriter writer = Files.newBufferedWriter(playerFile)) {
                 props.store(writer, "Player data");
@@ -171,6 +222,8 @@ public class Player extends Entity {
             player.setLastSpaceX(Double.parseDouble(props.getProperty("lastSpaceX", "0.0")));
             player.setLastSpaceY(Double.parseDouble(props.getProperty("lastSpaceY", "0.0")));
             player.setLastSpaceAngle(Double.parseDouble(props.getProperty("lastSpaceAngle", "0.0")));
+            player.setMaxMana(Integer.parseInt(props.getProperty("maxMana", "100")));
+            player.setMana(Integer.parseInt(props.getProperty("mana", String.valueOf(player.getMaxMana()))));
             return player;
         } catch (IOException e) {
             System.err.println("[DEBUG Player.load] IOException for '" + username + "': " + e.getMessage()); 
