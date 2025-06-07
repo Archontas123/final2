@@ -149,33 +149,12 @@ public class InputManager implements KeyListener {
             return; 
         }
 
-        boolean isActuallyMoving = false;
-        double targetAngle = player.getDirection(); 
+        boolean isMoving = upPressed || downPressed || leftPressed || rightPressed;
 
-        if (upPressed && !downPressed) { 
-            if (leftPressed && !rightPressed) targetAngle = -Math.PI * 3.0 / 4.0; 
-            else if (rightPressed && !leftPressed) targetAngle = -Math.PI / 4.0;    
-            else targetAngle = -Math.PI / 2.0;                                  
-            isActuallyMoving = true;
-        } else if (downPressed && !upPressed) { 
-            if (leftPressed && !rightPressed) targetAngle = Math.PI * 3.0 / 4.0;  
-            else if (rightPressed && !leftPressed) targetAngle = Math.PI / 4.0;     
-            else targetAngle = Math.PI / 2.0;                                   
-            isActuallyMoving = true;
-        } 
-        else if (leftPressed && !rightPressed) { 
-            targetAngle = Math.PI; 
-            isActuallyMoving = true;
-        } else if (rightPressed && !leftPressed) { 
-            targetAngle = 0;       
-            isActuallyMoving = true;
-        }
-
-        if (isActuallyMoving) {
-            player.setDirection(targetAngle);
+        if (isMoving) {
             player.setAcceleration(1.0);
         } else {
-            player.setAcceleration(0.0); 
+            player.setAcceleration(0.0);
         }
     }
 
