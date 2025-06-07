@@ -57,6 +57,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     private long lastFreezeUse = 0;
     private long lastPushUse = 0;
     private long lastPullUse = 0;
+    // Track time of last melee attack to avoid spamming the server
+    private long lastAttackTime = 0;
 
     private java.awt.image.BufferedImage playerSprite;
     private java.awt.image.BufferedImage[] healthbarSprites = new java.awt.image.BufferedImage[7];
@@ -382,7 +384,14 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
 
         if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_Q)) {
-            attemptPlayerAttack();
+            long now = System.currentTimeMillis();
+            if (now - lastAttackTime > 500) {
+                System.out.println("[GamePanel] Q pressed - attempting melee attack");
+                attemptPlayerAttack();
+                lastAttackTime = now;
+            } else {
+                System.out.println("[GamePanel] Attack on cooldown");
+            }
         }
 
         processAbilityInputs();
@@ -528,7 +537,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
         double range = player.getAttackRange();
         if (closest != null && closestDist <= range) {
-            System.out.println("[GamePanel] Attacking player " + closest.getPlayerId());
+            System.out.println("[GamePanel] Attacking player " + closest.getPlayerId() +
+                               " at distance " + String.format("%.2f", closestDist));
             Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
         } else {
             System.out.println("[GamePanel] No target in melee range");

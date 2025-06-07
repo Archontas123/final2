@@ -183,6 +183,9 @@ public class GameManager {
         );
 
         Rectangle targetHurtbox = target.getHurtbox();
+        System.out.println("GameService " + gameId + ": Attack attempt " + attackerId + " -> " +
+                targetId + " at " + System.currentTimeMillis() +
+                " attackArea=" + attackArea + " targetHurtbox=" + targetHurtbox);
         if (!attackArea.intersects(targetHurtbox)) {
             System.out.println("GameService " + gameId + ": Attack out of range (no intersection)");
             return;

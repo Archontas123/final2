@@ -462,6 +462,8 @@ public class Client {
             System.err.println("Client not connected, cannot send attack request.");
             return;
         }
+        System.out.println("[Client] Sending attack from " + attackerId + " to " + targetId
+                + " at " + System.currentTimeMillis());
         PlayerAttackRequest req = new PlayerAttackRequest(
                 String.valueOf(attackerId),
                 String.valueOf(targetId),
