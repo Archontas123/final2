@@ -150,12 +150,14 @@ public class Player extends Entity {
     }
     
     /**
-     * Sets the health of the player. Overrides Entity's setHealth to handle double.
-     * @param health the health of the player
+     * Sets the health of the player. Overrides Entity's setHealth to handle
+     * the server's half-heart health scale directly.
+     * @param health the health of the player in half-heart units
      */
     public void setHealth(double health) {
-        // Server communicates health in heart units (0-3). Convert to half-heart integer.
-        super.setHealth((int)Math.round(health * 2));
+        // Server now sends health already in half-heart units (0-6), so we
+        // simply round and apply the value without additional scaling.
+        super.setHealth((int) Math.round(health));
     }
 
     /**
