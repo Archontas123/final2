@@ -21,6 +21,7 @@ import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.networking.models.PlayerKilledBroadcast;
+import com.tavuc.networking.models.AbilityUsedBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
 
 
@@ -220,6 +221,73 @@ public class GameManager {
             // position updates and the player disappears from the planet.
             removePlayer(target, playerSessions.get(target));
         }
+    }
+
+    /**
+     * Processes a force ability used by a player.
+     */
+    public synchronized void handleAbilityUse(int playerId, int targetId, String ability) {
+        Player actor = null;
+        Player target = null;
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == playerId) actor = p;
+            if (p.getId() == targetId) target = p;
+        }
+        if (actor == null) return;
+
+        System.out.println("GameService " + gameId + ": Ability " + ability + " used by " + playerId + " on " + targetId);
+
+        if (target != null) {
+            switch (ability) {
+                case "PULL":
+                    double dx = actor.getX() - target.getX();
+                    double dy = actor.getY() - target.getY();
+                    double dist = Math.hypot(dx, dy);
+                    if (dist > 0) {
+                        target.setDx(dx / dist * 0.3);
+                        target.setDy(dy / dist * 0.3);
+                    }
+                    break;
+                case "PUSH":
+                    dx = target.getX() - actor.getX();
+                    dy = target.getY() - actor.getY();
+                    dist = Math.hypot(dx, dy);
+                    if (dist > 0) {
+                        target.setDx(dx / dist * 0.3);
+                        target.setDy(dy / dist * 0.3);
+                    }
+                    break;
+                case "CHOKE":
+                    target.setDx(0);
+                    target.setDy(0);
+                    actor.setDx(0);
+                    actor.setDy(0);
+                    target.takeDamage(1);
+                    break;
+                case "HEAL":
+                    actor.setHealth(actor.getHealth() + 1);
+                    break;
+                case "DASH":
+                    double angle = actor.getDirectionAngle();
+                    actor.setDx(Math.cos(angle) * 10);
+                    actor.setDy(Math.sin(angle) * 10);
+                    break;
+                case "GRAB":
+                    angle = actor.getDirectionAngle();
+                    double distGrab = 100;
+                    if (target != null) {
+                        target.setX((int)(actor.getX() + Math.cos(angle) * distGrab));
+                        target.setY((int)(actor.getY() + Math.sin(angle) * distGrab));
+                    }
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        AbilityUsedBroadcast broadcast = new AbilityUsedBroadcast(String.valueOf(playerId),
+                target != null ? String.valueOf(target.getId()) : null, ability);
+        broadcastToGame(broadcast);
     }
 
 
