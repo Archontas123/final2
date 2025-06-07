@@ -65,7 +65,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     private java.awt.image.BufferedImage playerSprite;
     private java.awt.image.BufferedImage[] healthbarSprites = new java.awt.image.BufferedImage[7];
 
-    private com.tavuc.managers.AbilityManager abilityManager;
 
     private int shakeTicks = 0;
     private double shakeStrength = 0;
@@ -100,7 +99,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             Client.worldManager = this.worldManager; // Set it for the Client if we created it
             System.out.println("GamePanel: Initialized new WorldManager for game ID: " + gameId);
         }
-        this.abilityManager = new com.tavuc.managers.AbilityManager(this.player, this.worldManager, this.inputManager);
 
         addKeyListener(this.inputManager);
         addMouseMotionListener(this);
@@ -260,7 +258,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
 
         // Draw other players
-        Player highlightTarget = abilityManager != null ? abilityManager.getCurrentTarget() : null;
         if (renderOtherPlayers && worldManager != null) {
             for (Player other : worldManager.getOtherPlayers()) {
                 if (other.getPlayerId() == this.playerId) continue;
@@ -272,10 +269,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
                 g2d.drawImage(playerSprite, other.getX(), other.getY(), playerSize, playerSize, null);
             } else {
                 g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
-            }
-            if (other == highlightTarget) {
-                g2d.setColor(new Color(255,255,0,100));
-                g2d.fillOval(other.getX()-5, other.getY()-5, playerSize+10, playerSize+10);
             }
 
             if (other.getDamageEffect() > 0f) {
@@ -388,33 +381,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             );
         }
 
-        if (abilityManager != null) {
-            int padding = 15;
-            int barWidth = 200;
-            int barHeight = 10;
-            double ratio = abilityManager.getMana() / 10.0;
-            g2d.setColor(Color.BLUE);
-            g2d.fillRect(padding, padding + 40, (int)(barWidth * ratio), barHeight);
-            g2d.setColor(Color.WHITE);
-            g2d.drawRect(padding, padding + 40, barWidth, barHeight);
-
-            int iconY = padding + 60;
-            for (int i = 0; i < 7; i++) {
-                int x = padding + i * 30;
-                g2d.setColor(Color.DARK_GRAY);
-                g2d.fillRect(x, iconY, 24, 24);
-                g2d.setColor(Color.WHITE);
-                g2d.drawRect(x, iconY, 24, 24);
-                String text = String.valueOf(i+1);
-                g2d.drawString(text, x+8, iconY+16);
-                int cd = abilityManager.getCooldown(i);
-                if (cd > 0) {
-                    float pct = cd/60f;
-                    g2d.setColor(new Color(0,0,0,150));
-                    g2d.fillRect(x, iconY, 24, (int)(24*pct));
-                }
-            }
-        }
+        // Mana and ability display removed
     }
 
     /**
@@ -423,7 +390,6 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     @Override
     public void actionPerformed(ActionEvent e) {
         player.update();
-        if (abilityManager != null) abilityManager.update();
 
         if (worldManager != null) {
           
@@ -607,8 +573,4 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         this.shakeStrength = Math.max(this.shakeStrength, strength);
     }
 
-    /** Expose ability manager for rendering or other classes. */
-    public com.tavuc.managers.AbilityManager getAbilityManager() {
-        return abilityManager;
-    }
 }
