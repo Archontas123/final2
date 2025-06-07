@@ -40,8 +40,6 @@ public class GameManager {
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
     // Starting health for players when on the ground - changed to match client expectations
     private static final double PLAYER_START_HEALTH = 6.0; // Changed from 3.0 to 6.0
-    // Allowed facing arc (in radians) for melee attacks
-    private static final double PLAYER_ATTACK_ARC = Math.toRadians(45.0);
     // Cooldown between melee attacks (ms)
     private static final long PLAYER_ATTACK_COOLDOWN_MS = 300;
 
@@ -191,38 +189,12 @@ public class GameManager {
         double dy = target.getY() - attacker.getY();
         double range = attacker.getAttackRange();
 
-        Rectangle attackArea = new Rectangle(
-                attacker.getX() - (int) range,
-                attacker.getY() - (int) range,
-                attacker.getWidth() + (int) (range * 2),
-                attacker.getHeight() + (int) (range * 2)
-        );
-
-        Rectangle targetHurtbox = target.getHurtbox();
-        System.out.println("GameService " + gameId + ": Attack attempt " + attackerId + " -> " +
-                targetId + " at " + System.currentTimeMillis() +
-                " attackArea=" + attackArea + " targetHurtbox=" + targetHurtbox);
-        if (!attackArea.intersects(targetHurtbox)) {
-            System.out.println("GameService " + gameId + ": Attack out of range (no intersection)");
+        double distance = Math.hypot(dx, dy);
+        System.out.println("GameService " + gameId + ": Attack attempt " + attackerId + " -> " + targetId + " at " + System.currentTimeMillis() + " distance=" + distance + " range=" + range);
+        if (distance > range) {
+            System.out.println("GameService " + gameId + ": Attack out of range");
             return;
         }
-
-        double angleToTarget = Math.atan2(dy, dx);
-        double angleDiff = angleDifference(angleToTarget, attacker.getDirectionAngle());
-        if (angleDiff > PLAYER_ATTACK_ARC) {
-            System.out.println("GameService " + gameId + ": Attack outside arc(" + Math.toDegrees(angleDiff) + "°)");
-            return;
-        }
-
-        // Dash the attacker slightly toward the target before applying damage
-        double dashDistance = 20.0;
-        double distToTarget = Math.sqrt(dx * dx + dy * dy);
-        if (distToTarget != 0) {
-            int dashX = attacker.getX() + (int) (dx / distToTarget * dashDistance);
-            int dashY = attacker.getY() + (int) (dy / distToTarget * dashDistance);
-            attacker.setPosition(dashX, dashY);
-        }
-
         // Log the attack for debugging
         System.out.println("GameService " + gameId + ": Player " + attackerId + " attacks " + targetId + 
                           " for " + PLAYER_ATTACK_DAMAGE + " damage. Target health before: " + target.getHealth());
@@ -513,15 +485,5 @@ public class GameManager {
 
     public Map<String, BaseShip> getAiShips() {
         return aiShips;
-    }
-
-    /**
-     * Calculates the absolute smallest difference between two angles.
-     * The result is always in the range [0, Math.PI].
-     */
-    private static double angleDifference(double a, double b) {
-        double diff = a - b;
-        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-        return Math.abs(diff);
     }
 }
