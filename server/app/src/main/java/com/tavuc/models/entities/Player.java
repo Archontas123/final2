@@ -16,7 +16,8 @@ public class Player extends Entity {
     private double lastSpaceX;
     private double lastSpaceY;
     private double lastSpaceAngle;
-    private double attackRange = 40.0;
+    // Increased default melee range to compliment larger player size
+    private double attackRange = 60.0;
 
     /**
      * Constructor for Player
@@ -27,7 +28,8 @@ public class Player extends Entity {
     public Player(int id, String username, String password) {
         // Players start with 6 half-hearts (3 full hearts) while on the ground
         // This matches the client expectation of 6 health units
-        super(id, username.trim(), 0, 0, 6.0, 60, 60); // Changed from 3.0 to 6.0
+        // Increase base size from 60x60 to 80x80 for a more prominent ground player
+        super(id, username.trim(), 0, 0, 6.0, 80, 80);
         this.username = username.trim();
         this.password = password;
         this.directionAngle = 0.0; 

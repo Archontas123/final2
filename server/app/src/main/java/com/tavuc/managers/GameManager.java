@@ -214,6 +214,15 @@ public class GameManager {
             return;
         }
 
+        // Dash the attacker slightly toward the target before applying damage
+        double dashDistance = 20.0;
+        double distToTarget = Math.sqrt(dx * dx + dy * dy);
+        if (distToTarget != 0) {
+            int dashX = attacker.getX() + (int) (dx / distToTarget * dashDistance);
+            int dashY = attacker.getY() + (int) (dy / distToTarget * dashDistance);
+            attacker.setPosition(dashX, dashY);
+        }
+
         // Log the attack for debugging
         System.out.println("GameService " + gameId + ": Player " + attackerId + " attacks " + targetId + 
                           " for " + PLAYER_ATTACK_DAMAGE + " damage. Target health before: " + target.getHealth());
