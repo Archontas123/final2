@@ -25,6 +25,9 @@ import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionListener;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
@@ -35,6 +38,8 @@ import java.awt.image.BufferedImage;
 import javax.imageio.ImageIO;
 import java.io.InputStream;
 import java.io.IOException;
+
+import com.tavuc.ui.components.DamagePopup;
 
 
 
@@ -62,6 +67,9 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
     private java.awt.image.BufferedImage playerSprite;
     private java.awt.image.BufferedImage[] healthbarSprites = new java.awt.image.BufferedImage[7];
+
+    // Floating damage numbers
+    private final List<DamagePopup> damagePopups = new ArrayList<>();
 
 
     /**
@@ -261,6 +269,17 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
                 g2d.setColor(new Color(255, 0, 0, oAlpha));
                 g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
             }
+            }
+        }
+
+        // Draw floating damage numbers while world transform is active
+        Iterator<DamagePopup> iter = damagePopups.iterator();
+        while (iter.hasNext()) {
+            DamagePopup dp = iter.next();
+            if (dp.update()) {
+                iter.remove();
+            } else {
+                dp.draw(g2d, 0, 0);
             }
         }
 
@@ -514,6 +533,26 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             case HUE_SHIFT: return palette.getHueShift();
             case ROCK: return palette.getRock();
             default: return Color.GRAY;
+        }
+    }
+
+    /** Adds a floating damage popup at the specified world position. */
+    private void addDamagePopup(double worldX, double worldY, double damage) {
+        String text = String.format("%.1f", damage);
+        Color c = (damage == 0) ? new Color(80, 160, 220) : new Color(220, 60, 40);
+        damagePopups.add(new DamagePopup(worldX, worldY, text, c));
+    }
+
+    /** Triggered by network events to display damage on a player. */
+    public void showPlayerDamage(int id, double damage) {
+        Player target = null;
+        if (id == this.playerId) {
+            target = player;
+        } else if (worldManager != null) {
+            target = worldManager.getOtherPlayer(id);
+        }
+        if (target != null) {
+            addDamagePopup(target.getX() + target.getWidth() / 2.0, target.getY(), damage);
         }
     }
 

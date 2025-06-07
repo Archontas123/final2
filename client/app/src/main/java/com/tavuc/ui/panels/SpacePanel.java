@@ -33,8 +33,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.Iterator;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.tavuc.ui.components.DamagePopup;
 
 public class SpacePanel extends GPanel implements KeyListener, MouseListener, ActionListener, ISpacePanel {
 
@@ -87,9 +90,12 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
     private static final double FETCH_TRIGGER_DISTANCE_FACTOR = 0.75;
 
     // Visual indicators
-    private static final double ARROW_VISIBILITY_RANGE = 2000.0; 
+    private static final double ARROW_VISIBILITY_RANGE = 2000.0;
     private static final int ARROW_SIZE = 15;
     private static final Color ARROW_COLOR = Color.GREEN;
+
+    // Floating damage numbers
+    private final List<DamagePopup> damagePopups = new ArrayList<>();
 
     public SpacePanel(SpaceScreen parentScreen, JFrame mainFrame, int playerId, String username, SpaceManager spaceManager) {
         super();
@@ -254,6 +260,17 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
             }
         }
 
+        // Draw floating damage numbers
+        Iterator<DamagePopup> iter = damagePopups.iterator();
+        while (iter.hasNext()) {
+            DamagePopup dp = iter.next();
+            if (dp.update()) {
+                iter.remove();
+            } else {
+                dp.draw(g2d, 0, 0);
+            }
+        }
+
         g2d.setTransform(originalTransform);
 
         drawPlanetArrows(g2d, camX, camY);
@@ -317,6 +334,13 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
                 g2d.fillOval((int)screenP.x, (int)screenP.y, star.size, star.size); 
             }
         }
+    }
+
+    /** Adds a floating damage popup at the given world position. */
+    private void addDamagePopup(double x, double y, double damage) {
+        String txt = String.format("%.1f", damage);
+        Color c = (damage == 0) ? new Color(80, 160, 220) : new Color(220, 60, 40);
+        damagePopups.add(new DamagePopup(x, y, txt, c));
     }
 
     @Override
@@ -492,6 +516,7 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
                 if (playerShip != null) {
                     playerShip.updateHealthFromServer(event.currentHealth, event.maxHealth);
                     playerShip.triggerHitEffect();
+                    addDamagePopup(playerShip.getX(), playerShip.getY(), event.damageAmount);
                 }
             } else {
                 Ship ship = otherPlayerShips.get(id);
@@ -501,6 +526,7 @@ public class SpacePanel extends GPanel implements KeyListener, MouseListener, Ac
                     if (event.currentHealth <= 0) {
                         ship.setDestroyed(true);
                     }
+                    addDamagePopup(ship.getX(), ship.getY(), event.damageAmount);
                 }
             }
         } catch (NumberFormatException ex) {

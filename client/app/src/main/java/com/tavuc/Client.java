@@ -629,11 +629,15 @@ public class Client {
                                         Player p = currentGamePanel.getPlayer();
                                         p.setHealth(pdEvent.currentHealth);
                                         p.triggerDamageEffect();
+                                        currentGamePanel.showPlayerDamage(id, pdEvent.damage);
                                     } else if (worldManager != null) {
                                         Player other = worldManager.getOtherPlayer(id);
                                         if (other != null) {
                                             other.setHealth(pdEvent.currentHealth);
                                             other.triggerDamageEffect();
+                                            if (currentGamePanel != null) {
+                                                currentGamePanel.showPlayerDamage(id, pdEvent.damage);
+                                            }
                                         }
                                     }
                                 });
