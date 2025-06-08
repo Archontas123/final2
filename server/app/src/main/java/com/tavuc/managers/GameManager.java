@@ -222,6 +222,53 @@ public class GameManager {
         }
     }
 
+    /**
+     * Handles force ability usage between two players. Currently only applies
+     * a simple damage effect validated server-side.
+     *
+     * @param attackerId ID of the player using the ability
+     * @param targetId   ID of the target player
+     * @param ability    Name of the ability being used
+     */
+    public synchronized void handleForceAbility(int attackerId, int targetId, String ability) {
+        Player attacker = null;
+        Player target = null;
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == attackerId) attacker = p;
+            if (p.getId() == targetId) target = p;
+        }
+        if (attacker == null || target == null) return;
+
+        double dx = target.getX() - attacker.getX();
+        double dy = target.getY() - attacker.getY();
+        double distance = Math.hypot(dx, dy);
+        double range = attacker.getAttackRange();
+
+        if (distance > range) {
+            System.out.println("GameService " + gameId + ": Force ability out of range");
+            return;
+        }
+
+        double damage = 1.0; // simple fixed damage for all abilities
+        target.takeDamage(damage);
+
+        PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(
+                target.getIdAsString(),
+                damage,
+                target.getHealth()
+        );
+        broadcastToGame(dmg);
+
+        if (target.getHealth() <= 0) {
+            PlayerKilledBroadcast killed = new PlayerKilledBroadcast(
+                    target.getIdAsString(),
+                    attacker.getIdAsString()
+            );
+            broadcastToGame(killed);
+            removePlayer(target, playerSessions.get(target));
+        }
+    }
+
 
 
 

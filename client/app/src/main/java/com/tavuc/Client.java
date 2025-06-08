@@ -24,6 +24,7 @@ import com.tavuc.networking.models.EntityRemovedBroadcast;
 import com.tavuc.networking.models.ErrorMessage;
 import com.tavuc.networking.models.FireRequest;
 import com.tavuc.networking.models.PlayerAttackRequest;
+import com.tavuc.networking.models.ForceAbilityRequest;
 import com.tavuc.networking.models.GetPlayersRequest;
 import com.tavuc.networking.models.GetPlayersResponse;
 import com.tavuc.networking.models.JoinGameRequest;
@@ -467,6 +468,22 @@ public class Client {
                 String.valueOf(attackerId),
                 String.valueOf(targetId),
                 0.0
+        );
+        out.println(gson.toJson(req));
+    }
+
+    /**
+     * Sends a force ability request to the server.
+     */
+    public static void sendForceAbility(int attackerId, int targetId, String ability) {
+        if (out == null) {
+            System.err.println("Client not connected, cannot send ability request.");
+            return;
+        }
+        ForceAbilityRequest req = new ForceAbilityRequest(
+                String.valueOf(attackerId),
+                String.valueOf(targetId),
+                ability
         );
         out.println(gson.toJson(req));
     }
