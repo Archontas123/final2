@@ -52,7 +52,8 @@ public class Lightsaber extends Weapon {
         }
 
         sounds.play("lightsaber_swing");
-        effects.spawn("blade_trail");
+        effects.spawn("blade_trail", wielder.getX() + wielder.getWidth() / 2.0,
+                      wielder.getY() + wielder.getHeight() / 2.0);
 
         // Check for a hit and apply damage to any target in range
         if (Client.worldManager != null) {

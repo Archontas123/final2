@@ -105,7 +105,8 @@ public class ForcePowers extends Weapon {
         }
 
         sounds.play("force_use");
-        effects.spawn("force_effect");
+        effects.spawn("force_effect", wielder.getX() + wielder.getWidth() / 2.0,
+                      wielder.getY() + wielder.getHeight() / 2.0);
         cd.start((long) (stats.getCooldown() * 1000));
     }
 

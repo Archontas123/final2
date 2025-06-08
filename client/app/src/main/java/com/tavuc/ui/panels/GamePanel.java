@@ -43,6 +43,7 @@ import com.tavuc.ui.components.DamagePopup;
 import com.tavuc.ui.effects.DustParticle;
 import com.tavuc.ui.effects.SpeedLineParticle;
 import com.tavuc.ui.effects.MovementParticle;
+import com.tavuc.ui.effects.Particle;
 
 
 
@@ -75,8 +76,14 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     // Floating damage numbers
     private final List<DamagePopup> damagePopups = new ArrayList<>();
 
-    // Movement effect particles (dust, speed lines)
-    private final List<com.tavuc.ui.effects.MovementParticle> movementParticles = new ArrayList<>();
+    // All visual particles (movement, weapons, etc.)
+    private final List<Particle> particles = new ArrayList<>();
+
+    // Temporary light sources for weapon flashes and effects
+    private final List<com.tavuc.ui.lights.DynamicLight> lights = new ArrayList<>();
+
+    // Quick white screen flash when damaged
+    private float damageFlash = 0f;
 
 
     /**
@@ -270,8 +277,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             g2d.fillOval(player.getX(), player.getY(), playerSize, playerSize);
         }
 
-        // Draw movement particles relative to world transform
-        for (MovementParticle p : movementParticles) {
+        // Draw particles relative to world transform
+        for (Particle p : particles) {
             p.draw(g2d, 0, 0);
         }
 
@@ -385,6 +392,11 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             }
         }
 
+        // Draw transient light sources
+        for (com.tavuc.ui.lights.DynamicLight l : lights) {
+            l.draw(g2d, 0, 0);
+        }
+
         g2d.setTransform(originalTransform);
 
         // --- Fog of war / lighting effect ---
@@ -401,6 +413,20 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         RadialGradientPaint fog = new RadialGradientPaint(center, radius, dist, colors);
         g2d.setPaint(fog);
         g2d.fillRect(0, 0, panelWidth, panelHeight);
+
+        // Health-based vignette darkening the edges
+        float healthRatio = player.getHealth() / 6f;
+        float vignetteAlpha = Math.max(0f, 1f - healthRatio);
+        if (vignetteAlpha > 0f) {
+            float[] vd = {0.5f, 1f};
+            Color[] vc = {
+                new Color(0, 0, 0, 0),
+                new Color(80, 0, 0, (int)(vignetteAlpha * 180))
+            };
+            RadialGradientPaint vignette = new RadialGradientPaint(center, radius, vd, vc);
+            g2d.setPaint(vignette);
+            g2d.fillRect(0, 0, panelWidth, panelHeight);
+        }
 
         // Draw player health bar above the lighting effect
         int healthIdx = Math.max(0, Math.min(6, player.getHealth()));
@@ -427,6 +453,12 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         int coinY = 20 + fmCoins.getAscent();
         g2d.drawString(coinText, coinX, coinY);
 
+        // White flash overlay when taking damage
+        if (damageFlash > 0f) {
+            g2d.setColor(new Color(255, 255, 255, (int)(damageFlash * 180)));
+            g2d.fillRect(0, 0, panelWidth, panelHeight);
+        }
+
         // Mana and ability display removed
     }
 
@@ -437,7 +469,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     public void actionPerformed(ActionEvent e) {
         player.update();
 
-        updateMovementEffects();
+        updateEffects();
 
         if (worldManager != null) {
           
@@ -565,6 +597,9 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
         if (target != null) {
             addDamagePopup(target.getX() + target.getWidth() / 2.0, target.getY(), damage);
+            if (id == this.playerId) {
+                triggerDamageFlash();
+            }
         }
     }
 
@@ -592,24 +627,36 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         }
     }
 
-    /** Update and spawn movement effect particles based on player state. */
-    private void updateMovementEffects() {
+    /** Update and spawn visual particles based on player state. */
+    private void updateEffects() {
         com.tavuc.controllers.MovementState state = player.getMovementController().getCurrentState();
         if (state == com.tavuc.controllers.MovementState.SLIDING) {
-            movementParticles.add(new DustParticle(player.getX() + player.getWidth() / 2.0,
-                                                  player.getY() + player.getHeight()));
+            particles.add(new DustParticle(player.getX() + player.getWidth() / 2.0,
+                                           player.getY() + player.getHeight()));
         } else if (state == com.tavuc.controllers.MovementState.DODGING) {
-            movementParticles.add(new SpeedLineParticle(player.getX() + player.getWidth() / 2.0,
-                                                       player.getY() + player.getHeight() / 2.0,
-                                                       player.getDirection()));
+            particles.add(new SpeedLineParticle(player.getX() + player.getWidth() / 2.0,
+                                               player.getY() + player.getHeight() / 2.0,
+                                               player.getDirection()));
         }
 
-        Iterator<MovementParticle> iterP = movementParticles.iterator();
+        Iterator<Particle> iterP = particles.iterator();
         while (iterP.hasNext()) {
-            MovementParticle p = iterP.next();
+            Particle p = iterP.next();
             if (p.update()) {
                 iterP.remove();
             }
+        }
+
+        Iterator<com.tavuc.ui.lights.DynamicLight> itL = lights.iterator();
+        while (itL.hasNext()) {
+            com.tavuc.ui.lights.DynamicLight l = itL.next();
+            if (l.update()) {
+                itL.remove();
+            }
+        }
+
+        if (damageFlash > 0f) {
+            damageFlash = Math.max(0f, damageFlash - 0.1f);
         }
     }
 
@@ -640,6 +687,21 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     public void triggerScreenShake(int ticks, double strength) {
         this.shakeTicks = Math.max(this.shakeTicks, ticks);
         this.shakeStrength = Math.max(this.shakeStrength, strength);
+    }
+
+    /** Add a particle effect to be managed by the panel. */
+    public void addParticle(Particle p) {
+        particles.add(p);
+    }
+
+    /** Add a light effect to be managed by the panel. */
+    public void addLight(com.tavuc.ui.lights.DynamicLight l) {
+        lights.add(l);
+    }
+
+    /** Trigger a brief white flash when the player is hurt. */
+    public void triggerDamageFlash() {
+        damageFlash = 1f;
     }
 
 }
