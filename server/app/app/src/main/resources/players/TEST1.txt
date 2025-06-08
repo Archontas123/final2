@@ -1,8 +1,9 @@
 #Player data
-#Sat Jun 07 18:19:38 EDT 2025
+#Sun Jun 08 18:01:19 EDT 2025
+coins=0
 id=1
-lastSpaceAngle=2.879793167114258
-lastSpaceX=2065.0
-lastSpaceY=1678.0
+lastSpaceAngle=4.014257431030273
+lastSpaceX=1491.0
+lastSpaceY=328.0
 password=TEST1
 username=TEST1
