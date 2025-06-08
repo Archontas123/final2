@@ -6,7 +6,7 @@ import com.tavuc.models.entities.Entity;
 /**
  * Minimal server side trooper for tests.
  */
-public class BasicTrooper extends Trooper {
+public class BasicTrooper extends Trooper implements TargetHolder {
 
     private Entity target;
     private final PathfindingAgent path;
@@ -54,5 +54,15 @@ public class BasicTrooper extends Trooper {
                 suppression.suppress(this, target);
             }
         }
+    }
+
+    @Override
+    public void setTarget(Entity target) {
+        this.target = target;
+    }
+
+    @Override
+    public Entity getTarget() {
+        return target;
     }
 }

@@ -10,7 +10,7 @@ import java.awt.Graphics2D;
 /**
  * Simple mech enemy with melee attack.
  */
-public class BasicMech extends Mech {
+public class BasicMech extends Mech implements TargetHolder {
 
     private final WorldManager world;
     private Entity target;
@@ -54,5 +54,15 @@ public class BasicMech extends Mech {
     @Override
     public void draw(Graphics2D g2d, double offsetX, double offsetY) {
         g2d.fillOval((int)(getX()-offsetX),(int)(getY()-offsetY),30,30);
+    }
+
+    @Override
+    public void setTarget(Entity target) {
+        this.target = target;
+    }
+
+    @Override
+    public Entity getTarget() {
+        return target;
     }
 }
