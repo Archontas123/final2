@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.awt.Rectangle;
+import java.time.Duration;
 
 import com.tavuc.models.GameObject;
 import com.tavuc.models.entities.Entity;
@@ -27,6 +28,11 @@ import com.tavuc.networking.models.CoinDropRemovedBroadcast;
 import com.tavuc.models.items.CoinDrop;
 import com.tavuc.models.entities.enemies.Enemy;
 import com.tavuc.models.space.BaseShip;   // Added import
+import com.tavuc.ai.WaveManager;
+import com.tavuc.ai.WaveConfiguration;
+import com.tavuc.ai.EnemySpawnData;
+import com.tavuc.ai.SpawnPattern;
+import com.tavuc.models.entities.enemies.EnemyType;
 
 
 public class GameManager {
@@ -44,6 +50,11 @@ public class GameManager {
     // Coin drop tracking
     private final ConcurrentMap<String, CoinDrop> coinDrops = new ConcurrentHashMap<>();
     private int nextCoinDropId = 1;
+
+    // Wave and enemy tracking
+    private WaveManager waveManager;
+    private final List<Enemy> activeEnemies = new ArrayList<>();
+    private boolean[][] blockedTiles;
 
     // Damage dealt by players while on the ground
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
@@ -64,6 +75,28 @@ public class GameManager {
         this.planetName = planet.getName();
         this.maxPlayers = maxPlayers;
         System.out.println("GameService " + gameId + " (" + planetName + ") initialized with max " + maxPlayers + " players.");
+
+        // Set up wave manager with some basic waves
+        waveManager = new WaveManager();
+        blockedTiles = new boolean[100][100];
+        List<WaveConfiguration> waves = new ArrayList<>();
+
+        WaveConfiguration w1 = new WaveConfiguration();
+        w1.setWaveNumber(1);
+        w1.setTimeLimit(Duration.ofSeconds(5));
+        w1.setSpawnPattern(SpawnPattern.PERIMETER);
+        w1.setEnemies(List.of(new EnemySpawnData(EnemyType.TROOPER, 1)));
+
+        WaveConfiguration w2 = new WaveConfiguration();
+        w2.setWaveNumber(2);
+        w2.setTimeLimit(Duration.ofSeconds(5));
+        w2.setSpawnPattern(SpawnPattern.PERIMETER);
+        w2.setEnemies(List.of(new EnemySpawnData(EnemyType.TROOPER, 2)));
+
+        waves.add(w1);
+        waves.add(w2);
+
+        waveManager.setWaves(waves);
     }
 
     /**
@@ -245,10 +278,14 @@ public class GameManager {
      */
     public synchronized void handleForceAbility(int attackerId, int targetId, String ability) {
         Player attacker = null;
-        Player target = null;
+        Player targetPlayer = null;
+        Enemy targetEnemy = null;
         for (Player p : playerSessions.keySet()) {
             if (p.getId() == attackerId) attacker = p;
-            if (p.getId() == targetId) target = p;
+            if (p.getId() == targetId) targetPlayer = p;
+        }
+        for (Enemy e : activeEnemies) {
+            if (e.getId() == targetId) targetEnemy = e;
         }
         if (attacker == null) return;
 
@@ -264,29 +301,43 @@ public class GameManager {
                         applyAbilityDamage(attacker, p, 1.0);
                     }
                 }
+                for (Enemy e : activeEnemies) {
+                    double dx = e.getX() - attacker.getX();
+                    double dy = e.getY() - attacker.getY();
+                    if (Math.hypot(dx, dy) <= range) {
+                        applyAbilityDamage(attacker, e, 1.0);
+                    }
+                }
             }
             case "FORCE_PUSH" -> {
-                if (target == null) return;
-                double dx = target.getX() - attacker.getX();
-                double dy = target.getY() - attacker.getY();
+                if (targetPlayer == null && targetEnemy == null) return;
+                double dx = (targetPlayer != null ? targetPlayer.getX() : targetEnemy.getX()) - attacker.getX();
+                double dy = (targetPlayer != null ? targetPlayer.getY() : targetEnemy.getY()) - attacker.getY();
                 double dist = Math.hypot(dx, dy);
                 if (dist > range) return;
                 if (dist != 0) {
-                    target.setDx(dx / dist * 5);
-                    target.setDy(dy / dist * 5);
+                    if (targetPlayer != null) {
+                        targetPlayer.setDx(dx / dist * 5);
+                        targetPlayer.setDy(dy / dist * 5);
+                    } else {
+                        targetEnemy.setDx(dx / dist * 5);
+                        targetEnemy.setDy(dy / dist * 5);
+                    }
                 }
-                applyAbilityDamage(attacker, target, 0.5);
+                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 0.5);
+                else applyAbilityDamage(attacker, targetEnemy, 0.5);
             }
             case "FORCE_CHOKE" -> {
-                if (target == null) return;
-                double dx = target.getX() - attacker.getX();
-                double dy = target.getY() - attacker.getY();
+                if (targetPlayer == null && targetEnemy == null) return;
+                double dx = (targetPlayer != null ? targetPlayer.getX() : targetEnemy.getX()) - attacker.getX();
+                double dy = (targetPlayer != null ? targetPlayer.getY() : targetEnemy.getY()) - attacker.getY();
                 if (Math.hypot(dx, dy) > range) return;
-                applyAbilityDamage(attacker, target, 1.5);
+                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 1.5);
+                else applyAbilityDamage(attacker, targetEnemy, 1.5);
             }
             default -> {
-                if (target == null) return;
-                applyAbilityDamage(attacker, target, 1.0);
+                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 1.0);
+                else if (targetEnemy != null) applyAbilityDamage(attacker, targetEnemy, 1.0);
             }
         }
     }
@@ -312,6 +363,14 @@ public class GameManager {
             );
             broadcastToGame(killed);
             removePlayer(target, playerSessions.get(target));
+        }
+    }
+
+    private void applyAbilityDamage(Player attacker, Enemy target, double damage) {
+        target.takeDamage(damage);
+        if (target.getHealth() <= 0) {
+            activeEnemies.remove(target);
+            handleEnemyKilled(target, attacker.getId());
         }
     }
 
@@ -381,6 +440,30 @@ public class GameManager {
         synchronized (playerSessions) {
             List<Player> players = new ArrayList<>(playerSessions.keySet());
             Map<Player, int[]> prevPositions = new HashMap<>();
+
+            // --- Enemy wave management ---
+            if (waveManager != null && !players.isEmpty()) {
+                // Remove defeated enemies and drop coins
+                java.util.Iterator<Enemy> it = activeEnemies.iterator();
+                while (it.hasNext()) {
+                    Enemy e = it.next();
+                    if (e.getHealth() <= 0) {
+                        it.remove();
+                        handleEnemyKilled(e, -1);
+                    }
+                }
+
+                // Spawn next wave if needed
+                if ((activeEnemies.isEmpty() || waveManager.isCurrentWaveTimedOut()) && waveManager.hasMoreWaves()) {
+                    Player target = players.get(0);
+                    activeEnemies.addAll(waveManager.spawnNextWave(blockedTiles, target));
+                }
+
+                // Update active enemies
+                for (Enemy enemy : activeEnemies) {
+                    enemy.update();
+                }
+            }
 
             for (Player player : players) {
                 int prevX = player.getX();
@@ -547,6 +630,11 @@ public class GameManager {
 
     public Map<String, BaseShip> getAiShips() {
         return aiShips;
+    }
+
+    /** Returns the list of currently active ground enemies. */
+    public List<Enemy> getActiveEnemies() {
+        return activeEnemies;
     }
 
     /** Retrieve a player by ID from the active player list. */
