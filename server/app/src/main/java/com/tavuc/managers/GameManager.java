@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.awt.Rectangle;
+import java.time.Duration;
 
 import com.tavuc.models.GameObject;
 import com.tavuc.models.entities.Entity;
@@ -27,6 +28,11 @@ import com.tavuc.networking.models.CoinDropRemovedBroadcast;
 import com.tavuc.models.items.CoinDrop;
 import com.tavuc.models.entities.enemies.Enemy;
 import com.tavuc.models.space.BaseShip;   // Added import
+import com.tavuc.ai.WaveManager;
+import com.tavuc.ai.WaveConfiguration;
+import com.tavuc.ai.EnemySpawnData;
+import com.tavuc.ai.SpawnPattern;
+import com.tavuc.models.entities.enemies.EnemyType;
 
 
 public class GameManager {
@@ -44,6 +50,11 @@ public class GameManager {
     // Coin drop tracking
     private final ConcurrentMap<String, CoinDrop> coinDrops = new ConcurrentHashMap<>();
     private int nextCoinDropId = 1;
+
+    // Wave and enemy tracking
+    private WaveManager waveManager;
+    private final List<Enemy> activeEnemies = new ArrayList<>();
+    private boolean[][] blockedTiles;
 
     // Damage dealt by players while on the ground
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
@@ -64,6 +75,28 @@ public class GameManager {
         this.planetName = planet.getName();
         this.maxPlayers = maxPlayers;
         System.out.println("GameService " + gameId + " (" + planetName + ") initialized with max " + maxPlayers + " players.");
+
+        // Set up wave manager with some basic waves
+        waveManager = new WaveManager();
+        blockedTiles = new boolean[100][100];
+        List<WaveConfiguration> waves = new ArrayList<>();
+
+        WaveConfiguration w1 = new WaveConfiguration();
+        w1.setWaveNumber(1);
+        w1.setTimeLimit(Duration.ofSeconds(5));
+        w1.setSpawnPattern(SpawnPattern.PERIMETER);
+        w1.setEnemies(List.of(new EnemySpawnData(EnemyType.TROOPER, 1)));
+
+        WaveConfiguration w2 = new WaveConfiguration();
+        w2.setWaveNumber(2);
+        w2.setTimeLimit(Duration.ofSeconds(5));
+        w2.setSpawnPattern(SpawnPattern.PERIMETER);
+        w2.setEnemies(List.of(new EnemySpawnData(EnemyType.TROOPER, 2)));
+
+        waves.add(w1);
+        waves.add(w2);
+
+        waveManager.setWaves(waves);
     }
 
     /**
@@ -382,6 +415,30 @@ public class GameManager {
             List<Player> players = new ArrayList<>(playerSessions.keySet());
             Map<Player, int[]> prevPositions = new HashMap<>();
 
+            // --- Enemy wave management ---
+            if (waveManager != null && !players.isEmpty()) {
+                // Remove defeated enemies and drop coins
+                java.util.Iterator<Enemy> it = activeEnemies.iterator();
+                while (it.hasNext()) {
+                    Enemy e = it.next();
+                    if (e.getHealth() <= 0) {
+                        it.remove();
+                        handleEnemyKilled(e, -1);
+                    }
+                }
+
+                // Spawn next wave if needed
+                if ((activeEnemies.isEmpty() || waveManager.isCurrentWaveTimedOut()) && waveManager.hasMoreWaves()) {
+                    Player target = players.get(0);
+                    activeEnemies.addAll(waveManager.spawnNextWave(blockedTiles, target));
+                }
+
+                // Update active enemies
+                for (Enemy enemy : activeEnemies) {
+                    enemy.update();
+                }
+            }
+
             for (Player player : players) {
                 int prevX = player.getX();
                 int prevY = player.getY();
@@ -547,6 +604,11 @@ public class GameManager {
 
     public Map<String, BaseShip> getAiShips() {
         return aiShips;
+    }
+
+    /** Returns the list of currently active ground enemies. */
+    public List<Enemy> getActiveEnemies() {
+        return activeEnemies;
     }
 
     /** Retrieve a player by ID from the active player list. */
