@@ -37,6 +37,7 @@ public class InputManager implements KeyListener {
     private ControlTargetType controlTargetType;
     private Player player;
     private Ship ship;
+    private com.tavuc.weapons.ForcePowers forcePowers;
     private boolean upPressed, downPressed, leftPressed, rightPressed;
     private boolean shiftPressed;
 
@@ -67,6 +68,10 @@ public class InputManager implements KeyListener {
 
     public void setShipTarget(Ship ship) {
         this.ship = ship;
+    }
+
+    public void setForcePowers(com.tavuc.weapons.ForcePowers powers) {
+        this.forcePowers = powers;
     }
 
     /** Enable or disable tile-based movement mode. */
@@ -126,6 +131,9 @@ public class InputManager implements KeyListener {
             if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
                 rightPressed = true;
                 inputBuffer.registerInput(KeyBinding.MOVE_RIGHT);
+            }
+            if (keyCode == KeyEvent.VK_TAB && forcePowers != null) {
+                forcePowers.cycleTarget(player);
             }
             if (keyCode == KeyEvent.VK_SHIFT) {
                 shiftPressed = true;
