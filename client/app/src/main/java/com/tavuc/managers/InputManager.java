@@ -40,6 +40,11 @@ public class InputManager implements KeyListener {
     private boolean upPressed, downPressed, leftPressed, rightPressed;
     private boolean shiftPressed;
 
+    // When enabled, player movement is locked to the grid defined by
+    // WorldManager.TILE_SIZE and only the four cardinal directions are
+    // allowed. This flag can be toggled at runtime for testing.
+    private boolean tileMovement = false;
+
     private final InputBuffer inputBuffer = new InputBuffer(100);
 
     private InputManager() {
@@ -62,6 +67,16 @@ public class InputManager implements KeyListener {
 
     public void setShipTarget(Ship ship) {
         this.ship = ship;
+    }
+
+    /** Enable or disable tile-based movement mode. */
+    public void setTileMovement(boolean enable) {
+        this.tileMovement = enable;
+    }
+
+    /** Returns whether tile-based movement mode is active. */
+    public boolean isTileMovement() {
+        return tileMovement;
     }
 
 
@@ -203,6 +218,22 @@ public class InputManager implements KeyListener {
 
         double vecX = 0.0;
         double vecY = 0.0;
+
+        if (tileMovement) {
+            int vert = (upPressed ? -1 : 0) + (downPressed ? 1 : 0);
+            int horz = (rightPressed ? 1 : 0) + (leftPressed ? -1 : 0);
+            if (vert != 0 && horz != 0) {
+                vecX = 0;
+                vecY = 0; // ignore perpendicular presses
+            } else if (vert != 0 || horz != 0) {
+                vecX = horz;
+                vecY = vert;
+            }
+            player.setMoveVector(vecX, vecY);
+            player.setAcceleration(0.0);
+            return;
+        }
+
         double angle = player.getDirection();
 
         if (upPressed && !downPressed) {
