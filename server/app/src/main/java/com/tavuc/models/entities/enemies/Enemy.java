@@ -17,15 +17,28 @@ public abstract class Enemy extends Entity {
     protected CombatBehavior combatBehavior;
     protected EnemyType type;
     protected DifficultyScaling scaling;
+    /** Direction the enemy is facing in radians. */
+    protected double direction;
 
     public Enemy(int id, String name, int x, int y, double health, int width, int height, EnemyType type) {
         super(id, name, x, y, health, width, height);
         this.type = type;
         this.stateMachine = new AIStateMachine();
         this.scaling = new DifficultyScaling();
+        this.direction = 0.0;
     }
 
     public AIStateMachine getStateMachine() {
         return stateMachine;
+    }
+
+    /** Returns the facing direction in radians. */
+    public double getDirection() {
+        return direction;
+    }
+
+    /** Sets the facing direction in radians. */
+    public void setDirection(double direction) {
+        this.direction = direction;
     }
 }

@@ -12,6 +12,7 @@ public class BasicMech extends Mech {
     private final PathfindingAgent path;
     private final TargetingSystem targetingSys;
     private final CombatBehavior combat;
+    private int slamCooldown = 0;
 
     public BasicMech(int id, String name, int x, int y, boolean[][] blocked, Entity target) {
         super(id, name, x, y, 10, 30, 30);
@@ -31,9 +32,21 @@ public class BasicMech extends Mech {
             setDx(mv[0]);
             setDy(mv[1]);
             super.update();
-            if (Math.hypot(target.getX()-getX(), target.getY()-getY()) <= 25) {
-                combat.performAttack(target);
+
+            double dx = target.getX() - getX();
+            double dy = target.getY() - getY();
+            setDirection(Math.atan2(dy, dx));
+            double dist = Math.hypot(dx, dy);
+            if (dist <= 50 && dist > 25) {
+                chargeAttack(target);
+            } else if (dist <= 25) {
+                comboAttack(target, 3);
+                if (slamCooldown <= 0) {
+                    slamAOE(java.util.List.of(target), 2);
+                    slamCooldown = 60;
+                }
             }
         }
+        if (slamCooldown > 0) slamCooldown--;
     }
 }
