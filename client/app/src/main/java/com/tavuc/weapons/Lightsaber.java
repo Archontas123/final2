@@ -4,6 +4,7 @@ import com.tavuc.models.entities.Player;
 import com.tavuc.utils.Vector2D;
 import com.tavuc.Client;
 import com.tavuc.ecs.systems.ShipCombatSystem;
+import com.tavuc.ecs.systems.WeakPointSystem;
 import com.tavuc.models.space.Projectile;
 import java.util.List;
 
@@ -53,13 +54,16 @@ public class Lightsaber extends Weapon {
         sounds.play("lightsaber_swing");
         effects.spawn("blade_trail");
 
-        // Check for a hit and apply lethal damage to any target in range
+        // Check for a hit and apply damage to any target in range
         if (Client.worldManager != null) {
+            WeakPointSystem wps = new WeakPointSystem();
             for (Player p : Client.worldManager.getOtherPlayers()) {
                 double dx = p.getX() - wielder.getX();
                 double dy = p.getY() - wielder.getY();
                 if (Math.hypot(dx, dy) <= stats.getRange()) {
-                    p.setHealth(0);
+                    int dmg = wps.applyWeakPointDamage(wielder, p, (int) stats.getDamage());
+                    p.takeDamage(dmg);
+                    p.setHealth(0); // maintain previous lethal effect
                 }
             }
         }
