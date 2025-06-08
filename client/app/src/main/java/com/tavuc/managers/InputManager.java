@@ -178,10 +178,28 @@ public class InputManager implements KeyListener {
      */
     private void updatePlayerMovementInput() {
         if (player == null || controlTargetType != ControlTargetType.PLAYER) {
-            return; 
+            return;
         }
 
+        // remove any commands that are outside the buffer window
         inputBuffer.purgeExpired();
+
+        // handle any buffered commands with the highest priority first
+        KeyBinding bufferedCommand = inputBuffer.peekHighestPriority();
+        if (bufferedCommand != null) {
+            switch (bufferedCommand) {
+                case SLIDE:
+                    player.getMovementController().startSlide();
+                    break;
+                case DODGE:
+                    player.getMovementController().dodge();
+                    player.startInvulnerability(0.5);
+                    break;
+                default:
+                    // movement commands are handled below using key states
+                    break;
+            }
+        }
 
         double vecX = 0.0;
         double vecY = 0.0;
