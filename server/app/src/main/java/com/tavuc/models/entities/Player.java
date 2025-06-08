@@ -19,6 +19,8 @@ public class Player extends Entity {
     // Increased default melee range to compliment larger player size
     private double attackRange = 60.0;
     // Player-specific combat settings
+    // Coins currently carried by this player
+    private int coins = 0;
 
     /**
      * Constructor for Player
@@ -37,6 +39,7 @@ public class Player extends Entity {
         this.lastSpaceX = 0.0; // Default to 0,0 or a system entry point
         this.lastSpaceY = 0.0;
         this.lastSpaceAngle = 0.0;
+        this.coins = 0;
     }
 
     /** 
@@ -109,6 +112,28 @@ public class Player extends Entity {
         this.attackRange = attackRange;
     }
 
+    /** Returns the amount of coins the player currently carries. */
+    public int getCoins() {
+        return coins;
+    }
+
+    /** Adds coins to the player. */
+    public void addCoins(int amount) {
+        this.coins += amount;
+    }
+
+    /** Directly sets the player's coin amount. */
+    public void setCoins(int amount) {
+        this.coins = amount;
+    }
+
+    /** Extracts all coins, resetting the count and returning the amount. */
+    public int extractCoins() {
+        int extracted = this.coins;
+        this.coins = 0;
+        return extracted;
+    }
+
     @Override
     public void takeDamage(double amount) {
         super.takeDamage(amount);
@@ -142,6 +167,7 @@ public class Player extends Entity {
             props.setProperty("lastSpaceX", String.valueOf(this.lastSpaceX));
             props.setProperty("lastSpaceY", String.valueOf(this.lastSpaceY));
             props.setProperty("lastSpaceAngle", String.valueOf(this.lastSpaceAngle));
+            props.setProperty("coins", String.valueOf(this.coins));
 
             try (BufferedWriter writer = Files.newBufferedWriter(playerFile)) {
                 props.store(writer, "Player data");
@@ -179,6 +205,7 @@ public class Player extends Entity {
             player.setLastSpaceX(Double.parseDouble(props.getProperty("lastSpaceX", "0.0")));
             player.setLastSpaceY(Double.parseDouble(props.getProperty("lastSpaceY", "0.0")));
             player.setLastSpaceAngle(Double.parseDouble(props.getProperty("lastSpaceAngle", "0.0")));
+            player.setCoins(Integer.parseInt(props.getProperty("coins", "0")));
             return player;
         } catch (IOException e) {
             System.err.println("[DEBUG Player.load] IOException for '" + username + "': " + e.getMessage()); 

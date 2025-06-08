@@ -12,6 +12,8 @@ import com.tavuc.models.entities.Player; // Added import
 import com.tavuc.Client;
 import com.tavuc.networking.models.PlayerJoinedBroadcast; // Added import
 import com.tavuc.networking.models.PlayerMovedBroadcast; // Added import
+import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
+import com.tavuc.networking.models.CoinDropRemovedBroadcast;
 import com.tavuc.models.planets.Chunk;
 import com.tavuc.models.planets.ColorPallete;
 import com.tavuc.models.planets.ColorType;
@@ -28,6 +30,7 @@ public class WorldManager {
     private static final int chunkLoadRadius = 2; 
     private static final Gson gson = new Gson();
     private final Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Added for other players
+    private final Map<String, com.tavuc.models.items.CoinDrop> coinDrops = new ConcurrentHashMap<>();
 
     public WorldManager(int gameId) {
         this.gameId = gameId;
@@ -57,6 +60,8 @@ public class WorldManager {
             player.setY(event.y);
             player.setDx(event.dx);
             player.setDy(event.dy);
+            // Sync the movement controller velocity for prediction
+            player.getMovementController().getVelocity().set(event.dx, event.dy);
             player.setDirection(event.directionAngle);
             otherPlayers.put(pId, player);
             System.out.println("WorldManager.addPlayer: Successfully added player " + event.username + " (ID: " + pId + ") to otherPlayers. otherPlayers size: " + otherPlayers.size());
@@ -78,6 +83,8 @@ public class WorldManager {
                 player.setY(event.y);
                 player.setDx(event.dx);
                 player.setDy(event.dy);
+                // Update movement controller velocity for prediction
+                player.getMovementController().getVelocity().set(event.dx, event.dy);
                 player.setDirection(event.directionAngle);
                 // player.update(); // Let GamePanel's loop call update if needed, or call here if direct update is desired
                 if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
@@ -96,6 +103,21 @@ public class WorldManager {
         } catch (NumberFormatException e) {
             System.err.println("WorldManager: Error parsing playerId for removePlayer: " + playerId);
         }
+    }
+
+    public void addCoinDrop(CoinDropSpawnedBroadcast event) {
+        coinDrops.put(event.dropId, new com.tavuc.models.items.CoinDrop(event.dropId, event.x, event.y, event.amount));
+        if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
+    }
+
+    public void removeCoinDrop(String dropId) {
+        if (coinDrops.remove(dropId) != null && Client.currentGamePanel != null) {
+            Client.currentGamePanel.repaint();
+        }
+    }
+
+    public List<com.tavuc.models.items.CoinDrop> getCoinDrops() {
+        return new ArrayList<>(coinDrops.values());
     }
 
     public void setGameId(int gameId) {

@@ -4,6 +4,13 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 
+import com.tavuc.controllers.PlayerMovementController;
+import com.tavuc.utils.Vector2D;
+import com.tavuc.Client;
+import com.tavuc.managers.InputManager;
+import com.tavuc.managers.WorldManager;
+import com.tavuc.models.planets.Tile;
+
 
 public class Player extends Entity {
 
@@ -26,6 +33,8 @@ public class Player extends Entity {
     private int lastSentY; 
     private double lastSentDx;
     private double lastSentDy;
+    // Current amount of coins carried by the player
+    private int coins = 0;
     private static final int PLAYER_BASE_WIDTH = 120;
     private static final int PLAYER_BASE_HEIGHT = 120;
     private static final int HAND_SIZE = 60;
@@ -34,11 +43,12 @@ public class Player extends Entity {
     private static final double DECELERATION_RATE = 0.3;
     // Visual damage flash strength (1.0 = fully visible, 0 = no effect)
     private float damageEffect = 0f;
-    // Mana and ability related fields
-    private double mana = 10.0;
-    private double maxMana = 10.0;
-    private boolean forceShieldActive = false;
-    private int glowTicks = 0;
+
+    private boolean invulnerable = false;
+    private double invulnTimer = 0.0;
+
+    // New movement controller implementing advanced momentum mechanics
+    private final PlayerMovementController movementController = new PlayerMovementController();
 
 
     /**
@@ -59,10 +69,8 @@ public class Player extends Entity {
         this.lastSentDx = this.dx;
         this.lastSentDy = this.dy;
         this.lastSentDirection = 0.0;
+        this.coins = 0;
 
-        this.mana = maxMana;
-        this.forceShieldActive = false;
-        this.glowTicks = 0;
 
         updatePlayerShapes();
     }
@@ -76,8 +84,10 @@ public class Player extends Entity {
 
     @Override
     public void takeDamage(int amount) {
-        super.takeDamage(amount);
-        triggerDamageEffect();
+        if (!invulnerable) {
+            super.takeDamage(amount);
+            triggerDamageEffect();
+        }
     }
 
     /**
@@ -87,48 +97,30 @@ public class Player extends Entity {
         if (damageEffect > 0f) {
             damageEffect = Math.max(0f, damageEffect - 0.05f);
         }
+        if (invulnerable) {
+            invulnTimer -= 0.016;
+            if (invulnTimer <= 0) {
+                invulnerable = false;
+            }
+        }
+    }
+
+    public void startInvulnerability(double duration) {
+        this.invulnerable = true;
+        this.invulnTimer = duration;
+    }
+
+    /**
+     * Invulnerability specifically triggered by a dodge action.
+     */
+    public void startDodgeInvulnerability(double duration) {
+        startInvulnerability(duration);
     }
 
     public float getDamageEffect() {
         return damageEffect;
     }
 
-    /** Returns current mana amount. */
-    public double getMana() {
-        return mana;
-    }
-
-    /** Sets mana, clamped between 0 and maxMana. */
-    public void setMana(double mana) {
-        this.mana = Math.max(0, Math.min(mana, maxMana));
-    }
-
-    /** Whether force shield is active. */
-    public boolean isForceShieldActive() {
-        return forceShieldActive;
-    }
-
-    /** Activate or deactivate force shield. */
-    public void setForceShieldActive(boolean active) {
-        this.forceShieldActive = active;
-    }
-
-    /** Triggers a glow effect for the given number of frames. */
-    public void triggerGlow(int ticks) {
-        glowTicks = Math.max(glowTicks, ticks);
-    }
-
-    /** Updates the glow counter each frame. */
-    public void updateGlow() {
-        if (glowTicks > 0) {
-            glowTicks--;
-        }
-    }
-
-    /** Returns true if currently glowing. */
-    public boolean isGlowing() {
-        return glowTicks > 0;
-    }
 
     /**
      * Gets the melee attack range for this player.
@@ -142,6 +134,13 @@ public class Player extends Entity {
      */
     public void setAttackRange(double attackRange) {
         this.attackRange = attackRange;
+    }
+
+    /**
+     * Returns the movement controller responsible for handling player motion.
+     */
+    public PlayerMovementController getMovementController() {
+        return movementController;
     }
 
 
@@ -183,6 +182,7 @@ public class Player extends Entity {
     public void setMoveVector(double x, double y) {
         this.moveVecX = x;
         this.moveVecY = y;
+        movementController.setInputDirection(x, y);
     }
 
     public double getMoveVectorX() { return moveVecX; }
@@ -270,38 +270,26 @@ public class Player extends Entity {
      */
     @Override
     public void update() {
-        if (accelleration > 0) {
-            speed += ACCELERATION_RATE;
-            if (speed > MAX_SPEED) {
-                speed = MAX_SPEED;
-            }
+        if (InputManager.getInstance().isTileMovement()) {
+            updateTileMovement();
         } else {
-            speed -= DECELERATION_RATE;
-            if (speed < 0) {
-                speed = 0;
+            // Assume a fixed time step of ~16ms as the game loop runs at 60fps
+            double friction = 0.85;
+            if (Client.worldManager != null) {
+                Tile surface = Client.worldManager.getTileAt((int)this.x, (int)this.y);
+                if (surface != null) {
+                    friction = surface.getFriction();
+                }
             }
-        }
+            movementController.update(0.016, friction);
+            Vector2D vel = movementController.getVelocity();
+            this.dx = vel.getX();
+            this.dy = vel.getY();
 
-        if (speed > 0) {
-            double len = Math.sqrt(moveVecX * moveVecX + moveVecY * moveVecY);
-            if (len > 0) {
-                double normX = moveVecX / len;
-                double normY = moveVecY / len;
-                this.dx = speed * normX;
-                this.dy = speed * normY;
-            } else {
-                this.dx = 0;
-                this.dy = 0;
-            }
-        } else {
-            this.dx = 0;
-            this.dy = 0;
+            move();
+            updatePlayerShapes();
+            updateDamageEffect();
         }
-        
-        move();
-        updatePlayerShapes();
-        updateDamageEffect();
-        updateGlow();
     }
 
     /**
@@ -351,10 +339,7 @@ public class Player extends Entity {
             g2d.fill(playerRightHand);
         }
 
-        if (isGlowing()) {
-            g2d.setColor(new Color(1f, 1f, 0f, 0.5f));
-            g2d.fillOval((int)screenX - 5, (int)screenY - 5, this.width + 10, this.height + 10);
-        }
+
 
         if (DEBUG_DRAW_AREAS) {
             if (getHitbox() != null) {
@@ -461,8 +446,82 @@ public class Player extends Entity {
      * Sets the last sent direction angle.
      * @param angle the new last sent direction angle
      */
-    public void setlastSentDirection(double angle) { 
-        this.lastSentDirection = angle; 
+    public void setlastSentDirection(double angle) {
+        this.lastSentDirection = angle;
+    }
+
+    /** Returns the number of coins currently carried by the player. */
+    public int getCoins() {
+        return coins;
+    }
+
+    /** Adds coins to the player's inventory. */
+    public void addCoins(int amount) {
+        this.coins += amount;
+    }
+
+    /** Directly sets the player's carried coin amount. */
+    public void setCoins(int amount) {
+        this.coins = amount;
+    }
+
+    /** Extracts all carried coins, resetting the count and returning the amount extracted. */
+    public int extractCoins() {
+        int extracted = this.coins;
+        this.coins = 0;
+        return extracted;
+    }
+
+    /**
+     * Handles discrete tile-based movement when the option is enabled.
+     * The player moves one tile per input in one of the four
+     * cardinal directions. Positions are quantized to the
+     * WorldManager.TILE_SIZE grid and collision checks are
+     * performed using the existing tile map.
+     */
+    private void updateTileMovement() {
+        int dirX = (int) Math.signum(moveVecX);
+        int dirY = (int) Math.signum(moveVecY);
+
+        // prevent diagonal movement
+        if (dirX != 0 && dirY != 0) {
+            dirX = 0;
+            dirY = 0;
+        }
+
+        if (dirX != 0 || dirY != 0) {
+            double newX = this.x + dirX * WorldManager.TILE_SIZE;
+            double newY = this.y + dirY * WorldManager.TILE_SIZE;
+
+            boolean blocked = false;
+            if (Client.worldManager != null) {
+                if (dirX != 0) {
+                    Tile tx = Client.worldManager.getTileAt((int) newX, (int) this.y);
+                    if (tx != null && tx.isSolid()) blocked = true;
+                }
+                if (dirY != 0) {
+                    Tile ty = Client.worldManager.getTileAt((int) this.x, (int) newY);
+                    if (ty != null && ty.isSolid()) blocked = true;
+                }
+            }
+
+            if (!blocked) {
+                this.x = newX;
+                this.y = newY;
+            }
+
+            // snap to grid
+            this.x = Math.round(this.x / WorldManager.TILE_SIZE) * WorldManager.TILE_SIZE;
+            this.y = Math.round(this.y / WorldManager.TILE_SIZE) * WorldManager.TILE_SIZE;
+
+            moveVecX = 0;
+            moveVecY = 0;
+        }
+
+        this.dx = 0;
+        this.dy = 0;
+        updatePlayerShapes();
+        updateDamageEffect();
     }
 
 }

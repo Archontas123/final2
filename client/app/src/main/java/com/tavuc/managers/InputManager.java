@@ -5,6 +5,10 @@ import java.awt.event.KeyListener;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.tavuc.controllers.InputBuffer;
+import com.tavuc.controllers.InputBuffer.KeyBinding;
+import com.tavuc.utils.Vector2D;
+
 import com.tavuc.models.entities.Player;
 import com.tavuc.models.space.Ship;
 import com.tavuc.networking.models.FireRequest;
@@ -31,9 +35,18 @@ public class InputManager implements KeyListener {
     }
 
     private ControlTargetType controlTargetType;
-    private Player player; 
-    private Ship ship; 
+    private Player player;
+    private Ship ship;
+    private com.tavuc.weapons.ForcePowers forcePowers;
     private boolean upPressed, downPressed, leftPressed, rightPressed;
+    private boolean shiftPressed;
+
+    // When enabled, player movement is locked to the grid defined by
+    // WorldManager.TILE_SIZE and only the four cardinal directions are
+    // allowed. This flag can be toggled at runtime for testing.
+    private boolean tileMovement = false;
+
+    private final InputBuffer inputBuffer = new InputBuffer(100);
 
     private InputManager() {
         this.controlTargetType = ControlTargetType.PLAYER; 
@@ -57,6 +70,20 @@ public class InputManager implements KeyListener {
         this.ship = ship;
     }
 
+    public void setForcePowers(com.tavuc.weapons.ForcePowers powers) {
+        this.forcePowers = powers;
+    }
+
+    /** Enable or disable tile-based movement mode. */
+    public void setTileMovement(boolean enable) {
+        this.tileMovement = enable;
+    }
+
+    /** Returns whether tile-based movement mode is active. */
+    public boolean isTileMovement() {
+        return tileMovement;
+    }
+
 
     /**
      * Just here to satisfy the KeyListener interface
@@ -76,7 +103,7 @@ public class InputManager implements KeyListener {
 
         if (controlTargetType == ControlTargetType.SHIP && ship != null) {
             if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
-                upPressed = true; 
+                upPressed = true;
                 ship.setThrusting(true);
             }
             if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
@@ -89,10 +116,57 @@ public class InputManager implements KeyListener {
             }
             // REMOVED the space bar handling from here - it's now handled in SpacePanel directly
         } else if (controlTargetType == ControlTargetType.PLAYER) {
-            if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) upPressed = true;
-            if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) downPressed = true;
-            if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT)  leftPressed = true;
-            if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) rightPressed = true;
+            if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
+                upPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_UP);
+            }
+            if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
+                downPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_DOWN);
+            }
+            if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
+                leftPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_LEFT);
+            }
+            if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
+                rightPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_RIGHT);
+            }
+            if (keyCode == KeyEvent.VK_R) {
+                inputBuffer.registerInput(KeyBinding.WEAPON_SWITCH);
+            }
+            if (keyCode == KeyEvent.VK_TAB && forcePowers != null) {
+                forcePowers.cycleTarget(player);
+            }
+            if (keyCode == KeyEvent.VK_SHIFT) {
+                shiftPressed = true;
+                inputBuffer.registerInput(KeyBinding.SLIDE);
+                if (player != null) player.getMovementController().startSlide();
+            }
+            if (keyCode == KeyEvent.VK_E && player != null) {
+                Client.sendExtractionRequest(player.getPlayerId());
+            }
+            if (keyCode == KeyEvent.VK_SPACE) {
+                inputBuffer.registerInput(KeyBinding.DODGE);
+                if (player != null) {
+                    player.getMovementController().dodge();
+                    player.startDodgeInvulnerability(0.5);
+                }
+            }
+            if (forcePowers != null) {
+                if (keyCode == KeyEvent.VK_F1) {
+                    inputBuffer.registerInput(KeyBinding.ABILITY_ONE);
+                    forcePowers.secondaryAttack(player);
+                }
+                if (keyCode == KeyEvent.VK_F2) {
+                    inputBuffer.registerInput(KeyBinding.ABILITY_TWO);
+                    forcePowers.primaryAttack(player, null);
+                }
+                if (keyCode == KeyEvent.VK_F3) {
+                    inputBuffer.registerInput(KeyBinding.ABILITY_THREE);
+                    forcePowers.choke(player);
+                }
+            }
             updatePlayerMovementInput();
         }
     }
@@ -132,6 +206,7 @@ public class InputManager implements KeyListener {
             if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) downPressed = false;
             if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) leftPressed = false;
             if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) rightPressed = false;
+            if (keyCode == KeyEvent.VK_SHIFT) shiftPressed = false;
             updatePlayerMovementInput();
         }
     }
@@ -146,11 +221,47 @@ public class InputManager implements KeyListener {
      */
     private void updatePlayerMovementInput() {
         if (player == null || controlTargetType != ControlTargetType.PLAYER) {
-            return; 
+            return;
+        }
+
+        // remove any commands that are outside the buffer window
+        inputBuffer.purgeExpired();
+
+        // handle any buffered commands with the highest priority first
+        KeyBinding bufferedCommand = inputBuffer.peekHighestPriority();
+        if (bufferedCommand != null) {
+            switch (bufferedCommand) {
+                case SLIDE:
+                    player.getMovementController().startSlide();
+                    break;
+                case DODGE:
+                    player.getMovementController().dodge();
+                    player.startDodgeInvulnerability(0.5);
+                    break;
+                default:
+                    // movement commands are handled below using key states
+                    break;
+            }
         }
 
         double vecX = 0.0;
         double vecY = 0.0;
+
+        if (tileMovement) {
+            int vert = (upPressed ? -1 : 0) + (downPressed ? 1 : 0);
+            int horz = (rightPressed ? 1 : 0) + (leftPressed ? -1 : 0);
+            if (vert != 0 && horz != 0) {
+                vecX = 0;
+                vecY = 0; // ignore perpendicular presses
+            } else if (vert != 0 || horz != 0) {
+                vecX = horz;
+                vecY = vert;
+            }
+            player.setMoveVector(vecX, vecY);
+            player.setAcceleration(0.0);
+            return;
+        }
+
         double angle = player.getDirection();
 
         if (upPressed && !downPressed) {
@@ -176,8 +287,9 @@ public class InputManager implements KeyListener {
             player.setMoveVector(vecX, vecY);
             player.setAcceleration(1.0);
         } else {
-            player.setMoveVector(0, 0);
-            player.setAcceleration(0.0);
+            Vector2D predicted = inputBuffer.getPredictedDirection();
+            player.setMoveVector(predicted.getX(), predicted.getY());
+            player.setAcceleration(predicted.length() > 0 ? 1.0 : 0.0);
         }
     }
 

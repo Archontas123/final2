@@ -148,10 +148,23 @@ public abstract class Entity extends GameObject {
      * Updates the hitbox & hurtbox after moving.
      */
     public void move() {
-        x += dx;
-        y += dy;
-        updateHitbox(); 
-        //TODO: COLLISIONS
+        double newX = x + dx;
+        double newY = y + dy;
+
+        if (Client.worldManager != null) {
+            com.tavuc.models.planets.Tile tx = Client.worldManager.getTileAt((int)newX, (int)y);
+            if (tx != null && tx.isSolid()) {
+                newX = x; // block horizontal movement
+            }
+            com.tavuc.models.planets.Tile ty = Client.worldManager.getTileAt((int)x, (int)newY);
+            if (ty != null && ty.isSolid()) {
+                newY = y; // block vertical movement
+            }
+        }
+
+        x = newX;
+        y = newY;
+        updateHitbox();
 
         
     }

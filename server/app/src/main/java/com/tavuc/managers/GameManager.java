@@ -21,7 +21,11 @@ import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.networking.models.PlayerKilledBroadcast;
-import com.tavuc.networking.models.AbilityUsedBroadcast;
+import com.tavuc.networking.models.CoinUpdateBroadcast;
+import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
+import com.tavuc.networking.models.CoinDropRemovedBroadcast;
+import com.tavuc.models.items.CoinDrop;
+import com.tavuc.models.entities.enemies.Enemy;
 import com.tavuc.models.space.BaseShip;   // Added import
 
 
@@ -36,6 +40,10 @@ public class GameManager {
     private final Map<String, BaseShip> aiShips = new ConcurrentHashMap<>(); // Implemented AI ship tracking
     // Track last melee attack times for cooldowns
     private final ConcurrentMap<Integer, Long> lastMeleeAttackTimes = new ConcurrentHashMap<>();
+
+    // Coin drop tracking
+    private final ConcurrentMap<String, CoinDrop> coinDrops = new ConcurrentHashMap<>();
+    private int nextCoinDropId = 1;
 
     // Damage dealt by players while on the ground
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
@@ -212,6 +220,10 @@ public class GameManager {
         broadcastToGame(dmg);
 
         if (target.getHealth() <= 0) {
+            int dropped = target.extractCoins();
+            if (dropped > 0) {
+                spawnCoinDrop(target.getX(), target.getY(), dropped);
+            }
             PlayerKilledBroadcast killed = new PlayerKilledBroadcast(
                     target.getIdAsString(),
                     attacker.getIdAsString()
@@ -224,71 +236,85 @@ public class GameManager {
     }
 
     /**
-     * Processes a force ability used by a player.
+     * Handles force ability usage between two players. Currently only applies
+     * a simple damage effect validated server-side.
+     *
+     * @param attackerId ID of the player using the ability
+     * @param targetId   ID of the target player
+     * @param ability    Name of the ability being used
      */
-    public synchronized void handleAbilityUse(int playerId, int targetId, String ability) {
-        Player actor = null;
+    public synchronized void handleForceAbility(int attackerId, int targetId, String ability) {
+        Player attacker = null;
         Player target = null;
         for (Player p : playerSessions.keySet()) {
-            if (p.getId() == playerId) actor = p;
+            if (p.getId() == attackerId) attacker = p;
             if (p.getId() == targetId) target = p;
         }
-        if (actor == null) return;
+        if (attacker == null) return;
 
-        System.out.println("GameService " + gameId + ": Ability " + ability + " used by " + playerId + " on " + targetId);
+        double range = attacker.getAttackRange();
 
-        if (target != null) {
-            switch (ability) {
-                case "PULL":
-                    double dx = actor.getX() - target.getX();
-                    double dy = actor.getY() - target.getY();
-                    double dist = Math.hypot(dx, dy);
-                    if (dist > 0) {
-                        target.setDx(dx / dist * 0.3);
-                        target.setDy(dy / dist * 0.3);
+        switch (ability) {
+            case "FORCE_SLAM" -> {
+                for (Player p : playerSessions.keySet()) {
+                    if (p == attacker) continue;
+                    double dx = p.getX() - attacker.getX();
+                    double dy = p.getY() - attacker.getY();
+                    if (Math.hypot(dx, dy) <= range) {
+                        applyAbilityDamage(attacker, p, 1.0);
                     }
-                    break;
-                case "PUSH":
-                    dx = target.getX() - actor.getX();
-                    dy = target.getY() - actor.getY();
-                    dist = Math.hypot(dx, dy);
-                    if (dist > 0) {
-                        target.setDx(dx / dist * 0.3);
-                        target.setDy(dy / dist * 0.3);
-                    }
-                    break;
-                case "CHOKE":
-                    target.setDx(0);
-                    target.setDy(0);
-                    actor.setDx(0);
-                    actor.setDy(0);
-                    target.takeDamage(1);
-                    break;
-                case "HEAL":
-                    actor.setHealth(actor.getHealth() + 1);
-                    break;
-                case "DASH":
-                    double angle = actor.getDirectionAngle();
-                    actor.setDx(Math.cos(angle) * 10);
-                    actor.setDy(Math.sin(angle) * 10);
-                    break;
-                case "GRAB":
-                    angle = actor.getDirectionAngle();
-                    double distGrab = 100;
-                    if (target != null) {
-                        target.setX((int)(actor.getX() + Math.cos(angle) * distGrab));
-                        target.setY((int)(actor.getY() + Math.sin(angle) * distGrab));
-                    }
-                    break;
-                default:
-                    break;
+                }
+            }
+            case "FORCE_PUSH" -> {
+                if (target == null) return;
+                double dx = target.getX() - attacker.getX();
+                double dy = target.getY() - attacker.getY();
+                double dist = Math.hypot(dx, dy);
+                if (dist > range) return;
+                if (dist != 0) {
+                    target.setDx(dx / dist * 5);
+                    target.setDy(dy / dist * 5);
+                }
+                applyAbilityDamage(attacker, target, 0.5);
+            }
+            case "FORCE_CHOKE" -> {
+                if (target == null) return;
+                double dx = target.getX() - attacker.getX();
+                double dy = target.getY() - attacker.getY();
+                if (Math.hypot(dx, dy) > range) return;
+                applyAbilityDamage(attacker, target, 1.5);
+            }
+            default -> {
+                if (target == null) return;
+                applyAbilityDamage(attacker, target, 1.0);
             }
         }
-
-        AbilityUsedBroadcast broadcast = new AbilityUsedBroadcast(String.valueOf(playerId),
-                target != null ? String.valueOf(target.getId()) : null, ability);
-        broadcastToGame(broadcast);
     }
+
+    private void applyAbilityDamage(Player attacker, Player target, double damage) {
+        target.takeDamage(damage);
+
+        PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(
+                target.getIdAsString(),
+                damage,
+                target.getHealth()
+        );
+        broadcastToGame(dmg);
+
+        if (target.getHealth() <= 0) {
+            int dropped = target.extractCoins();
+            if (dropped > 0) {
+                spawnCoinDrop(target.getX(), target.getY(), dropped);
+            }
+            PlayerKilledBroadcast killed = new PlayerKilledBroadcast(
+                    target.getIdAsString(),
+                    attacker.getIdAsString()
+            );
+            broadcastToGame(killed);
+            removePlayer(target, playerSessions.get(target));
+        }
+    }
+
 
 
 
@@ -424,8 +450,6 @@ public class GameManager {
                aiShip.update();
             }
 
-
-
             for (Player player : players) {
                 ClientSession session = playerSessions.get(player);
                 PlayerMovedBroadcast playerMovedMsg = new PlayerMovedBroadcast(
@@ -440,7 +464,22 @@ public class GameManager {
                     broadcastToGameExceptSender(playerMovedMsg, session);
                 } else {
                     System.err.println("GameManager " + gameId + ": Session not found for player " + player.getId() + " (username: " + player.getUsername() + ") during final broadcast. Broadcasting to all as fallback.");
-                    broadcastToGame(playerMovedMsg); 
+                    broadcastToGame(playerMovedMsg);
+                }
+            }
+
+            // Check coin drop pickups
+            for (Player player : players) {
+                Rectangle hb = player.getHurtbox();
+                for (CoinDrop drop : new ArrayList<>(coinDrops.values())) {
+                    if (hb.intersects(drop.getHitBox())) {
+                        player.addCoins(drop.getAmount());
+                        ClientSession session = playerSessions.get(player);
+                        if (session != null) {
+                            session.sendMessage(new CoinUpdateBroadcast(player.getIdAsString(), player.getCoins()));
+                        }
+                        removeCoinDrop(drop.getId());
+                    }
                 }
             }
             // TODO: Broadcast updates for AI ships if necessary
@@ -508,5 +547,67 @@ public class GameManager {
 
     public Map<String, BaseShip> getAiShips() {
         return aiShips;
+    }
+
+    /** Retrieve a player by ID from the active player list. */
+    private Player getPlayerById(int id) {
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == id) return p;
+        }
+        return null;
+    }
+
+    /** Spawn a coin drop at the given position. */
+    private void spawnCoinDrop(int x, int y, int amount) {
+        String id = "drop" + (nextCoinDropId++);
+        CoinDrop drop = new CoinDrop(id, x, y, amount);
+        coinDrops.put(id, drop);
+        broadcastToGame(new CoinDropSpawnedBroadcast(id, x, y, amount));
+    }
+
+    /** Remove a coin drop and notify clients. */
+    private void removeCoinDrop(String id) {
+        if (coinDrops.remove(id) != null) {
+            broadcastToGame(new CoinDropRemovedBroadcast(id));
+        }
+    }
+
+    /** Expose current coin drops for testing. */
+    public Map<String, CoinDrop> getCoinDrops() {
+        return coinDrops;
+    }
+
+    /** Award coins to a player and notify them. */
+    public synchronized void awardCoins(int playerId, int amount) {
+        Player p = getPlayerById(playerId);
+        if (p == null) return;
+        p.addCoins(amount);
+        ClientSession session = playerSessions.get(p);
+        if (session != null) {
+            session.sendMessage(new CoinUpdateBroadcast(p.getIdAsString(), p.getCoins()));
+        }
+    }
+
+    /** Handle a player's extraction request. Coins are reset to zero. */
+    public synchronized void handleExtraction(int playerId) {
+        Player p = getPlayerById(playerId);
+        if (p == null) return;
+        p.extractCoins();
+        ClientSession session = playerSessions.get(p);
+        if (session != null) {
+            session.sendMessage(new CoinUpdateBroadcast(p.getIdAsString(), p.getCoins()));
+        }
+    }
+
+    /** Called when an enemy is killed to drop coins. */
+    public synchronized void handleEnemyKilled(Enemy enemy, int killerId) {
+        if (enemy == null) return;
+        spawnCoinDrop(enemy.getX(), enemy.getY(), 5);
+        if (killerId != -1) {
+            Player killer = getPlayerById(killerId);
+            if (killer != null) {
+                // Optional future logic for kill rewards
+            }
+        }
     }
 }
