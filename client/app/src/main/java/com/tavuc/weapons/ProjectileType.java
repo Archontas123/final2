@@ -5,5 +5,8 @@ package com.tavuc.weapons;
  */
 public enum ProjectileType {
     STANDARD,
-    CHARGED
+    CHARGED,
+    ENERGY,
+    EXPLOSIVE,
+    KINETIC
 }
