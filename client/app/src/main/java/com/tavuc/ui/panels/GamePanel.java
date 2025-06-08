@@ -270,23 +270,34 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
         // Draw other players
         if (renderOtherPlayers && worldManager != null) {
+            double dt = 1.0 / 60.0; // assume 60 FPS
             for (Player other : worldManager.getOtherPlayers()) {
                 if (other.getPlayerId() == this.playerId) continue;
 
                 other.updateDamageEffect();
 
-                g2d.setColor(Color.RED);
-            if (playerSprite != null) {
-                g2d.drawImage(playerSprite, other.getX(), other.getY(), playerSize, playerSize, null);
-            } else {
-                g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
-            }
+                // Predict next movement delta based on last velocity
+                com.tavuc.utils.Vector2D pd = other.getMovementController().predictNextDelta(dt);
+                double predictedX = other.getX() + pd.getX();
+                double predictedY = other.getY() + pd.getY();
 
-            if (other.getDamageEffect() > 0f) {
-                int oAlpha = (int)(other.getDamageEffect() * 150);
-                g2d.setColor(new Color(255, 0, 0, oAlpha));
-                g2d.fillOval(other.getX(), other.getY(), playerSize, playerSize);
-            }
+                // Blend predicted and server positions
+                double blend = 0.5;
+                double renderX = other.getX() * (1 - blend) + predictedX * blend;
+                double renderY = other.getY() * (1 - blend) + predictedY * blend;
+
+                g2d.setColor(Color.RED);
+                if (playerSprite != null) {
+                    g2d.drawImage(playerSprite, (int)renderX, (int)renderY, playerSize, playerSize, null);
+                } else {
+                    g2d.fillOval((int)renderX, (int)renderY, playerSize, playerSize);
+                }
+
+                if (other.getDamageEffect() > 0f) {
+                    int oAlpha = (int)(other.getDamageEffect() * 150);
+                    g2d.setColor(new Color(255, 0, 0, oAlpha));
+                    g2d.fillOval((int)renderX, (int)renderY, playerSize, playerSize);
+                }
             }
         }
 
@@ -329,32 +340,41 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
         // Draw other player names
         if (renderOtherPlayers && worldManager != null) {
+            double dt = 1.0 / 60.0;
             for (Player other : worldManager.getOtherPlayers()) {
                 if (other.getPlayerId() == this.playerId) continue;
 
+                // Predict and blend positions same as sprite rendering
+                com.tavuc.utils.Vector2D pd = other.getMovementController().predictNextDelta(dt);
+                double predictedX = other.getX() + pd.getX();
+                double predictedY = other.getY() + pd.getY();
+                double blend = 0.5;
+                double renderX = other.getX() * (1 - blend) + predictedX * blend;
+                double renderY = other.getY() * (1 - blend) + predictedY * blend;
+
                 g2d.setFont(boldFont);
-            String otherPlayerText = other.getUsername();
-            FontMetrics otherFm = g2d.getFontMetrics();
-            int otherPlayerTextWidth = otherFm.stringWidth(otherPlayerText);
-            int otherTextAscent = otherFm.getAscent();
-            int otherTextDescent = otherFm.getDescent();
-            int otherTextVisualHeight = otherTextAscent + otherTextDescent;
+                String otherPlayerText = other.getUsername();
+                FontMetrics otherFm = g2d.getFontMetrics();
+                int otherPlayerTextWidth = otherFm.stringWidth(otherPlayerText);
+                int otherTextAscent = otherFm.getAscent();
+                int otherTextDescent = otherFm.getDescent();
+                int otherTextVisualHeight = otherTextAscent + otherTextDescent;
 
-            int otherBgWidth = otherPlayerTextWidth + (2 * textPadding);
-            int otherBgHeight = otherTextVisualHeight + (2 * textPadding);
+                int otherBgWidth = otherPlayerTextWidth + (2 * textPadding);
+                int otherBgHeight = otherTextVisualHeight + (2 * textPadding);
 
-            int otherPlayerBodyWorldCenterX = other.getX() + playerSize / 2; 
-            int otherBgX = otherPlayerBodyWorldCenterX - (otherPlayerTextWidth / 2) - textPadding;
-            int otherBgY = other.getY() - nametagYOffset - otherBgHeight; 
+                int otherPlayerBodyWorldCenterX = (int)renderX + playerSize / 2;
+                int otherBgX = otherPlayerBodyWorldCenterX - (otherPlayerTextWidth / 2) - textPadding;
+                int otherBgY = (int)renderY - nametagYOffset - otherBgHeight;
 
-            g2d.setColor(new Color(50, 50, 50, 180)); 
-            g2d.fillRoundRect(otherBgX, otherBgY, otherBgWidth, otherBgHeight, arcSize, arcSize);
+                g2d.setColor(new Color(50, 50, 50, 180));
+                g2d.fillRoundRect(otherBgX, otherBgY, otherBgWidth, otherBgHeight, arcSize, arcSize);
 
-            g2d.setColor(Color.WHITE); 
-            int otherTextX = otherBgX + textPadding;
-            int otherTextY = otherBgY + textPadding + otherTextAscent;
-            g2d.drawString(otherPlayerText, otherTextX, otherTextY);
-            g2d.setFont(originalFont);
+                g2d.setColor(Color.WHITE);
+                int otherTextX = otherBgX + textPadding;
+                int otherTextY = otherBgY + textPadding + otherTextAscent;
+                g2d.drawString(otherPlayerText, otherTextX, otherTextY);
+                g2d.setFont(originalFont);
             }
         }
 

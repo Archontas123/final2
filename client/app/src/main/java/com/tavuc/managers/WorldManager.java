@@ -57,6 +57,8 @@ public class WorldManager {
             player.setY(event.y);
             player.setDx(event.dx);
             player.setDy(event.dy);
+            // Sync the movement controller velocity for prediction
+            player.getMovementController().getVelocity().set(event.dx, event.dy);
             player.setDirection(event.directionAngle);
             otherPlayers.put(pId, player);
             System.out.println("WorldManager.addPlayer: Successfully added player " + event.username + " (ID: " + pId + ") to otherPlayers. otherPlayers size: " + otherPlayers.size());
@@ -78,6 +80,8 @@ public class WorldManager {
                 player.setY(event.y);
                 player.setDx(event.dx);
                 player.setDy(event.dy);
+                // Update movement controller velocity for prediction
+                player.getMovementController().getVelocity().set(event.dx, event.dy);
                 player.setDirection(event.directionAngle);
                 // player.update(); // Let GamePanel's loop call update if needed, or call here if direct update is desired
                 if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
