@@ -87,7 +87,7 @@ public class ForcePowers extends Weapon {
             double dx = currentTarget.getX() - wielder.getX();
             double dy = currentTarget.getY() - wielder.getY();
             if (Math.hypot(dx, dy) > stats.getRange()) return;
-            currentTarget.takeDamage((int) stats.getDamage());
+            Client.sendForceAbility(wielder.getPlayerId(), currentTarget.getPlayerId(), ability.name());
         }
 
         sounds.play("force_use");
