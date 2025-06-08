@@ -121,7 +121,7 @@ public class InputManager implements KeyListener {
                 inputBuffer.registerInput(KeyBinding.DODGE);
                 if (player != null) {
                     player.getMovementController().dodge();
-                    player.startInvulnerability(0.5);
+                    player.startDodgeInvulnerability(0.5);
                 }
             }
             updatePlayerMovementInput();
@@ -193,7 +193,7 @@ public class InputManager implements KeyListener {
                     break;
                 case DODGE:
                     player.getMovementController().dodge();
-                    player.startInvulnerability(0.5);
+                    player.startDodgeInvulnerability(0.5);
                     break;
                 default:
                     // movement commands are handled below using key states

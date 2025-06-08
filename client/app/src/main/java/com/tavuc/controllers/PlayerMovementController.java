@@ -15,6 +15,7 @@ public class PlayerMovementController {
     private MovementState currentState = MovementState.IDLE;
     private boolean isSliding = false;
     private double slideTimer = 0.0;
+    private double dodgeTimer = 0.0;
     private final Vector2D lastInputDirection = new Vector2D();
 
     /**
@@ -47,9 +48,19 @@ public class PlayerMovementController {
             }
         }
 
+        // Update dodge timer
+        if (dodgeTimer > 0) {
+            dodgeTimer -= deltaTime;
+            if (dodgeTimer < 0) {
+                dodgeTimer = 0;
+            }
+        }
+
         // Update state
         if (isSliding) {
             currentState = MovementState.SLIDING;
+        } else if (dodgeTimer > 0) {
+            currentState = MovementState.DODGING;
         } else if (velocity.length() > 0.1) {
             currentState = MovementState.RUNNING;
         } else {
@@ -87,6 +98,7 @@ public class PlayerMovementController {
     public void dodge() {
         velocity.set(lastInputDirection.getX() * maxSpeed * 1.5, lastInputDirection.getY() * maxSpeed * 1.5);
         currentState = MovementState.DODGING;
+        dodgeTimer = 0.2; // duration of dodge in seconds
         if (Client.currentGamePanel != null) {
             Client.currentGamePanel.triggerScreenShake(6, 5);
         }

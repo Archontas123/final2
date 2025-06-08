@@ -105,6 +105,13 @@ public class Player extends Entity {
         this.invulnTimer = duration;
     }
 
+    /**
+     * Invulnerability specifically triggered by a dodge action.
+     */
+    public void startDodgeInvulnerability(double duration) {
+        startInvulnerability(duration);
+    }
+
     public float getDamageEffect() {
         return damageEffect;
     }
