@@ -11,6 +11,11 @@ import java.util.*;
  */
 public class BasicPathfindingAgent implements PathfindingAgent {
 
+    /**
+     * Reference to the world manager used for querying tiles. The
+     * manager instance itself is final, but its internal state can
+     * change to reflect dynamic obstacles.
+     */
     private final WorldManager world;
 
     public BasicPathfindingAgent(WorldManager world) {
@@ -29,6 +34,41 @@ public class BasicPathfindingAgent implements PathfindingAgent {
     private boolean isBlocked(int x, int y) {
         Tile tile = world.getTileAt(x, y);
         return tile != null && tile.isSolid();
+    }
+
+    /**
+     * Checks if there is a direct, unobstructed line between the given
+     * coordinates using a Bresenham walk over the world's tiles.
+     */
+    private boolean hasLineOfSight(int sx, int sy, int tx, int ty) {
+        int dx = Math.abs(tx - sx);
+        int dy = Math.abs(ty - sy);
+        int x = sx;
+        int y = sy;
+        int n = 1 + dx + dy;
+        int xInc = (tx > sx) ? 1 : -1;
+        int yInc = (ty > sy) ? 1 : -1;
+        int error = dx - dy;
+        dx *= 2;
+        dy *= 2;
+        for (; n > 0; --n) {
+            if (!(x == sx && y == sy) && isBlocked(x, y)) {
+                return false;
+            }
+            if (error > 0) {
+                x += xInc;
+                error -= dy;
+            } else if (error < 0) {
+                y += yInc;
+                error += dx;
+            } else {
+                x += xInc;
+                y += yInc;
+                error -= dy;
+                error += dx;
+            }
+        }
+        return true;
     }
 
     private List<Vector2D> computePath(int startX, int startY, int targetX, int targetY) {
@@ -61,10 +101,21 @@ public class BasicPathfindingAgent implements PathfindingAgent {
 
     @Override
     public Vector2D getNextMove(Vector2D start, Vector2D target) {
-        List<Vector2D> path = computePath((int)start.getX(),(int)start.getY(),(int)target.getX(),(int)target.getY());
-        if(path.isEmpty()) return new Vector2D();
+        int sx = (int) start.getX();
+        int sy = (int) start.getY();
+        int tx = (int) target.getX();
+        int ty = (int) target.getY();
+
+        if (hasLineOfSight(sx, sy, tx, ty)) {
+            Vector2D dir = new Vector2D(tx - sx, ty - sy);
+            dir.normalize();
+            return dir;
+        }
+
+        List<Vector2D> path = computePath(sx, sy, tx, ty);
+        if (path.isEmpty()) return new Vector2D();
         Vector2D next = path.get(0);
-        Vector2D dir = new Vector2D(next.getX()-start.getX(), next.getY()-start.getY());
+        Vector2D dir = new Vector2D(next.getX() - start.getX(), next.getY() - start.getY());
         dir.normalize();
         return dir;
     }
