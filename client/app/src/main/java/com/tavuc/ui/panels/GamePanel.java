@@ -234,6 +234,13 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             }
         }
 
+        // Draw coin drops
+        if (worldManager != null) {
+            g2d.setColor(Color.YELLOW);
+            for (com.tavuc.models.items.CoinDrop drop : worldManager.getCoinDrops()) {
+                g2d.fillOval(drop.getX(), drop.getY(), drop.getWidth(), drop.getHeight());
+            }
+        }
 
         int playerSize = 40;
         int handSize = playerSize / 3; // unused now but kept for compatibility
@@ -411,6 +418,14 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
                 null
             );
         }
+
+        // Display current coin count in the top-right corner
+        g2d.setColor(Color.YELLOW);
+        String coinText = "Coins: " + player.getCoins();
+        FontMetrics fmCoins = g2d.getFontMetrics();
+        int coinX = panelWidth - fmCoins.stringWidth(coinText) - 20;
+        int coinY = 20 + fmCoins.getAscent();
+        g2d.drawString(coinText, coinX, coinY);
 
         // Mana and ability display removed
     }
