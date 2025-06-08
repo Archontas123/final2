@@ -15,8 +15,8 @@ public abstract class Mech extends Enemy {
     private int comboHits;
     private double slamRadius = 30;
 
-    public Mech(double x, double y, int width, int height, double velocity, int maxHealth) {
-        super(x, y, width, height, velocity, maxHealth, EnemyType.MECH);
+    public Mech(int id, double x, double y, int width, int height, double velocity, int maxHealth) {
+        super(id, x, y, width, height, velocity, maxHealth, EnemyType.MECH);
     }
 
     /** Performs a quick charge toward the target and attempts an attack. */

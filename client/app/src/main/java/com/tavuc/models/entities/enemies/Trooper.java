@@ -18,9 +18,9 @@ public abstract class Trooper extends Enemy {
     protected final SuppressionBehavior suppression;
     protected int formationIndex;
 
-    public Trooper(double x, double y, int width, int height, double velocity, int maxHealth,
+    public Trooper(int id, double x, double y, int width, int height, double velocity, int maxHealth,
                    TrooperWeapon weapon, int formationIndex) {
-        super(x, y, width, height, velocity, maxHealth, EnemyType.TROOPER);
+        super(id, x, y, width, height, velocity, maxHealth, EnemyType.TROOPER);
         this.weapon = weapon;
         this.coverSystem = new CoverSystem();
         this.formation = new FormationController(4);

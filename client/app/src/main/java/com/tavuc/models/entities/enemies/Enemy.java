@@ -17,11 +17,14 @@ public abstract class Enemy extends Entity {
     protected CombatBehavior combatBehavior;
     protected EnemyType type;
     protected DifficultyScaling scaling;
+    /** Unique identifier for this enemy. */
+    protected int id;
     /** Direction the enemy is facing in radians. */
     protected double direction;
 
-    public Enemy(double x, double y, int width, int height, double velocity, int maxHealth, EnemyType type) {
+    public Enemy(int id, double x, double y, int width, int height, double velocity, int maxHealth, EnemyType type) {
         super(x, y, width, height, velocity, maxHealth);
+        this.id = id;
         this.type = type;
         this.stateMachine = new AIStateMachine();
         this.scaling = new DifficultyScaling();
@@ -40,5 +43,10 @@ public abstract class Enemy extends Entity {
     /** Sets the facing direction in radians. */
     public void setDirection(double direction) {
         this.direction = direction;
+    }
+
+    /** Returns this enemy's unique ID. */
+    public int getId() {
+        return id;
     }
 }

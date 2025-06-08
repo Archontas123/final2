@@ -21,8 +21,8 @@ public class BasicMech extends Mech implements TargetHolder {
         return Math.hypot(target.getX() - getX(), target.getY() - getY());
     }
 
-    public BasicMech(double x, double y, WorldManager world) {
-        super(x, y, 30, 30, 1.5, 10);
+    public BasicMech(int id, double x, double y, WorldManager world) {
+        super(id, x, y, 30, 30, 1.5, 10);
         this.world = world;
         this.pathfinding = new BasicPathfindingAgent(world);
         this.targeting = new BasicTargetingSystem(world, this);

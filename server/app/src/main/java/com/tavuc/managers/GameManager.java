@@ -278,10 +278,14 @@ public class GameManager {
      */
     public synchronized void handleForceAbility(int attackerId, int targetId, String ability) {
         Player attacker = null;
-        Player target = null;
+        Player targetPlayer = null;
+        Enemy targetEnemy = null;
         for (Player p : playerSessions.keySet()) {
             if (p.getId() == attackerId) attacker = p;
-            if (p.getId() == targetId) target = p;
+            if (p.getId() == targetId) targetPlayer = p;
+        }
+        for (Enemy e : activeEnemies) {
+            if (e.getId() == targetId) targetEnemy = e;
         }
         if (attacker == null) return;
 
@@ -297,29 +301,43 @@ public class GameManager {
                         applyAbilityDamage(attacker, p, 1.0);
                     }
                 }
+                for (Enemy e : activeEnemies) {
+                    double dx = e.getX() - attacker.getX();
+                    double dy = e.getY() - attacker.getY();
+                    if (Math.hypot(dx, dy) <= range) {
+                        applyAbilityDamage(attacker, e, 1.0);
+                    }
+                }
             }
             case "FORCE_PUSH" -> {
-                if (target == null) return;
-                double dx = target.getX() - attacker.getX();
-                double dy = target.getY() - attacker.getY();
+                if (targetPlayer == null && targetEnemy == null) return;
+                double dx = (targetPlayer != null ? targetPlayer.getX() : targetEnemy.getX()) - attacker.getX();
+                double dy = (targetPlayer != null ? targetPlayer.getY() : targetEnemy.getY()) - attacker.getY();
                 double dist = Math.hypot(dx, dy);
                 if (dist > range) return;
                 if (dist != 0) {
-                    target.setDx(dx / dist * 5);
-                    target.setDy(dy / dist * 5);
+                    if (targetPlayer != null) {
+                        targetPlayer.setDx(dx / dist * 5);
+                        targetPlayer.setDy(dy / dist * 5);
+                    } else {
+                        targetEnemy.setDx(dx / dist * 5);
+                        targetEnemy.setDy(dy / dist * 5);
+                    }
                 }
-                applyAbilityDamage(attacker, target, 0.5);
+                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 0.5);
+                else applyAbilityDamage(attacker, targetEnemy, 0.5);
             }
             case "FORCE_CHOKE" -> {
-                if (target == null) return;
-                double dx = target.getX() - attacker.getX();
-                double dy = target.getY() - attacker.getY();
+                if (targetPlayer == null && targetEnemy == null) return;
+                double dx = (targetPlayer != null ? targetPlayer.getX() : targetEnemy.getX()) - attacker.getX();
+                double dy = (targetPlayer != null ? targetPlayer.getY() : targetEnemy.getY()) - attacker.getY();
                 if (Math.hypot(dx, dy) > range) return;
-                applyAbilityDamage(attacker, target, 1.5);
+                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 1.5);
+                else applyAbilityDamage(attacker, targetEnemy, 1.5);
             }
             default -> {
-                if (target == null) return;
-                applyAbilityDamage(attacker, target, 1.0);
+                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 1.0);
+                else if (targetEnemy != null) applyAbilityDamage(attacker, targetEnemy, 1.0);
             }
         }
     }
@@ -345,6 +363,14 @@ public class GameManager {
             );
             broadcastToGame(killed);
             removePlayer(target, playerSessions.get(target));
+        }
+    }
+
+    private void applyAbilityDamage(Player attacker, Enemy target, double damage) {
+        target.takeDamage(damage);
+        if (target.getHealth() <= 0) {
+            activeEnemies.remove(target);
+            handleEnemyKilled(target, attacker.getId());
         }
     }
 

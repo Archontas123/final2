@@ -29,7 +29,8 @@ public class WorldManager {
     public static final int TILE_SIZE = 32; 
     private static final int chunkLoadRadius = 2; 
     private static final Gson gson = new Gson();
-    private final Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Added for other players
+    private final Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>();
+    private final Map<Integer, com.tavuc.models.entities.enemies.Enemy> enemies = new ConcurrentHashMap<>();
     private final Map<String, com.tavuc.models.items.CoinDrop> coinDrops = new ConcurrentHashMap<>();
 
     public WorldManager(int gameId) {
@@ -40,6 +41,24 @@ public class WorldManager {
 
     public List<Player> getOtherPlayers() {
         return new ArrayList<>(otherPlayers.values());
+    }
+
+    /** Returns current active enemies. */
+    public List<com.tavuc.models.entities.enemies.Enemy> getEnemies() {
+        return new ArrayList<>(enemies.values());
+    }
+
+    public void addEnemy(com.tavuc.models.entities.enemies.Enemy e) {
+        if (e != null) {
+            enemies.put(e.getId(), e);
+            if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
+        }
+    }
+
+    public void removeEnemy(int id) {
+        if (enemies.remove(id) != null && Client.currentGamePanel != null) {
+            Client.currentGamePanel.repaint();
+        }
     }
 
     public Player getOtherPlayer(int id) {
@@ -222,6 +241,7 @@ public class WorldManager {
     public void clearChunks() {
         chunks.clear();
         otherPlayers.clear();
+        enemies.clear();
     }
 
     public Tile getTileAt(int worldX, int worldY) {

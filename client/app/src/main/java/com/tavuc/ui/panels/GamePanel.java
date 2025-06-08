@@ -7,6 +7,9 @@ import javax.swing.Timer;
 import com.tavuc.Client;
 import com.tavuc.managers.InputManager;
 import com.tavuc.managers.WorldManager;
+import com.tavuc.weapons.ForceAlignment;
+import com.tavuc.weapons.ForcePowers;
+import com.tavuc.weapons.WeaponStats;
 import com.tavuc.models.entities.Player;
 import com.tavuc.models.planets.Chunk;
 import com.tavuc.models.planets.ColorPallete;
@@ -54,6 +57,7 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     private int gameId; 
     private Player player;
     private InputManager inputManager;
+    private ForcePowers forcePowers;
     private Timer gameLoopTimer;
     // private Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Managed by WorldManager
     private Timer playerUpdateRequester;
@@ -102,6 +106,13 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         this.inputManager = InputManager.getInstance();
         this.inputManager.setPlayerTarget(this.player);
         this.inputManager.setControlTarget(InputManager.ControlTargetType.PLAYER);
+        this.forcePowers = new ForcePowers(
+                100,
+                ForceAlignment.LIGHT,
+                new WeaponStats(1, this.player.getAttackRange(), 1.0)
+        );
+        this.inputManager.setForcePowers(this.forcePowers);
+        System.out.println("Force powers unlocked! Press F1-F3 to use abilities.");
 
         // Use Client's WorldManager if available, otherwise create a new one
         if (Client.worldManager != null && Client.worldManager.getGameId() == gameId) {
