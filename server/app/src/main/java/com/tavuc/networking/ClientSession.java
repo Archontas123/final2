@@ -155,6 +155,9 @@ public class ClientSession implements Runnable {
                 case "FIRE_REQUEST":
                     handleFireRequest(jsonMessage);
                     break;
+                case "EXTRACTION_REQUEST":
+                    handleExtractionRequest(jsonMessage);
+                    break;
                 default:
                     sendMessage(gson.toJson(new ErrorMessage("UNKNOWN_COMMAND " + messageType)));
                     break;
@@ -670,4 +673,17 @@ public class ClientSession implements Runnable {
         // sendMessage(gson.toJson(new ErrorMessage("Weapon still on cooldown.")));
     }
 }
+
+    private void handleExtractionRequest(String jsonMessage) {
+        ExtractionRequest req = gson.fromJson(jsonMessage, ExtractionRequest.class);
+        if (currentGameService == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not in a game.")));
+            return;
+        }
+        if (player == null || !String.valueOf(player.getId()).equals(req.playerId)) {
+            sendMessage(gson.toJson(new ErrorMessage("Player ID mismatch or not authenticated.")));
+            return;
+        }
+        currentGameService.handleExtraction(player.getId());
+    }
 }

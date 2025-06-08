@@ -33,6 +33,8 @@ public class Player extends Entity {
     private int lastSentY; 
     private double lastSentDx;
     private double lastSentDy;
+    // Current amount of coins carried by the player
+    private int coins = 0;
     private static final int PLAYER_BASE_WIDTH = 120;
     private static final int PLAYER_BASE_HEIGHT = 120;
     private static final int HAND_SIZE = 60;
@@ -67,6 +69,7 @@ public class Player extends Entity {
         this.lastSentDx = this.dx;
         this.lastSentDy = this.dy;
         this.lastSentDirection = 0.0;
+        this.coins = 0;
 
 
         updatePlayerShapes();
@@ -445,6 +448,28 @@ public class Player extends Entity {
      */
     public void setlastSentDirection(double angle) {
         this.lastSentDirection = angle;
+    }
+
+    /** Returns the number of coins currently carried by the player. */
+    public int getCoins() {
+        return coins;
+    }
+
+    /** Adds coins to the player's inventory. */
+    public void addCoins(int amount) {
+        this.coins += amount;
+    }
+
+    /** Directly sets the player's carried coin amount. */
+    public void setCoins(int amount) {
+        this.coins = amount;
+    }
+
+    /** Extracts all carried coins, resetting the count and returning the amount extracted. */
+    public int extractCoins() {
+        int extracted = this.coins;
+        this.coins = 0;
+        return extracted;
     }
 
     /**

@@ -143,6 +143,9 @@ public class InputManager implements KeyListener {
                 inputBuffer.registerInput(KeyBinding.SLIDE);
                 if (player != null) player.getMovementController().startSlide();
             }
+            if (keyCode == KeyEvent.VK_E && player != null) {
+                Client.sendExtractionRequest(player.getPlayerId());
+            }
             if (keyCode == KeyEvent.VK_SPACE) {
                 inputBuffer.registerInput(KeyBinding.DODGE);
                 if (player != null) {

@@ -21,6 +21,11 @@ import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.networking.models.PlayerKilledBroadcast;
+import com.tavuc.networking.models.CoinUpdateBroadcast;
+import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
+import com.tavuc.networking.models.CoinDropRemovedBroadcast;
+import com.tavuc.models.items.CoinDrop;
+import com.tavuc.models.entities.enemies.Enemy;
 import com.tavuc.models.space.BaseShip;   // Added import
 
 
@@ -35,6 +40,10 @@ public class GameManager {
     private final Map<String, BaseShip> aiShips = new ConcurrentHashMap<>(); // Implemented AI ship tracking
     // Track last melee attack times for cooldowns
     private final ConcurrentMap<Integer, Long> lastMeleeAttackTimes = new ConcurrentHashMap<>();
+
+    // Coin drop tracking
+    private final ConcurrentMap<String, CoinDrop> coinDrops = new ConcurrentHashMap<>();
+    private int nextCoinDropId = 1;
 
     // Damage dealt by players while on the ground
     private static final double PLAYER_ATTACK_DAMAGE = 0.5;
@@ -211,6 +220,10 @@ public class GameManager {
         broadcastToGame(dmg);
 
         if (target.getHealth() <= 0) {
+            int dropped = target.extractCoins();
+            if (dropped > 0) {
+                spawnCoinDrop(target.getX(), target.getY(), dropped);
+            }
             PlayerKilledBroadcast killed = new PlayerKilledBroadcast(
                     target.getIdAsString(),
                     attacker.getIdAsString()
@@ -289,6 +302,10 @@ public class GameManager {
         broadcastToGame(dmg);
 
         if (target.getHealth() <= 0) {
+            int dropped = target.extractCoins();
+            if (dropped > 0) {
+                spawnCoinDrop(target.getX(), target.getY(), dropped);
+            }
             PlayerKilledBroadcast killed = new PlayerKilledBroadcast(
                     target.getIdAsString(),
                     attacker.getIdAsString()
@@ -433,8 +450,6 @@ public class GameManager {
                aiShip.update();
             }
 
-
-
             for (Player player : players) {
                 ClientSession session = playerSessions.get(player);
                 PlayerMovedBroadcast playerMovedMsg = new PlayerMovedBroadcast(
@@ -449,7 +464,22 @@ public class GameManager {
                     broadcastToGameExceptSender(playerMovedMsg, session);
                 } else {
                     System.err.println("GameManager " + gameId + ": Session not found for player " + player.getId() + " (username: " + player.getUsername() + ") during final broadcast. Broadcasting to all as fallback.");
-                    broadcastToGame(playerMovedMsg); 
+                    broadcastToGame(playerMovedMsg);
+                }
+            }
+
+            // Check coin drop pickups
+            for (Player player : players) {
+                Rectangle hb = player.getHurtbox();
+                for (CoinDrop drop : new ArrayList<>(coinDrops.values())) {
+                    if (hb.intersects(drop.getHitBox())) {
+                        player.addCoins(drop.getAmount());
+                        ClientSession session = playerSessions.get(player);
+                        if (session != null) {
+                            session.sendMessage(new CoinUpdateBroadcast(player.getIdAsString(), player.getCoins()));
+                        }
+                        removeCoinDrop(drop.getId());
+                    }
                 }
             }
             // TODO: Broadcast updates for AI ships if necessary
@@ -517,5 +547,67 @@ public class GameManager {
 
     public Map<String, BaseShip> getAiShips() {
         return aiShips;
+    }
+
+    /** Retrieve a player by ID from the active player list. */
+    private Player getPlayerById(int id) {
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == id) return p;
+        }
+        return null;
+    }
+
+    /** Spawn a coin drop at the given position. */
+    private void spawnCoinDrop(int x, int y, int amount) {
+        String id = "drop" + (nextCoinDropId++);
+        CoinDrop drop = new CoinDrop(id, x, y, amount);
+        coinDrops.put(id, drop);
+        broadcastToGame(new CoinDropSpawnedBroadcast(id, x, y, amount));
+    }
+
+    /** Remove a coin drop and notify clients. */
+    private void removeCoinDrop(String id) {
+        if (coinDrops.remove(id) != null) {
+            broadcastToGame(new CoinDropRemovedBroadcast(id));
+        }
+    }
+
+    /** Expose current coin drops for testing. */
+    public Map<String, CoinDrop> getCoinDrops() {
+        return coinDrops;
+    }
+
+    /** Award coins to a player and notify them. */
+    public synchronized void awardCoins(int playerId, int amount) {
+        Player p = getPlayerById(playerId);
+        if (p == null) return;
+        p.addCoins(amount);
+        ClientSession session = playerSessions.get(p);
+        if (session != null) {
+            session.sendMessage(new CoinUpdateBroadcast(p.getIdAsString(), p.getCoins()));
+        }
+    }
+
+    /** Handle a player's extraction request. Coins are reset to zero. */
+    public synchronized void handleExtraction(int playerId) {
+        Player p = getPlayerById(playerId);
+        if (p == null) return;
+        p.extractCoins();
+        ClientSession session = playerSessions.get(p);
+        if (session != null) {
+            session.sendMessage(new CoinUpdateBroadcast(p.getIdAsString(), p.getCoins()));
+        }
+    }
+
+    /** Called when an enemy is killed to drop coins. */
+    public synchronized void handleEnemyKilled(Enemy enemy, int killerId) {
+        if (enemy == null) return;
+        spawnCoinDrop(enemy.getX(), enemy.getY(), 5);
+        if (killerId != -1) {
+            Player killer = getPlayerById(killerId);
+            if (killer != null) {
+                // Optional future logic for kill rewards
+            }
+        }
     }
 }

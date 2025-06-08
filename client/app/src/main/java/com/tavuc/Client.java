@@ -46,6 +46,8 @@ import com.tavuc.networking.models.ProjectileUpdateBroadcast;
 import com.tavuc.networking.models.ProjectileRemovedBroadcast;
 import com.tavuc.networking.models.RegisterRequest;
 import com.tavuc.networking.models.RegisterResponse;
+import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
+import com.tavuc.networking.models.CoinDropRemovedBroadcast;
 import com.tavuc.networking.models.RequestChunkRequest;
 import com.tavuc.networking.models.RequestChunkResponse;
 import com.tavuc.networking.models.RequestPaletteRequest;
@@ -57,6 +59,8 @@ import com.tavuc.networking.models.ShipUpdateBroadcast;
 import com.tavuc.networking.models.ShipDamagedBroadcast;
 import com.tavuc.networking.models.ShipDestroyedBroadcast;
 import com.tavuc.networking.models.ShipUpdateRequest;
+import com.tavuc.networking.models.ExtractionRequest;
+import com.tavuc.networking.models.CoinUpdateBroadcast;
 import com.tavuc.ui.panels.GamePanel;
 import com.tavuc.ui.panels.ISpacePanel;
 import com.tavuc.ui.panels.SpacePanel;
@@ -488,6 +492,18 @@ public class Client {
         out.println(gson.toJson(req));
     }
 
+    /**
+     * Sends a coin extraction request to the server.
+     */
+    public static void sendExtractionRequest(int playerId) {
+        if (out == null) {
+            System.err.println("Client not connected, cannot send extraction request.");
+            return;
+        }
+        ExtractionRequest req = new ExtractionRequest(String.valueOf(playerId));
+        out.println(gson.toJson(req));
+    }
+
 
 
     /**
@@ -677,6 +693,35 @@ public class Client {
                                     ProjectileRemovedBroadcast event = gson.fromJson(processedJson, ProjectileRemovedBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileRemoved(event));
                                 }
+                                break;
+                            case "COIN_DROP_SPAWNED_BROADCAST":
+                                if (worldManager != null) {
+                                    CoinDropSpawnedBroadcast event = gson.fromJson(processedJson, CoinDropSpawnedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.addCoinDrop(event));
+                                }
+                                break;
+                            case "COIN_DROP_REMOVED_BROADCAST":
+                                if (worldManager != null) {
+                                    CoinDropRemovedBroadcast event = gson.fromJson(processedJson, CoinDropRemovedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.removeCoinDrop(event.dropId));
+                                }
+                                break;
+                            case "COIN_UPDATE_BROADCAST":
+                                CoinUpdateBroadcast coinEvent = gson.fromJson(processedJson, CoinUpdateBroadcast.class);
+                                SwingUtilities.invokeLater(() -> {
+                                    int pid = Integer.parseInt(coinEvent.playerId);
+                                    if (currentGamePanel != null && currentGamePanel.getPlayer().getPlayerId() == pid) {
+                                        currentGamePanel.getPlayer().setCoins(coinEvent.coins);
+                                    } else if (worldManager != null) {
+                                        Player other = worldManager.getOtherPlayer(pid);
+                                        if (other != null) {
+                                            other.setCoins(coinEvent.coins);
+                                        }
+                                    }
+                                    if (currentGamePanel != null) {
+                                        currentGamePanel.repaint();
+                                    }
+                                });
                                 break;
                             case "REQUEST_CHUNK_RESPONSE":
                                 if (worldManager != null) {
