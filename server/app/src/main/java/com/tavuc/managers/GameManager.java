@@ -237,19 +237,48 @@ public class GameManager {
             if (p.getId() == attackerId) attacker = p;
             if (p.getId() == targetId) target = p;
         }
-        if (attacker == null || target == null) return;
+        if (attacker == null) return;
 
-        double dx = target.getX() - attacker.getX();
-        double dy = target.getY() - attacker.getY();
-        double distance = Math.hypot(dx, dy);
         double range = attacker.getAttackRange();
 
-        if (distance > range) {
-            System.out.println("GameService " + gameId + ": Force ability out of range");
-            return;
+        switch (ability) {
+            case "FORCE_SLAM" -> {
+                for (Player p : playerSessions.keySet()) {
+                    if (p == attacker) continue;
+                    double dx = p.getX() - attacker.getX();
+                    double dy = p.getY() - attacker.getY();
+                    if (Math.hypot(dx, dy) <= range) {
+                        applyAbilityDamage(attacker, p, 1.0);
+                    }
+                }
+            }
+            case "FORCE_PUSH" -> {
+                if (target == null) return;
+                double dx = target.getX() - attacker.getX();
+                double dy = target.getY() - attacker.getY();
+                double dist = Math.hypot(dx, dy);
+                if (dist > range) return;
+                if (dist != 0) {
+                    target.setDx(dx / dist * 5);
+                    target.setDy(dy / dist * 5);
+                }
+                applyAbilityDamage(attacker, target, 0.5);
+            }
+            case "FORCE_CHOKE" -> {
+                if (target == null) return;
+                double dx = target.getX() - attacker.getX();
+                double dy = target.getY() - attacker.getY();
+                if (Math.hypot(dx, dy) > range) return;
+                applyAbilityDamage(attacker, target, 1.5);
+            }
+            default -> {
+                if (target == null) return;
+                applyAbilityDamage(attacker, target, 1.0);
+            }
         }
+    }
 
-        double damage = 1.0; // simple fixed damage for all abilities
+    private void applyAbilityDamage(Player attacker, Player target, double damage) {
         target.takeDamage(damage);
 
         PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(

@@ -1,6 +1,8 @@
 package com.tavuc.ai;
 
 import com.tavuc.models.entities.Entity;
+import com.tavuc.models.entities.enemies.Mech;
+import com.tavuc.ecs.systems.WeakPointSystem;
 
 /**
  * Simple combat behavior that damages the target if within range.
@@ -23,7 +25,12 @@ public class BasicCombatBehavior implements CombatBehavior {
         double dx = target.getX() - attacker.getX();
         double dy = target.getY() - attacker.getY();
         if (Math.hypot(dx, dy) <= range) {
-            target.takeDamage(damage);
+            int dmg = damage;
+            if (target instanceof Mech) {
+                WeakPointSystem wps = new WeakPointSystem();
+                dmg = wps.applyWeakPointDamage(attacker, target, damage);
+            }
+            target.takeDamage(dmg);
         }
     }
 }
