@@ -7,6 +7,8 @@ import java.awt.geom.Ellipse2D;
 import com.tavuc.controllers.PlayerMovementController;
 import com.tavuc.utils.Vector2D;
 import com.tavuc.Client;
+import com.tavuc.managers.InputManager;
+import com.tavuc.managers.WorldManager;
 import com.tavuc.models.planets.Tile;
 
 
@@ -265,22 +267,26 @@ public class Player extends Entity {
      */
     @Override
     public void update() {
-        // Assume a fixed time step of ~16ms as the game loop runs at 60fps
-        double friction = 0.85;
-        if (Client.worldManager != null) {
-            Tile surface = Client.worldManager.getTileAt((int)this.x, (int)this.y);
-            if (surface != null) {
-                friction = surface.getFriction();
+        if (InputManager.getInstance().isTileMovement()) {
+            updateTileMovement();
+        } else {
+            // Assume a fixed time step of ~16ms as the game loop runs at 60fps
+            double friction = 0.85;
+            if (Client.worldManager != null) {
+                Tile surface = Client.worldManager.getTileAt((int)this.x, (int)this.y);
+                if (surface != null) {
+                    friction = surface.getFriction();
+                }
             }
-        }
-        movementController.update(0.016, friction);
-        Vector2D vel = movementController.getVelocity();
-        this.dx = vel.getX();
-        this.dy = vel.getY();
+            movementController.update(0.016, friction);
+            Vector2D vel = movementController.getVelocity();
+            this.dx = vel.getX();
+            this.dy = vel.getY();
 
-        move();
-        updatePlayerShapes();
-        updateDamageEffect();
+            move();
+            updatePlayerShapes();
+            updateDamageEffect();
+        }
     }
 
     /**
@@ -437,8 +443,60 @@ public class Player extends Entity {
      * Sets the last sent direction angle.
      * @param angle the new last sent direction angle
      */
-    public void setlastSentDirection(double angle) { 
-        this.lastSentDirection = angle; 
+    public void setlastSentDirection(double angle) {
+        this.lastSentDirection = angle;
+    }
+
+    /**
+     * Handles discrete tile-based movement when the option is enabled.
+     * The player moves one tile per input in one of the four
+     * cardinal directions. Positions are quantized to the
+     * WorldManager.TILE_SIZE grid and collision checks are
+     * performed using the existing tile map.
+     */
+    private void updateTileMovement() {
+        int dirX = (int) Math.signum(moveVecX);
+        int dirY = (int) Math.signum(moveVecY);
+
+        // prevent diagonal movement
+        if (dirX != 0 && dirY != 0) {
+            dirX = 0;
+            dirY = 0;
+        }
+
+        if (dirX != 0 || dirY != 0) {
+            double newX = this.x + dirX * WorldManager.TILE_SIZE;
+            double newY = this.y + dirY * WorldManager.TILE_SIZE;
+
+            boolean blocked = false;
+            if (Client.worldManager != null) {
+                if (dirX != 0) {
+                    Tile tx = Client.worldManager.getTileAt((int) newX, (int) this.y);
+                    if (tx != null && tx.isSolid()) blocked = true;
+                }
+                if (dirY != 0) {
+                    Tile ty = Client.worldManager.getTileAt((int) this.x, (int) newY);
+                    if (ty != null && ty.isSolid()) blocked = true;
+                }
+            }
+
+            if (!blocked) {
+                this.x = newX;
+                this.y = newY;
+            }
+
+            // snap to grid
+            this.x = Math.round(this.x / WorldManager.TILE_SIZE) * WorldManager.TILE_SIZE;
+            this.y = Math.round(this.y / WorldManager.TILE_SIZE) * WorldManager.TILE_SIZE;
+
+            moveVecX = 0;
+            moveVecY = 0;
+        }
+
+        this.dx = 0;
+        this.dy = 0;
+        updatePlayerShapes();
+        updateDamageEffect();
     }
 
 }
