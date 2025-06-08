@@ -14,8 +14,8 @@ public class TacticalCoordinatorTest {
     @Test
     public void shareTargetAssignsSameTarget() {
         WorldManager wm = new WorldManager(0);
-        BasicTrooper t1 = new BasicTrooper(0,0, wm, TrooperWeapon.RIFLE,0);
-        BasicTrooper t2 = new BasicTrooper(10,0, wm, TrooperWeapon.RIFLE,1);
+        BasicTrooper t1 = new BasicTrooper(1,0,0, wm, TrooperWeapon.RIFLE,0);
+        BasicTrooper t2 = new BasicTrooper(2,10,0, wm, TrooperWeapon.RIFLE,1);
         Player p = new Player(1, "p");
         TacticalCoordinator coord = new TacticalCoordinator(List.of(t1, t2));
         coord.shareTarget(p);

@@ -24,8 +24,8 @@ public class BasicTrooper extends Trooper implements TargetHolder {
         return Math.hypot(target.getX() - getX(), target.getY() - getY());
     }
 
-    public BasicTrooper(double x, double y, WorldManager world, TrooperWeapon weapon, int formationIndex) {
-        super(x, y, 20, 20, 2.0, 5, weapon, formationIndex);
+    public BasicTrooper(int id, double x, double y, WorldManager world, TrooperWeapon weapon, int formationIndex) {
+        super(id, x, y, 20, 20, 2.0, 5, weapon, formationIndex);
         this.world = world;
         this.pathfinding = new BasicPathfindingAgent(world);
         this.targeting = new BasicTargetingSystem(world, this);

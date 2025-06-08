@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 import com.tavuc.models.entities.Player;
+import com.tavuc.models.entities.Entity;
+import com.tavuc.models.entities.enemies.Enemy;
 import com.tavuc.utils.Vector2D;
 import com.tavuc.Client;
 
@@ -16,8 +18,8 @@ public class ForcePowers extends Weapon {
     private ForcePool forceEnergy;
     private Map<ForceAbility, Cooldown> abilityCooldowns = new EnumMap<>(ForceAbility.class);
     private ForceAlignment alignment;
-    private List<Player> validTargets = new ArrayList<>();
-    private Player currentTarget;
+    private List<Entity> validTargets = new ArrayList<>();
+    private Entity currentTarget;
 
     public ForcePowers(double maxEnergy, ForceAlignment alignment, WeaponStats stats) {
         super(WeaponType.FORCE_POWERS, stats);
@@ -39,6 +41,13 @@ public class ForcePowers extends Weapon {
                 validTargets.add(p);
             }
         }
+        for (Enemy e : Client.worldManager.getEnemies()) {
+            double dx = e.getX() - wielder.getX();
+            double dy = e.getY() - wielder.getY();
+            if (Math.hypot(dx, dy) <= stats.getRange()) {
+                validTargets.add(e);
+            }
+        }
         if (!validTargets.contains(currentTarget)) {
             currentTarget = validTargets.isEmpty() ? null : validTargets.get(0);
         }
@@ -57,7 +66,7 @@ public class ForcePowers extends Weapon {
         currentTarget = validTargets.get(idx);
     }
 
-    public Player getCurrentTarget() {
+    public Entity getCurrentTarget() {
         return currentTarget;
     }
 
@@ -89,14 +98,20 @@ public class ForcePowers extends Weapon {
                 double dx = currentTarget.getX() - wielder.getX();
                 double dy = currentTarget.getY() - wielder.getY();
                 if (Math.hypot(dx, dy) > stats.getRange()) return;
-                Client.sendForceAbility(wielder.getPlayerId(), currentTarget.getPlayerId(), ability.name());
+                int tid = (currentTarget instanceof Player p) ? p.getPlayerId() :
+                           (currentTarget instanceof Enemy e ? e.getId() : -1);
+                if (tid == -1) return;
+                Client.sendForceAbility(wielder.getPlayerId(), tid, ability.name());
             }
             case FORCE_PUSH -> {
                 if (currentTarget == null) return;
                 double dx = currentTarget.getX() - wielder.getX();
                 double dy = currentTarget.getY() - wielder.getY();
                 if (Math.hypot(dx, dy) > stats.getRange()) return;
-                Client.sendForceAbility(wielder.getPlayerId(), currentTarget.getPlayerId(), ability.name());
+                int tid = (currentTarget instanceof Player p) ? p.getPlayerId() :
+                           (currentTarget instanceof Enemy e ? e.getId() : -1);
+                if (tid == -1) return;
+                Client.sendForceAbility(wielder.getPlayerId(), tid, ability.name());
             }
             case FORCE_SLAM -> {
                 // AoE ability does not require a specific target
