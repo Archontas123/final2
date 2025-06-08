@@ -13,4 +13,9 @@ public class DifficultyScaling {
     public void setMultiplier(double multiplier) {
         this.multiplier = multiplier;
     }
+
+    /** Applies the current multiplier to a base value. */
+    public double apply(double value) {
+        return value * multiplier;
+    }
 }

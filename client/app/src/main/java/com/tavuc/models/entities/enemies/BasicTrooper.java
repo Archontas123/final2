@@ -10,7 +10,7 @@ import java.awt.Graphics2D;
 /**
  * Basic AI driven trooper used for tests.
  */
-public class BasicTrooper extends Trooper {
+public class BasicTrooper extends Trooper implements TargetHolder {
 
     private final WorldManager world;
     private Entity target;
@@ -58,5 +58,15 @@ public class BasicTrooper extends Trooper {
     @Override
     public void draw(Graphics2D g2d, double offsetX, double offsetY) {
         g2d.fillRect((int)(getX()-offsetX),(int)(getY()-offsetY),20,20);
+    }
+
+    @Override
+    public void setTarget(Entity target) {
+        this.target = target;
+    }
+
+    @Override
+    public Entity getTarget() {
+        return target;
     }
 }

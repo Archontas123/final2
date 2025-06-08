@@ -6,7 +6,7 @@ import com.tavuc.models.entities.Entity;
 /**
  * Minimal server side mech.
  */
-public class BasicMech extends Mech {
+public class BasicMech extends Mech implements TargetHolder {
 
     private Entity target;
     private final PathfindingAgent path;
@@ -48,5 +48,15 @@ public class BasicMech extends Mech {
             }
         }
         if (slamCooldown > 0) slamCooldown--;
+    }
+
+    @Override
+    public void setTarget(Entity target) {
+        this.target = target;
+    }
+
+    @Override
+    public Entity getTarget() {
+        return target;
     }
 }
