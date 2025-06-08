@@ -7,6 +7,8 @@ public class Tile {
     private int y;
     private String type;
     private ColorType colorType;
+    private boolean solid;
+    private double friction;
 
     /**
      * Constructor for Tile
@@ -20,6 +22,13 @@ public class Tile {
         this.y = y;
         this.type = type;
         this.colorType = colorType;
+        this.solid = "rock".equalsIgnoreCase(type);
+        switch(type.toUpperCase()) {
+            case "WATER": friction = 0.9; break;
+            case "DIRT": friction = 0.82; break;
+            case "ICE": friction = 0.98; break;
+            default: friction = 0.85; break;
+        }
     }
 
     /**
@@ -52,6 +61,14 @@ public class Tile {
      */
     public ColorType getColorType() {
         return colorType;
+    }
+
+    public boolean isSolid() {
+        return solid;
+    }
+
+    public double getFriction() {
+        return friction;
     }
 
 }

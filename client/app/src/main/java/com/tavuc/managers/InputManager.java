@@ -5,6 +5,10 @@ import java.awt.event.KeyListener;
 import java.util.HashMap;
 import java.util.Map;
 
+import com.tavuc.controllers.InputBuffer;
+import com.tavuc.controllers.InputBuffer.KeyBinding;
+import com.tavuc.utils.Vector2D;
+
 import com.tavuc.models.entities.Player;
 import com.tavuc.models.space.Ship;
 import com.tavuc.networking.models.FireRequest;
@@ -31,9 +35,12 @@ public class InputManager implements KeyListener {
     }
 
     private ControlTargetType controlTargetType;
-    private Player player; 
-    private Ship ship; 
+    private Player player;
+    private Ship ship;
     private boolean upPressed, downPressed, leftPressed, rightPressed;
+    private boolean shiftPressed;
+
+    private final InputBuffer inputBuffer = new InputBuffer(100);
 
     private InputManager() {
         this.controlTargetType = ControlTargetType.PLAYER; 
@@ -76,7 +83,7 @@ public class InputManager implements KeyListener {
 
         if (controlTargetType == ControlTargetType.SHIP && ship != null) {
             if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
-                upPressed = true; 
+                upPressed = true;
                 ship.setThrusting(true);
             }
             if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
@@ -89,10 +96,34 @@ public class InputManager implements KeyListener {
             }
             // REMOVED the space bar handling from here - it's now handled in SpacePanel directly
         } else if (controlTargetType == ControlTargetType.PLAYER) {
-            if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) upPressed = true;
-            if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) downPressed = true;
-            if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT)  leftPressed = true;
-            if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) rightPressed = true;
+            if (keyCode == KeyEvent.VK_W || keyCode == KeyEvent.VK_UP) {
+                upPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_UP);
+            }
+            if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) {
+                downPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_DOWN);
+            }
+            if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) {
+                leftPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_LEFT);
+            }
+            if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) {
+                rightPressed = true;
+                inputBuffer.registerInput(KeyBinding.MOVE_RIGHT);
+            }
+            if (keyCode == KeyEvent.VK_SHIFT) {
+                shiftPressed = true;
+                inputBuffer.registerInput(KeyBinding.SLIDE);
+                if (player != null) player.getMovementController().startSlide();
+            }
+            if (keyCode == KeyEvent.VK_SPACE) {
+                inputBuffer.registerInput(KeyBinding.DODGE);
+                if (player != null) {
+                    player.getMovementController().dodge();
+                    player.startInvulnerability(0.5);
+                }
+            }
             updatePlayerMovementInput();
         }
     }
@@ -132,6 +163,7 @@ public class InputManager implements KeyListener {
             if (keyCode == KeyEvent.VK_S || keyCode == KeyEvent.VK_DOWN) downPressed = false;
             if (keyCode == KeyEvent.VK_A || keyCode == KeyEvent.VK_LEFT) leftPressed = false;
             if (keyCode == KeyEvent.VK_D || keyCode == KeyEvent.VK_RIGHT) rightPressed = false;
+            if (keyCode == KeyEvent.VK_SHIFT) shiftPressed = false;
             updatePlayerMovementInput();
         }
     }
@@ -148,6 +180,8 @@ public class InputManager implements KeyListener {
         if (player == null || controlTargetType != ControlTargetType.PLAYER) {
             return; 
         }
+
+        inputBuffer.purgeExpired();
 
         double vecX = 0.0;
         double vecY = 0.0;
@@ -176,8 +210,9 @@ public class InputManager implements KeyListener {
             player.setMoveVector(vecX, vecY);
             player.setAcceleration(1.0);
         } else {
-            player.setMoveVector(0, 0);
-            player.setAcceleration(0.0);
+            Vector2D predicted = inputBuffer.getPredictedDirection();
+            player.setMoveVector(predicted.getX(), predicted.getY());
+            player.setAcceleration(predicted.length() > 0 ? 1.0 : 0.0);
         }
     }
 

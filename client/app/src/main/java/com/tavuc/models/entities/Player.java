@@ -4,6 +4,11 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 
+import com.tavuc.controllers.PlayerMovementController;
+import com.tavuc.utils.Vector2D;
+import com.tavuc.Client;
+import com.tavuc.models.planets.Tile;
+
 
 public class Player extends Entity {
 
@@ -34,6 +39,12 @@ public class Player extends Entity {
     private static final double DECELERATION_RATE = 0.3;
     // Visual damage flash strength (1.0 = fully visible, 0 = no effect)
     private float damageEffect = 0f;
+
+    private boolean invulnerable = false;
+    private double invulnTimer = 0.0;
+
+    // New movement controller implementing advanced momentum mechanics
+    private final PlayerMovementController movementController = new PlayerMovementController();
 
 
     /**
@@ -68,8 +79,10 @@ public class Player extends Entity {
 
     @Override
     public void takeDamage(int amount) {
-        super.takeDamage(amount);
-        triggerDamageEffect();
+        if (!invulnerable) {
+            super.takeDamage(amount);
+            triggerDamageEffect();
+        }
     }
 
     /**
@@ -79,6 +92,17 @@ public class Player extends Entity {
         if (damageEffect > 0f) {
             damageEffect = Math.max(0f, damageEffect - 0.05f);
         }
+        if (invulnerable) {
+            invulnTimer -= 0.016;
+            if (invulnTimer <= 0) {
+                invulnerable = false;
+            }
+        }
+    }
+
+    public void startInvulnerability(double duration) {
+        this.invulnerable = true;
+        this.invulnTimer = duration;
     }
 
     public float getDamageEffect() {
@@ -98,6 +122,13 @@ public class Player extends Entity {
      */
     public void setAttackRange(double attackRange) {
         this.attackRange = attackRange;
+    }
+
+    /**
+     * Returns the movement controller responsible for handling player motion.
+     */
+    public PlayerMovementController getMovementController() {
+        return movementController;
     }
 
 
@@ -139,6 +170,7 @@ public class Player extends Entity {
     public void setMoveVector(double x, double y) {
         this.moveVecX = x;
         this.moveVecY = y;
+        movementController.setInputDirection(x, y);
     }
 
     public double getMoveVectorX() { return moveVecX; }
@@ -226,34 +258,19 @@ public class Player extends Entity {
      */
     @Override
     public void update() {
-        if (accelleration > 0) {
-            speed += ACCELERATION_RATE;
-            if (speed > MAX_SPEED) {
-                speed = MAX_SPEED;
-            }
-        } else {
-            speed -= DECELERATION_RATE;
-            if (speed < 0) {
-                speed = 0;
+        // Assume a fixed time step of ~16ms as the game loop runs at 60fps
+        double friction = 0.85;
+        if (Client.worldManager != null) {
+            Tile surface = Client.worldManager.getTileAt((int)this.x, (int)this.y);
+            if (surface != null) {
+                friction = surface.getFriction();
             }
         }
+        movementController.update(0.016, friction);
+        Vector2D vel = movementController.getVelocity();
+        this.dx = vel.getX();
+        this.dy = vel.getY();
 
-        if (speed > 0) {
-            double len = Math.sqrt(moveVecX * moveVecX + moveVecY * moveVecY);
-            if (len > 0) {
-                double normX = moveVecX / len;
-                double normY = moveVecY / len;
-                this.dx = speed * normX;
-                this.dy = speed * normY;
-            } else {
-                this.dx = 0;
-                this.dy = 0;
-            }
-        } else {
-            this.dx = 0;
-            this.dy = 0;
-        }
-        
         move();
         updatePlayerShapes();
         updateDamageEffect();

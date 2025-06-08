@@ -40,6 +40,9 @@ import java.io.InputStream;
 import java.io.IOException;
 
 import com.tavuc.ui.components.DamagePopup;
+import com.tavuc.ui.effects.DustParticle;
+import com.tavuc.ui.effects.SpeedLineParticle;
+import com.tavuc.ui.effects.MovementParticle;
 
 
 
@@ -71,6 +74,9 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
 
     // Floating damage numbers
     private final List<DamagePopup> damagePopups = new ArrayList<>();
+
+    // Movement effect particles (dust, speed lines)
+    private final List<com.tavuc.ui.effects.MovementParticle> movementParticles = new ArrayList<>();
 
 
     /**
@@ -257,6 +263,11 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             g2d.fillOval(player.getX(), player.getY(), playerSize, playerSize);
         }
 
+        // Draw movement particles relative to world transform
+        for (MovementParticle p : movementParticles) {
+            p.draw(g2d, 0, 0);
+        }
+
         // Draw other players
         if (renderOtherPlayers && worldManager != null) {
             for (Player other : worldManager.getOtherPlayers()) {
@@ -390,6 +401,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     @Override
     public void actionPerformed(ActionEvent e) {
         player.update();
+
+        updateMovementEffects();
 
         if (worldManager != null) {
           
@@ -541,6 +554,27 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         double range = player.getAttackRange();
         if (closest != null && closestDist <= range) {
             Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
+        }
+    }
+
+    /** Update and spawn movement effect particles based on player state. */
+    private void updateMovementEffects() {
+        com.tavuc.controllers.MovementState state = player.getMovementController().getCurrentState();
+        if (state == com.tavuc.controllers.MovementState.SLIDING) {
+            movementParticles.add(new DustParticle(player.getX() + player.getWidth() / 2.0,
+                                                  player.getY() + player.getHeight()));
+        } else if (state == com.tavuc.controllers.MovementState.DODGING) {
+            movementParticles.add(new SpeedLineParticle(player.getX() + player.getWidth() / 2.0,
+                                                       player.getY() + player.getHeight() / 2.0,
+                                                       player.getDirection()));
+        }
+
+        Iterator<MovementParticle> iterP = movementParticles.iterator();
+        while (iterP.hasNext()) {
+            MovementParticle p = iterP.next();
+            if (p.update()) {
+                iterP.remove();
+            }
         }
     }
 
