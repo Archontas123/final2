@@ -15,8 +15,8 @@ public class BasicTrooper extends Trooper {
     private final WorldManager world;
     private Entity target;
 
-    public BasicTrooper(double x, double y, WorldManager world, TrooperWeapon weapon) {
-        super(x, y, 20, 20, 2.0, 5, weapon);
+    public BasicTrooper(double x, double y, WorldManager world, TrooperWeapon weapon, int formationIndex) {
+        super(x, y, 20, 20, 2.0, 5, weapon, formationIndex);
         this.world = world;
         this.pathfinding = new BasicPathfindingAgent(world);
         this.targeting = new BasicTargetingSystem(world, this);
@@ -28,13 +28,29 @@ public class BasicTrooper extends Trooper {
         if (target == null || !target.isAlive()) {
             target = targeting.acquireTarget();
         }
+        suppression.update(0.016);
         if (target != null) {
-            Vector2D next = pathfinding.getNextMove(new Vector2D(getX(), getY()), new Vector2D(target.getX(), target.getY()));
-            setDx(next.getX() * getVelocity());
-            setDy(next.getY() * getVelocity());
+            Vector2D toTarget = new Vector2D(target.getX() - getX(), target.getY() - getY());
+            Vector2D moveDir = pathfinding.getNextMove(new Vector2D(getX(), getY()), new Vector2D(target.getX(), target.getY()));
+            Vector2D formationOffset = formation.getSlot(getFormationIndex());
+            moveDir.add(formationOffset);
+
+            if (getHealth() < getMaxHealth() / 2) {
+                Vector2D cover = coverSystem.findCoverPosition(new Vector2D(getX(), getY()), new Vector2D(target.getX(), target.getY()));
+                moveDir = new Vector2D(cover.getX() - getX(), cover.getY() - getY());
+                moveDir.normalize();
+            }
+
+            setDx(moveDir.getX() * getVelocity());
+            setDy(moveDir.getY() * getVelocity());
             move();
-            if (Math.hypot(target.getX()-getX(), target.getY()-getY()) <= getWeapon().getRange()) {
+
+            double dist = Math.hypot(toTarget.getX(), toTarget.getY());
+            if (dist <= getWeapon().getRange()) {
                 combatBehavior.performAttack(target);
+                suppression.suppress(this, target);
+            } else if (dist <= getWeapon().getRange() * 2) {
+                suppression.suppress(this, target);
             }
         }
     }

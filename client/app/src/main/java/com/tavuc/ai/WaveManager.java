@@ -26,7 +26,7 @@ public class WaveManager {
                 double x = 50 + i*5;
                 double y = 50 + i*5;
                 if (data.type() == EnemyType.TROOPER) {
-                    spawned.add(new BasicTrooper(x, y, world, TrooperWeapon.BLASTER));
+                    spawned.add(new BasicTrooper(x, y, world, TrooperWeapon.BLASTER, i));
                 } else if (data.type() == EnemyType.MECH) {
                     spawned.add(new BasicMech(x, y, world));
                 }
