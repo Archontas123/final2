@@ -81,7 +81,8 @@ public class BlasterPistol extends Weapon {
         projectileType = ProjectileType.STANDARD;
 
         sounds.play("blaster_fire");
-        effects.spawn("muzzle_flash");
+        effects.spawn("muzzle_flash", wielder.getX() + wielder.getWidth() / 2.0,
+                      wielder.getY() + wielder.getHeight() / 2.0);
         cooldowns.setCooldown("primary", (long) (stats.getCooldown() * 1000));
     }
 
@@ -111,7 +112,8 @@ public class BlasterPistol extends Weapon {
 
         // Reuse primaryAttack logic for direction and recoil but with charged effects
         sounds.play("blaster_charge_fire");
-        effects.spawn("charged_muzzle_flash");
+        effects.spawn("charged_muzzle_flash", wielder.getX() + wielder.getWidth() / 2.0,
+                      wielder.getY() + wielder.getHeight() / 2.0);
         cooldowns.setCooldown("primary", (long) (stats.getCooldown() * 1000 * 1.5));
 
         projectileType = ProjectileType.STANDARD;

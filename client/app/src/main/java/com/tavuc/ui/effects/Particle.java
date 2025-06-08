@@ -2,16 +2,21 @@ package com.tavuc.ui.effects;
 
 import java.awt.Graphics2D;
 
-/** Simple particle used for movement-related effects. */
-public abstract class MovementParticle extends Particle {
+/** Generic world particle with position, velocity and lifespan. */
+public abstract class Particle {
+    protected double x, y;
+    protected double vx, vy;
+    protected double life;
 
     /**
      * Updates the particle state.
      * @return true if the particle has expired
      */
-    @Override
     public boolean update() {
-        return super.update();
+        x += vx;
+        y += vy;
+        life -= 0.016;
+        return life <= 0;
     }
 
     public abstract void draw(Graphics2D g2d, double offsetX, double offsetY);
