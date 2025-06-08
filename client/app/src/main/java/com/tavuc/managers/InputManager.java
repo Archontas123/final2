@@ -132,6 +132,9 @@ public class InputManager implements KeyListener {
                 rightPressed = true;
                 inputBuffer.registerInput(KeyBinding.MOVE_RIGHT);
             }
+            if (keyCode == KeyEvent.VK_R) {
+                inputBuffer.registerInput(KeyBinding.WEAPON_SWITCH);
+            }
             if (keyCode == KeyEvent.VK_TAB && forcePowers != null) {
                 forcePowers.cycleTarget(player);
             }
@@ -145,6 +148,20 @@ public class InputManager implements KeyListener {
                 if (player != null) {
                     player.getMovementController().dodge();
                     player.startDodgeInvulnerability(0.5);
+                }
+            }
+            if (forcePowers != null) {
+                if (keyCode == KeyEvent.VK_F1) {
+                    inputBuffer.registerInput(KeyBinding.ABILITY_ONE);
+                    forcePowers.secondaryAttack(player);
+                }
+                if (keyCode == KeyEvent.VK_F2) {
+                    inputBuffer.registerInput(KeyBinding.ABILITY_TWO);
+                    forcePowers.primaryAttack(player, null);
+                }
+                if (keyCode == KeyEvent.VK_F3) {
+                    inputBuffer.registerInput(KeyBinding.ABILITY_THREE);
+                    forcePowers.choke(player);
                 }
             }
             updatePlayerMovementInput();

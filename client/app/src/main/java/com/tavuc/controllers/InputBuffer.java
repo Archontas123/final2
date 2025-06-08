@@ -17,7 +17,11 @@ public class InputBuffer {
         MOVE_LEFT,
         MOVE_RIGHT,
         SLIDE,
-        DODGE
+        DODGE,
+        WEAPON_SWITCH,
+        ABILITY_ONE,
+        ABILITY_TWO,
+        ABILITY_THREE
     }
 
     public static class InputCommand {
@@ -43,6 +47,10 @@ public class InputBuffer {
         priorityMap.put(KeyBinding.MOVE_RIGHT, 3);
         priorityMap.put(KeyBinding.SLIDE, 2);
         priorityMap.put(KeyBinding.DODGE, 2);
+        priorityMap.put(KeyBinding.WEAPON_SWITCH, 2);
+        priorityMap.put(KeyBinding.ABILITY_ONE, 1);
+        priorityMap.put(KeyBinding.ABILITY_TWO, 1);
+        priorityMap.put(KeyBinding.ABILITY_THREE, 1);
     }
 
     /** Registers an input event for the given binding. */

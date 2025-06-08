@@ -81,13 +81,27 @@ public class ForcePowers extends Weapon {
         if (cd.isActive()) return;
         if (!forceEnergy.consume(10)) return;
 
-        if (ability == ForceAbility.FORCE_CHOKE) {
-            updateTargets(wielder);
-            if (currentTarget == null) return;
-            double dx = currentTarget.getX() - wielder.getX();
-            double dy = currentTarget.getY() - wielder.getY();
-            if (Math.hypot(dx, dy) > stats.getRange()) return;
-            Client.sendForceAbility(wielder.getPlayerId(), currentTarget.getPlayerId(), ability.name());
+        updateTargets(wielder);
+
+        switch (ability) {
+            case FORCE_CHOKE -> {
+                if (currentTarget == null) return;
+                double dx = currentTarget.getX() - wielder.getX();
+                double dy = currentTarget.getY() - wielder.getY();
+                if (Math.hypot(dx, dy) > stats.getRange()) return;
+                Client.sendForceAbility(wielder.getPlayerId(), currentTarget.getPlayerId(), ability.name());
+            }
+            case FORCE_PUSH -> {
+                if (currentTarget == null) return;
+                double dx = currentTarget.getX() - wielder.getX();
+                double dy = currentTarget.getY() - wielder.getY();
+                if (Math.hypot(dx, dy) > stats.getRange()) return;
+                Client.sendForceAbility(wielder.getPlayerId(), currentTarget.getPlayerId(), ability.name());
+            }
+            case FORCE_SLAM -> {
+                // AoE ability does not require a specific target
+                Client.sendForceAbility(wielder.getPlayerId(), -1, ability.name());
+            }
         }
 
         sounds.play("force_use");
