@@ -52,7 +52,20 @@ public class Lightsaber extends Weapon {
 
         sounds.play("lightsaber_swing");
         effects.spawn("blade_trail");
+
+        // Check for a hit and apply lethal damage to any target in range
+        if (Client.worldManager != null) {
+            for (Player p : Client.worldManager.getOtherPlayers()) {
+                double dx = p.getX() - wielder.getX();
+                double dy = p.getY() - wielder.getY();
+                if (Math.hypot(dx, dy) <= stats.getRange()) {
+                    p.setHealth(0);
+                }
+            }
+        }
+
         cooldowns.setCooldown("primary", (long) (stats.getCooldown() * 1000));
+        cooldowns.setCooldown("post_swing", 500);
         cycleSwing();
         isCharging = false;
     }
@@ -82,7 +95,9 @@ public class Lightsaber extends Weapon {
 
     @Override
     public boolean canAttack() {
-        return !cooldowns.isOnCooldown("primary") && !isBlocking;
+        return !cooldowns.isOnCooldown("primary") &&
+               !cooldowns.isOnCooldown("post_swing") &&
+               !isBlocking;
     }
 
     public boolean isBlocking() {
