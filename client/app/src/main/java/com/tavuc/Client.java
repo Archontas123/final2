@@ -24,6 +24,7 @@ import com.tavuc.networking.models.EntityRemovedBroadcast;
 import com.tavuc.networking.models.ErrorMessage;
 import com.tavuc.networking.models.FireRequest;
 import com.tavuc.networking.models.PlayerAttackRequest;
+import com.tavuc.networking.models.PlayerShootRequest;
 import com.tavuc.networking.models.GetPlayersRequest;
 import com.tavuc.networking.models.GetPlayersResponse;
 import com.tavuc.networking.models.JoinGameRequest;
@@ -471,6 +472,18 @@ public class Client {
         out.println(gson.toJson(req));
     }
 
+    /**
+     * Sends a player shoot request to the server.
+     */
+    public static void sendPlayerShoot(int playerId, double x, double y, double direction) {
+        if (out == null) {
+            System.err.println("Client not connected, cannot send shoot request.");
+            return;
+        }
+        PlayerShootRequest req = new PlayerShootRequest(String.valueOf(playerId), x, y, direction);
+        out.println(gson.toJson(req));
+    }
+
 
 
     /**
@@ -644,21 +657,27 @@ public class Client {
                                 }
                                 break;
                             case "PROJECTILE_SPAWNED_BROADCAST":
+                                ProjectileSpawnedBroadcast spawnEvent = gson.fromJson(processedJson, ProjectileSpawnedBroadcast.class);
                                 if (currentSpacePanel != null) {
-                                    ProjectileSpawnedBroadcast event = gson.fromJson(processedJson, ProjectileSpawnedBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileSpawned(event));
+                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileSpawned(spawnEvent));
+                                } else if (currentGamePanel != null) {
+                                    SwingUtilities.invokeLater(() -> currentGamePanel.handleProjectileSpawned(spawnEvent));
                                 }
                                 break;
                             case "PROJECTILE_UPDATE_BROADCAST":
+                                ProjectileUpdateBroadcast upEvent = gson.fromJson(processedJson, ProjectileUpdateBroadcast.class);
                                 if (currentSpacePanel != null) {
-                                    ProjectileUpdateBroadcast event = gson.fromJson(processedJson, ProjectileUpdateBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileUpdate(event));
+                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileUpdate(upEvent));
+                                } else if (currentGamePanel != null) {
+                                    SwingUtilities.invokeLater(() -> currentGamePanel.handleProjectileUpdate(upEvent));
                                 }
                                 break;
                             case "PROJECTILE_REMOVED_BROADCAST":
+                                ProjectileRemovedBroadcast rmEvent = gson.fromJson(processedJson, ProjectileRemovedBroadcast.class);
                                 if (currentSpacePanel != null) {
-                                    ProjectileRemovedBroadcast event = gson.fromJson(processedJson, ProjectileRemovedBroadcast.class);
-                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileRemoved(event));
+                                    SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileRemoved(rmEvent));
+                                } else if (currentGamePanel != null) {
+                                    SwingUtilities.invokeLater(() -> currentGamePanel.handleProjectileRemoved(rmEvent));
                                 }
                                 break;
                             case "REQUEST_CHUNK_RESPONSE":

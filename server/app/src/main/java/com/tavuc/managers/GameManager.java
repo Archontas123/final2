@@ -21,7 +21,11 @@ import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.networking.models.PlayerKilledBroadcast;
+import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
+import com.tavuc.networking.models.ProjectileUpdateBroadcast;
+import com.tavuc.networking.models.ProjectileRemovedBroadcast;
 import com.tavuc.models.space.BaseShip;   // Added import
+import com.tavuc.models.space.ProjectileEntity;
 
 
 public class GameManager {
@@ -42,6 +46,16 @@ public class GameManager {
     private static final double PLAYER_START_HEALTH = 6.0; // Changed from 3.0 to 6.0
     // Cooldown between melee attacks (ms)
     private static final long PLAYER_ATTACK_COOLDOWN_MS = 300;
+
+    // --- Gun mechanics ---
+    private static final float BULLET_SPEED = 120.0f;
+    private static final float BULLET_DAMAGE = 0.5f;
+    private static final int BULLET_WIDTH = 6;
+    private static final int BULLET_HEIGHT = 6;
+    private static final long PLAYER_SHOOT_COOLDOWN_MS = 300;
+
+    private final Map<String, ProjectileEntity> groundProjectiles = new ConcurrentHashMap<>();
+    private final ConcurrentMap<Integer, Long> lastShootTimes = new ConcurrentHashMap<>();
 
     /**
      * Initializes the GameService with a game ID, planet, and maximum number of players.
@@ -195,8 +209,15 @@ public class GameManager {
             System.out.println("GameService " + gameId + ": Attack out of range");
             return;
         }
+        double angle = Math.atan2(dy, dx);
+        int dashX = (int)(target.getX() - Math.cos(angle) * 10);
+        int dashY = (int)(target.getY() - Math.sin(angle) * 10);
+        attacker.setPosition(dashX, dashY);
+        PlayerMovedBroadcast dashMsg = new PlayerMovedBroadcast(
+                attacker.getIdAsString(), dashX, dashY, attacker.getDx(), attacker.getDy(), attacker.getDirectionAngle());
+        broadcastToGame(dashMsg);
         // Log the attack for debugging
-        System.out.println("GameService " + gameId + ": Player " + attackerId + " attacks " + targetId + 
+        System.out.println("GameService " + gameId + ": Player " + attackerId + " attacks " + targetId +
                           " for " + PLAYER_ATTACK_DAMAGE + " damage. Target health before: " + target.getHealth());
 
         target.takeDamage(PLAYER_ATTACK_DAMAGE);
@@ -220,6 +241,45 @@ public class GameManager {
             // position updates and the player disappears from the planet.
             removePlayer(target, playerSessions.get(target));
         }
+    }
+
+    public synchronized void handlePlayerShoot(int shooterId, double x, double y, double directionAngle) {
+        Player shooter = null;
+        for (Player p : playerSessions.keySet()) {
+            if (p.getId() == shooterId) {
+                shooter = p;
+                break;
+            }
+        }
+        if (shooter == null) return;
+
+        long now = System.currentTimeMillis();
+        Long last = lastShootTimes.get(shooterId);
+        if (last != null && now - last < PLAYER_SHOOT_COOLDOWN_MS) {
+            return;
+        }
+        lastShootTimes.put(shooterId, now);
+
+        // Ignore client-provided spawn coordinates and compute from shooter state
+        float orientation = (float) shooter.getDirectionAngle();
+        float spawnX = shooter.getX() + shooter.getWidth() / 2f +
+                       (float) Math.cos(orientation) * shooter.getWidth() / 2f;
+        float spawnY = shooter.getY() + shooter.getHeight() / 2f +
+                       (float) Math.sin(orientation) * shooter.getHeight() / 2f;
+        float vx = (float) (Math.cos(orientation) * BULLET_SPEED);
+        float vy = (float) (Math.sin(orientation) * BULLET_SPEED);
+
+        String projId = "gproj_" + java.util.UUID.randomUUID();
+        ProjectileEntity proj = new ProjectileEntity(
+            projId, spawnX, spawnY, BULLET_WIDTH, BULLET_HEIGHT,
+            orientation, vx, vy, BULLET_DAMAGE, String.valueOf(shooterId));
+        groundProjectiles.put(projId, proj);
+
+        ProjectileSpawnedBroadcast spawnMsg = new ProjectileSpawnedBroadcast(
+            projId, spawnX, spawnY, BULLET_WIDTH, BULLET_HEIGHT,
+            orientation, BULLET_SPEED, vx, vy, BULLET_DAMAGE,
+            String.valueOf(shooterId));
+        broadcastToGame(spawnMsg);
     }
 
 
@@ -355,6 +415,48 @@ public class GameManager {
             // Iterate through and update AI ships
             for (BaseShip aiShip : aiShips.values()) {
                aiShip.update();
+            }
+
+            // --- Update ground projectiles ---
+            List<String> toRemove = new ArrayList<>();
+            for (ProjectileEntity proj : groundProjectiles.values()) {
+                proj.update(1f/60f);
+
+                boolean removed = false;
+                for (Player target : players) {
+                    if (String.valueOf(target.getId()).equals(proj.getOwnerId())) continue;
+                    float dist = (float)Math.hypot(target.getX()+target.getWidth()/2 - proj.getX(),
+                                                 target.getY()+target.getHeight()/2 - proj.getY());
+                    if (dist < 30) {
+                        target.takeDamage(BULLET_DAMAGE);
+                        PlayerDamagedBroadcast dmg = new PlayerDamagedBroadcast(
+                            target.getIdAsString(), BULLET_DAMAGE, target.getHealth());
+                        broadcastToGame(dmg);
+                        if (target.getHealth() <= 0) {
+                            PlayerKilledBroadcast killed = new PlayerKilledBroadcast(target.getIdAsString(), proj.getOwnerId());
+                            broadcastToGame(killed);
+                            removePlayer(target, playerSessions.get(target));
+                        }
+                        removed = true;
+                        break;
+                    }
+                }
+
+                if (proj.getLifetime() > 5f) {
+                    removed = true;
+                }
+
+                if (removed) {
+                    toRemove.add(proj.getId());
+                    ProjectileRemovedBroadcast rm = new ProjectileRemovedBroadcast(proj.getId());
+                    broadcastToGame(rm);
+                } else {
+                    ProjectileUpdateBroadcast up = new ProjectileUpdateBroadcast(proj.getId(), proj.getX(), proj.getY(), proj.getVelocityX(), proj.getVelocityY());
+                    broadcastToGame(up);
+                }
+            }
+            for (String id : toRemove) {
+                groundProjectiles.remove(id);
             }
 
 
