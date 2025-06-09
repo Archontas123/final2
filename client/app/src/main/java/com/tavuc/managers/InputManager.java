@@ -262,23 +262,20 @@ public class InputManager implements KeyListener {
             return;
         }
 
-        double angle = player.getDirection();
-
+        // Ground movement no longer depends on the facing direction. The
+        // directional keys now map directly to world axes: W moves upward,
+        // S moves downward, A strafes left and D strafes right.
         if (upPressed && !downPressed) {
-            vecX += Math.cos(angle);
-            vecY += Math.sin(angle);
+            vecY -= 1;
         }
         if (downPressed && !upPressed) {
-            vecX -= Math.cos(angle);
-            vecY -= Math.sin(angle);
+            vecY += 1;
         }
         if (leftPressed && !rightPressed) {
-            vecX += Math.cos(angle - Math.PI / 2);
-            vecY += Math.sin(angle - Math.PI / 2);
+            vecX -= 1;
         }
         if (rightPressed && !leftPressed) {
-            vecX += Math.cos(angle + Math.PI / 2);
-            vecY += Math.sin(angle + Math.PI / 2);
+            vecX += 1;
         }
 
         boolean moving = vecX != 0 || vecY != 0;
