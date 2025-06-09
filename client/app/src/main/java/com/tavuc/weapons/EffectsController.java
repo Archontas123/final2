@@ -28,8 +28,8 @@ public class EffectsController {
                 light = new DynamicLight(x, y, 60f, 0.8f);
             }
             case "slam_effect" -> {
-                p = new ForceEffectParticle(x, y, new java.awt.Color(255, 80, 80));
-                light = new DynamicLight(x, y, 60f, 0.8f);
+                p = new ForceEffectParticle(x, y, new java.awt.Color(255, 80, 80), 20);
+                light = new DynamicLight(x, y, 80f, 0.8f);
             }
             case "push_effect" -> {
                 p = new ForceEffectParticle(x, y, new java.awt.Color(80, 255, 80));

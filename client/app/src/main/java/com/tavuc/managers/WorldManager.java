@@ -8,10 +8,11 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.google.gson.Gson;
-import com.tavuc.models.entities.Player; // Added import
+import com.tavuc.models.entities.Player;
 import com.tavuc.Client;
-import com.tavuc.networking.models.PlayerJoinedBroadcast; // Added import
-import com.tavuc.networking.models.PlayerMovedBroadcast; // Added import
+import com.tavuc.networking.models.PlayerJoinedBroadcast;
+import com.tavuc.networking.models.PlayerMovedBroadcast;
+import com.tavuc.networking.models.PlayerImpulseBroadcast;
 import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
 import com.tavuc.networking.models.CoinDropRemovedBroadcast;
 import com.tavuc.networking.models.EnemySpawnedBroadcast;
@@ -164,6 +165,27 @@ public class WorldManager {
         } catch (NumberFormatException e) {
             System.err.println("WorldManager: Error parsing playerId for updatePlayer: " + event.playerId);
         }
+    }
+
+    public void applyImpulse(PlayerImpulseBroadcast event) {
+        try {
+            int pid = Integer.parseInt(event.playerId);
+            Player target;
+            if (pid == Client.getInstance().getPlayerId()) {
+                target = Client.currentGamePanel != null ? Client.currentGamePanel.getPlayer() : null;
+            } else {
+                target = otherPlayers.get(pid);
+            }
+            if (target != null) {
+                target.setDx(event.dx);
+                target.setDy(event.dy);
+                target.getMovementController().getVelocity().set(event.dx, event.dy);
+                if (event.freeze > 0) {
+                    target.freeze(event.freeze);
+                }
+                if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
+            }
+        } catch (NumberFormatException ignore) {}
     }
 
     public void removePlayer(String playerId) {

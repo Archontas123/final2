@@ -37,6 +37,7 @@ import com.tavuc.networking.models.LoginResponse;
 import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
+import com.tavuc.networking.models.PlayerImpulseBroadcast;
 import com.tavuc.networking.models.PlayerUpdateRequest;
 import com.tavuc.networking.models.PlayerInitialData;
 import com.tavuc.networking.models.PlayerKilledBroadcast;
@@ -638,6 +639,12 @@ public class Client {
                                 if (currentSpacePanel != null) {
                                     ShipDestroyedBroadcast destroyedEvent = gson.fromJson(processedJson, ShipDestroyedBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.handleShipDestroyed(destroyedEvent));
+                                }
+                                break;
+                            case "PLAYER_IMPULSE_BROADCAST":
+                                if (worldManager != null) {
+                                    PlayerImpulseBroadcast impEvent = gson.fromJson(processedJson, PlayerImpulseBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.applyImpulse(impEvent));
                                 }
                                 break;
                             case "PLAYER_DAMAGED_BROADCAST":
