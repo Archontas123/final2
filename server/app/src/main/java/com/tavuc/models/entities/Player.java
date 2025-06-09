@@ -35,11 +35,13 @@ public class Player extends Entity {
         super(id, username.trim(), 0, 0, 6.0, 80, 80);
         this.username = username.trim();
         this.password = password;
-        this.directionAngle = 0.0; 
+        this.directionAngle = 0.0;
         this.lastSpaceX = 0.0; // Default to 0,0 or a system entry point
         this.lastSpaceY = 0.0;
         this.lastSpaceAngle = 0.0;
         this.coins = 0;
+        // Expand melee/force ability radius
+        this.attackRange *= 4;
     }
 
     /** 

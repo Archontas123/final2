@@ -8,13 +8,19 @@ import java.awt.geom.Ellipse2D;
 public class ForceEffectParticle extends Particle {
     private double size = 10;
     private float alpha = 1f;
+    private final Color color;
 
     public ForceEffectParticle(double x, double y) {
+        this(x, y, new Color(100, 140, 255));
+    }
+
+    public ForceEffectParticle(double x, double y, Color color) {
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
         this.life = 0.5;
+        this.color = color;
     }
 
     @Override
@@ -27,7 +33,7 @@ public class ForceEffectParticle extends Particle {
 
     @Override
     public void draw(Graphics2D g2d, double offsetX, double offsetY) {
-        g2d.setColor(new Color(100, 140, 255, (int) (alpha * 150)));
+        g2d.setColor(new Color(color.getRed(), color.getGreen(), color.getBlue(), (int) (alpha * 150)));
         g2d.draw(new Ellipse2D.Double(x - offsetX - size / 2, y - offsetY - size / 2, size, size));
     }
 }

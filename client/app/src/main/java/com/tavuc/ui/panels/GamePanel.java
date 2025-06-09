@@ -103,6 +103,8 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         this.username = username;
         this.gameId = gameId;
         this.player = new Player(playerId, username);
+        // Increase melee/force ability range
+        this.player.setAttackRange(this.player.getAttackRange() * 4);
         this.inputManager = InputManager.getInstance();
         this.inputManager.setPlayerTarget(this.player);
         this.inputManager.setControlTarget(InputManager.ControlTargetType.PLAYER);

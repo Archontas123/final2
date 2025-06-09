@@ -41,6 +41,10 @@ public class BasicMech extends Mech implements TargetHolder {
 
     @Override
     public void update() {
+        updateFreezeTimer();
+        if (isFrozen()) {
+            return;
+        }
         if (target == null || !target.isAlive()) {
             target = targeting.acquireTarget();
         }
