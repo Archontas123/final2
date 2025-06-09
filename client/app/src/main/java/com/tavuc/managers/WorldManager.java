@@ -19,35 +19,76 @@ import com.tavuc.models.planets.Tile;
 import com.tavuc.networking.models.RequestChunkResponse;
 import com.tavuc.networking.models.TileData;
 
+/**
+ * Manages the state of a single game world (e.g., a planet's surface) on the client side.
+ */
 public class WorldManager {
     
+    /**
+     * A map storing the loaded chunks of the world, keyed by their chunk coordinates.
+     */
     private Map<Point, Chunk> chunks;
+    /**
+     * The color palette used for rendering the tiles in this world.
+     */
     private ColorPallete palette;
+    /**
+     * The unique identifier for the game world this manager is responsible for.
+     */
     private int gameId; 
+    /**
+     * The size of a single tile in pixels.
+     */
     public static final int TILE_SIZE = 32; 
+    /**
+     * The radius of chunks to load around the player's current chunk.
+     */
     private static final int chunkLoadRadius = 2; 
+    /**
+     * A shared Gson instance for JSON operations.
+     */
     private static final Gson gson = new Gson();
+    /**
+     * A map storing other players currently in the world, keyed by their player ID.
+     */
     private final Map<Integer, Player> otherPlayers = new ConcurrentHashMap<>(); // Added for other players
 
+    /**
+     * Constructs a new WorldManager for a specific game world.
+     * @param gameId The unique identifier of the world to be managed.
+     */
     public WorldManager(int gameId) {
         this.gameId = gameId;
         this.chunks = new ConcurrentHashMap<>();
     }
 
 
+    /**
+     * Gets a list of all other players currently in this world.
+     * @return A new list containing all {@link Player} objects for other players.
+     */
     public List<Player> getOtherPlayers() {
         return new ArrayList<>(otherPlayers.values());
     }
 
+    /**
+     * Retrieves a specific other player by their unique ID.
+     * @param id The ID of the player to retrieve.
+     * @return The {@link Player} object for the given ID, or {@code null} if not found.
+     */
     public Player getOtherPlayer(int id) {
         return otherPlayers.get(id);
     }
 
+    /**
+     * Adds a new player to the world based on a broadcast event from the server.
+     * @param event The {@link PlayerJoinedBroadcast} event containing the new player's data.
+     */
     public void addPlayer(PlayerJoinedBroadcast event) {
         System.out.println("WorldManager.addPlayer: Received event for player ID: " + event.playerId + ", username: " + event.username + ". Current client player ID: " + Client.getInstance().getPlayerId());
         if (event.playerId.equals(String.valueOf(Client.getInstance().getPlayerId()))) {
             System.out.println("WorldManager.addPlayer: Skipping addPlayer for self (ID: " + event.playerId + ")");
-            return; // Don't add self
+            return; 
         }
         try {
             int pId = Integer.parseInt(event.playerId);
@@ -66,9 +107,14 @@ public class WorldManager {
         }
     }
 
+    /**
+     * Updates the state (position, velocity, direction) of an existing player in the world
+     * based on a broadcast event from the server.
+     * @param event The {@link PlayerMovedBroadcast} event containing the updated player data.
+     */
     public void updatePlayer(PlayerMovedBroadcast event) {
         if (event.playerId.equals(String.valueOf(Client.getInstance().getPlayerId()))) {
-            return; // Don't update self from broadcast
+            return; 
         }
         try {
             int pId = Integer.parseInt(event.playerId);
@@ -79,7 +125,6 @@ public class WorldManager {
                 player.setDx(event.dx);
                 player.setDy(event.dy);
                 player.setDirection(event.directionAngle);
-                // player.update(); // Let GamePanel's loop call update if needed, or call here if direct update is desired
                 if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
             }
         } catch (NumberFormatException e) {
@@ -87,41 +132,73 @@ public class WorldManager {
         }
     }
 
+    /**
+     * Removes a player from the world, typically when they disconnect or leave the area.
+     * @param playerId The string representation of the ID of the player to remove.
+     */
     public void removePlayer(String playerId) {
-        try {
-            int pId = Integer.parseInt(playerId);
-            if (otherPlayers.remove(pId) != null) {
-                if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
-            }
-        } catch (NumberFormatException e) {
-            System.err.println("WorldManager: Error parsing playerId for removePlayer: " + playerId);
+        int pId = Integer.parseInt(playerId);
+        if (otherPlayers.remove(pId) != null) {
+            if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
         }
+
     }
 
+    /**
+     * Sets the game ID for this world.
+     * @param gameId The unique identifier for the world.
+     */
     public void setGameId(int gameId) {
         this.gameId = gameId;
     }
 
+    /**
+     * Gets the game ID for this world.
+     * @return The unique identifier for the world.
+     */
     public int getGameId() {
         return this.gameId;
     }
 
+    /**
+     * Sets the color palette for this world.
+     * @param palette The {@link ColorPallete} to use for rendering.
+     */
     public void setPallete(ColorPallete palette) {
         this.palette = palette;
     }
 
+    /**
+     * Gets the current color palette for this world.
+     * @return The current {@link ColorPallete}.
+     */
     public ColorPallete getCurrentPalette() {
         return palette;
     }
 
+    /**
+     * Gets the map of all currently loaded chunks.
+     * @return A map of {@link Point} to {@link Chunk}.
+     */
     public Map<Point, Chunk> getChunks() {
         return chunks;
     }
 
+    /**
+     * Retrieves a specific chunk by its chunk coordinates.
+     * @param x The x-coordinate of the chunk.
+     * @param y The y-coordinate of the chunk.
+     * @return The {@link Chunk} at the specified coordinates, or {@code null} if not loaded.
+     */
     public Chunk getChunk(int x, int y) {
         return chunks.get(new Point(x, y));
     }
 
+    /**
+     * Processes chunk data received from the server. It populates a local {@link Chunk}
+     * object with tile data. 
+     * @param response The {@link RequestChunkResponse} from the server containing tile data.
+     */
     public void processChunkData(RequestChunkResponse response) {
         if (response == null) {
             System.err.println("WorldManager: Received null RequestChunkResponse.");
@@ -133,17 +210,13 @@ public class WorldManager {
         Chunk chunk = chunks.computeIfAbsent(new Point(chunkX, chunkY), k -> new Chunk(chunkX, chunkY));
 
         if (response.tiles == null) {
-            // Offline mode or empty chunk from server: Procedurally generate the chunk
-            System.out.println("WorldManager: No tile data for chunk " + chunkX + "," + chunkY + ". Generating procedurally.");
             for (int x = 0; x < Chunk.CHUNK_SIZE; x++) {
                 for (int y = 0; y < Chunk.CHUNK_SIZE; y++) {
                     int globalX = chunkX * Chunk.CHUNK_SIZE + x;
                     int globalY = chunkY * Chunk.CHUNK_SIZE + y;
-                    // Simple procedural generation: alternate between two tile types
                     String tileType = (x + y) % 2 == 0 ? "GRASS" : "DIRT";
                     ColorType colorType = (x + y) % 2 == 0 ? ColorType.PRIMARY_SURFACE : ColorType.SECONDARY_SURFACE;
-                    if (Math.random() < 0.1) { // Add some water
-                        tileType = "WATER";
+                    if (Math.random() < 0.1) { 
                         colorType = ColorType.PRIMARY_LIQUID;
                     }
                     Tile clientTile = new Tile(globalX, globalY, tileType, colorType);
@@ -151,7 +224,6 @@ public class WorldManager {
                 }
             }
         } else {
-            // Process tiles from server response
             try {
                 for (TileData tileData : response.tiles) {
                     try {
@@ -166,19 +238,24 @@ public class WorldManager {
                         chunk.setTile(localX, localY, clientTile);
 
                     } catch (IllegalArgumentException e) {
-                        // System.err.println("WorldManager: Error parsing ColorType from TileData: " + tileData.colorTypeName + " - " + e.getMessage());
                     } catch (Exception e) {
-                        // System.err.println("WorldManager: Error processing individual tile data: " + gson.toJson(tileData) + " - " + e.getMessage());
                     }
                 }
             } catch (Exception e) {
-                // System.err.println("WorldManager: Error processing chunk data response: " + gson.toJson(response) + " - " + e.getMessage());
-                // e.printStackTrace();
+
             }
         }
         if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
     }
 
+    /**
+     * Determines which chunks should be visible based on the player's position and
+     * requests data for any missing chunks from the server.
+     * @param playerX The player's world x-coordinate in pixels.
+     * @param playerY The player's world y-coordinate in pixels.
+     * @param viewWidth The width of the viewport in pixels.
+     * @param viewHeight The height of the viewport in pixels.
+     */
     public void updateVisibleChunks(int playerX, int playerY, int viewWidth, int viewHeight) {
         int playerChunkX = playerX / (Chunk.CHUNK_SIZE * TILE_SIZE);
         int playerChunkY = playerY / (Chunk.CHUNK_SIZE * TILE_SIZE);
@@ -190,18 +267,26 @@ public class WorldManager {
                     try {
                         Client.requestChunkData(this.gameId, cx, cy);
                     } catch (Exception e) {
-                        // System.err.println("WorldManager: Error requesting chunk " + cx + "," + cy + ": " + e.getMessage());
                     }
                 }
             }
         }
     }
 
+    /**
+     * Clears all loaded chunks and other player data from the manager. 
+     */
     public void clearChunks() {
         chunks.clear();
         otherPlayers.clear();
     }
 
+    /**
+     * Retrieves the tile at a specific world pixel coordinate.
+     * @param worldX The absolute x-coordinate in the world (in pixels).
+     * @param worldY The absolute y-coordinate in the world (in pixels).
+     * @return The {@link Tile} at that location, or {@code null} if the chunk is not loaded.
+     */
     public Tile getTileAt(int worldX, int worldY) {
         int chunkX = Math.floorDiv(worldX, Chunk.CHUNK_SIZE * TILE_SIZE);
         int chunkY = Math.floorDiv(worldY, Chunk.CHUNK_SIZE * TILE_SIZE);

@@ -16,40 +16,61 @@ import java.awt.BasicStroke;
 import com.tavuc.ecs.ComponentContainer;
 import com.tavuc.ecs.components.*;
 
+/**
+ * Represents a player-controlled ship in the space enviormenet.
+ */
 public class Ship {
 
+    /** An array of images for rendering the ship with different levels of engine boost. */
     private BufferedImage[] shipImages;
+    /** The number of different boost animation frames/levels. */
     private static final int NUM_BOOST_LEVELS = 5;
 
+    /** The ship's world coordinates. */
     private double x, y;
+    /** The ship's velocity components. */
     private double dx, dy;
+    /** The dimensions of the ship's sprite. */
     private int width, height;
+    /** The ship's current rotation in radians. */
     private double angle;
+    /** The mass of the ship, used in physics calculations. */
     private double mass;
 
+    /** The current rotational input (-1 for left, 0 for none, 1 for right). */
     private double rotationInput;
+    /** A flag indicating if the main engine is currently active. */
     private boolean thrusting;
     
+    /** A container for this ship's components (e.g., HealthComponent, ShieldComponent). */
     private ComponentContainer components;
+    /** A simple rectangular boundary for collision detection. */
     private Rectangle collisionBounds;
+    /** A flag indicating if the ship has been destroyed. */
     private boolean destroyed = false;
 
-    // Ship movement physics constants
+    /** The rate of rotation in radians per update cycle. */
     private static final double ROTATION_AMOUNT = Math.toRadians(5.0);
+    /** The force applied by the main thruster. */
     private static final double THRUST_FORCE = 15.0;
+    /** The maximum speed the ship can reach. */
     private static final double MAX_SPEED = 30.0;
+    /** The factor by which velocity is reduced each frame when not thrusting (space friction). */
     private static final double DAMPING_FACTOR = 0.985;
+    /** A factor that helps the ship's velocity align with its orientation while turning. */
     private static final double STEERING_ASSIST_FACTOR = 0.08;
     
-    // Shield visual effect
+    /** The current visual intensity of the shield bubble. */
     private float shieldVisualStrength = 0.0f;
+    /** The current intensity of the "flash" effect when the shield is hit. */
     private float shieldHitEffect = 0.0f;
+    /** The system time when the ship last took damage, used for shield recharge logic. */
     private long lastDamageTime = 0;
 
     /**
-     * Constructor for Ship
-     * @param centerX The starting center x position of the ship
-     * @param centerY The starting center y position of the ship
+     * Constructs a new Ship at a specified starting position.
+     * @param centerX The starting x-coordinate for the center of the ship.
+     * @param centerY The starting y-coordinate for the center of the ship.
      */
     public Ship(double centerX, double centerY) {
         this.x = centerX;
@@ -65,58 +86,82 @@ public class Ship {
         this.components = new ComponentContainer();
         this.collisionBounds = new Rectangle((int)x, (int)y, width, height);
         
-        // Initialize default components
         components.addComponent(new HealthComponent(100f));
-        components.addComponent(new ShieldComponent(100f, 10f, 3f)); // 10 shield/sec after 3 sec delay
+        components.addComponent(new ShieldComponent(100f, 10f, 3f)); 
         
         loadImages();
     }
     
+    /**
+     * Gets the component container for this ship.
+     * @return The {@link ComponentContainer} holding this ship's components.
+     */
     public ComponentContainer getComponents() {
         return components;
     }
     
-    // Convenience methods for health and shield
+    /**
+     * A convenience method to get the ship's current health.
+     * @return The current health, or 0 if the HealthComponent is missing.
+     */
     public float getHealth() {
         HealthComponent health = components.getComponent(HealthComponent.class);
         return health != null ? health.getHealth() : 0f;
     }
     
+    /**
+     * A convenience method to get the ship's current health as a percentage.
+     * @return The current health percentage, or 0 if the HealthComponent is missing.
+     */
     public float getHealthPercentage() {
         HealthComponent health = components.getComponent(HealthComponent.class);
         return health != null ? health.getHealthPercentage() : 0f;
     }
     
+    /**
+     * A convenience method to get the ship's current shield strength.
+     * @return The current shield strength, or 0 if the ShieldComponent is missing.
+     */
     public float getShield() {
         ShieldComponent shield = components.getComponent(ShieldComponent.class);
         return shield != null ? shield.getShield() : 0f;
     }
     
+    /**
+     * A convenience method to get the ship's current shield strength as a percentage.
+     * @return The current shield percentage, or 0 if the ShieldComponent is missing.
+     */
     public float getShieldPercentage() {
         ShieldComponent shield = components.getComponent(ShieldComponent.class);
         return shield != null ? shield.getShieldPercentage() : 0f;
     }
     
+    /**
+     * Checks if the ship is destroyed.
+     * @return {@code true} if the ship is marked as destroyed or its health is zero or less.
+     */
     public boolean isDestroyed() {
         return destroyed || getHealth() <= 0;
     }
     
+    /**
+     * Sets the destroyed state of the ship.
+     * @param destroyed {@code true} to mark the ship as destroyed, {@code false} otherwise.
+     */
     public void setDestroyed(boolean destroyed) {
         this.destroyed = destroyed;
     }
 
     /**
-     * Applies damage to the ship, considering shields first.
-     * @param amount Amount of damage to apply
+     * Applies a specified amount of damage to the ship.
+     * @param amount The amount of damage to apply.
      */
     public void takeDamage(double amount) {
         ShieldComponent shield = components.getComponent(ShieldComponent.class);
         HealthComponent health = components.getComponent(HealthComponent.class);
 
-        // Record the damage time for shield recharge delay
         lastDamageTime = System.currentTimeMillis();
 
-        // Visual effect for shield hit
         shieldHitEffect = 1.0f;
 
         if (shield != null && shield.hasShield()) {
@@ -128,7 +173,6 @@ public class Ship {
         if (amount > 0 && health != null) {
             health.takeDamage((float) amount);
 
-            // Check if ship is destroyed
             if (health.getHealth() <= 0) {
                 setDestroyed(true);
             }
@@ -136,8 +180,7 @@ public class Ship {
     }
 
     /**
-     * Triggers the visual hit effect without modifying health.
-     * Useful when the server informs the client of damage dealt.
+     * Triggers the visual hit effect on the shield without modifying health or shield values.
      */
     public void triggerHitEffect() {
         lastDamageTime = System.currentTimeMillis();
@@ -145,11 +188,9 @@ public class Ship {
     }
 
     /**
-     * Updates the ship's health based on server damage broadcast.
-     * This ensures health values are consistent across all clients.
-     * 
-     * @param currentHealth The current health value from server
-     * @param maxHealth The maximum health value from server
+     * Updates the ship's health and max health from server data to ensure consistency.
+     * @param currentHealth The authoritative current health value from the server.
+     * @param maxHealth The authoritative maximum health value from the server.
      */
     public void updateHealthFromServer(float currentHealth, float maxHealth) {
         HealthComponent health = components.getComponent(HealthComponent.class);
@@ -158,53 +199,86 @@ public class Ship {
             health.setCurrentHealth(currentHealth);
         }
         
-        // Set destroyed state if health is zero
         if (currentHealth <= 0) {
             setDestroyed(true);
         }
     }
     /**
-     * Updates the ship.
-     * @param deltaTime Time passed since the last update in seconds
+     * Updates the ship's state for a single frame.
+     * @param deltaTime The time elapsed since the last update, in seconds.
      */
     public void update(double deltaTime) {
         updatePosition();
     }
 
+    /**
+     * Sets the ship's x-coordinate.
+     * @param x The new x-coordinate.
+     */
     public void setX(double x) {
         this.x = x;
         updateCollisionBounds();
     }
 
+    /**
+     * Sets the ship's y-coordinate.
+     * @param y The new y-coordinate.
+     */
     public void setY(double y) {
         this.y = y;
         updateCollisionBounds();
     }
     
+    /**
+     * A private helper method to update the position of the collision bounds rectangle.
+     */
     private void updateCollisionBounds() {
         this.collisionBounds.setLocation((int)x, (int)y);
     }
 
+    /**
+     * Sets the ship's angle of rotation.
+     * @param angle The new angle in radians.
+     */
     public void setAngle(double angle) {
         this.angle = angle;
     }
 
+    /**
+     * Sets the ship's velocity on the x-axis.
+     * @param dx The new x-velocity.
+     */
     public void setDx(double dx) {
         this.dx = dx;
     }
 
+    /**
+     * Sets the ship's velocity on the y-axis.
+     * @param dy The new y-velocity.
+     */
     public void setDy(double dy) {
         this.dy = dy;
     }
 
+    /**
+     * Checks if the ship's thrusters are active.
+     * @return {@code true} if thrusting, {@code false} otherwise.
+     */
     public boolean isThrusting() {
         return thrusting;
     }
     
+    /**
+     * Gets the collision bounds of the ship.
+     * @return A {@link Rectangle} representing the ship's collision area.
+     */
     public Rectangle getCollisionBounds() {
         return collisionBounds;
     }
 
+    /**
+     * A private helper method to load the ship's sprite images from resources.
+     */
     private void loadImages() {
         shipImages = new BufferedImage[NUM_BOOST_LEVELS + 1];
         String basePath = "assets/ship/exterior/";
@@ -239,31 +313,31 @@ public class Ship {
 
     /**
      * Sets the rotation input for the ship.
-     * @param rotationInput -1 for left, 0 for no rotation, 1 for right.
+     * @param rotationInput A value of -1 for left, 0 for no rotation, or 1 for right.
      */
     public void setRotationInput(double rotationInput) {
         this.rotationInput = rotationInput;
     }
 
     /**
-     * Sets whether the ship is thrusting.
-     * @param thrusting true if thrusting, false otherwise.
+     * Sets whether the ship's main thruster is active.
+     * @param thrusting {@code true} if thrusting, {@code false} otherwise.
      */
     public void setThrusting(boolean thrusting) {
         this.thrusting = thrusting;
     }
 
     /**
-     * Gets the x position of the ship's center.
-     * @return the x position
+     * Gets the x-coordinate of the ship's center.
+     * @return The x-coordinate.
      */
     public double getX() {
         return x;
     }
 
     /**
-     * Gets the y position of the ship's center.
-     * @return the y position
+     * Gets the y-coordinate of the ship's center.
+     * @return The y-coordinate.
      */
     public double getY() {
         return y;
@@ -271,7 +345,7 @@ public class Ship {
     
     /**
      * Gets the width of the ship.
-     * @return the width
+     * @return The width.
      */
     public int getWidth() {
         return width;
@@ -279,7 +353,7 @@ public class Ship {
     
     /**
      * Gets the height of the ship.
-     * @return the height
+     * @return The height.
      */
     public int getHeight() {
         return height;
@@ -287,34 +361,35 @@ public class Ship {
 
     /**
      * Gets the current angle of the ship.
-     * @return the angle in radians
+     * @return The angle in radians.
      */
     public double getAngle() {
         return angle;
     }
 
     /**
-     * Gets the dx of the ship.
-     * @return dx
+     * Gets the current velocity of the ship on the x-axis.
+     * @return The dx value.
      */
     public double getDx() {
         return dx;
     }
 
     /**
-     * Gets the dy of the ship.
-     * @return dy
+     * Gets the current velocity of the ship on the y-axis.
+     * @return The dy value.
      */
     public double getDy() {
         return dy;
     }
 
     /**
-     * Updates the position and orientation of the ship.
+     * Updates the position and orientation of the ship based on its current
+     * velocity, rotation input, and physics properties.
      */
     public void updatePosition() {
         if (isDestroyed()) {
-            return; // Don't update destroyed ships
+            return; 
         }
         
         this.angle += this.rotationInput * ROTATION_AMOUNT;
@@ -333,7 +408,6 @@ public class Ship {
             this.dy *= DAMPING_FACTOR;
         }
 
-        // Apply steering assist when turning to make the ship more maneuverable
         if (this.rotationInput != 0 && (this.dx != 0 || this.dy != 0)) {
             double currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
             if (currentSpeed > 0.01) { 
@@ -345,14 +419,12 @@ public class Ship {
             }
         }
         
-        // Cap maximum speed
         double currentSpeed = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
         if (currentSpeed > MAX_SPEED) {
             this.dx = (this.dx / currentSpeed) * MAX_SPEED;
             this.dy = (this.dy / currentSpeed) * MAX_SPEED;
         }
 
-        // Stop very slow movement when not thrusting
         if (currentSpeed < 0.01 && !this.thrusting) { 
             this.dx = 0;
             this.dy = 0;
@@ -364,13 +436,12 @@ public class Ship {
     }
 
     /**
-     * Draws the ship on the given graphics context.
-     * The ship is drawn using one of several sprites based on its speed.
-     * @param g the Graphics context to draw on
+     * Renders the ship on the given graphics context. 
+     * @param g The Graphics context to draw on.
      */
     public void draw(Graphics g) {
         if (isDestroyed()) {
-            return; // Don't draw destroyed ships
+            return; 
         }
         
         Graphics2D g2d = (Graphics2D) g.create();
@@ -418,14 +489,14 @@ public class Ship {
             g2d.fillRect(-width / 2, -height / 2, width, height);
         }
         
-        // Draw shields if active
         drawShieldEffect(g2d);
         
         g2d.dispose();
     }
     
     /**
-     * Draws the shield effect around the ship.
+     * A private helper method to draw the visual effect for the ship's shield.
+     * @param g2d The Graphics2D context to draw on.
      */
     private void drawShieldEffect(Graphics2D g2d) {
         ShieldComponent shield = components.getComponent(ShieldComponent.class);
@@ -433,35 +504,25 @@ public class Ship {
         
         float shieldPercent = shield.getShieldPercentage() / 100f;
         
-        // Only show shield if it has power or recently hit
         if (shieldPercent > 0 || shieldHitEffect > 0) {
-            // Calculate shield visual strength
             if (shieldPercent > 0) {
-                // Gradually increase shield visibility when active
                 shieldVisualStrength = Math.min(1.0f, shieldVisualStrength + 0.05f);
             } else {
-                // Gradually fade shield when depleted
                 shieldVisualStrength = Math.max(0.0f, shieldVisualStrength - 0.1f);
             }
             
-            // Fade out shield hit effect
             shieldHitEffect = Math.max(0.0f, shieldHitEffect - 0.05f);
             
-            // Shield size slightly larger than ship
             int shieldSize = (int)(Math.max(width, height) * 1.2);
             
-            // Base shield color (blue with alpha based on shield strength)
             Color baseShieldColor = new Color(0.2f, 0.6f, 1.0f, 
                     0.2f * shieldVisualStrength + 0.6f * shieldHitEffect);
             
-            // Draw outer glow
             g2d.setComposite(AlphaComposite.SrcOver);
             
-            // Outer shield
             g2d.setColor(baseShieldColor);
             g2d.fillOval(-shieldSize/2, -shieldSize/2, shieldSize, shieldSize);
             
-            // Inner shield highlight
             Color innerShieldColor = new Color(0.6f, 0.8f, 1.0f, 
                     0.15f * shieldVisualStrength + 0.4f * shieldHitEffect);
             g2d.setColor(innerShieldColor);
