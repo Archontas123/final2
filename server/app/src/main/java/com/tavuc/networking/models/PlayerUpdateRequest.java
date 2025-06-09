@@ -11,9 +11,15 @@ public class PlayerUpdateRequest extends BaseMessage {
     public double dy;
     public double directionAngle;
 
+    /**
+     * Constructs a new PlayerUpdateRequest.
+     */
     public PlayerUpdateRequest() {
     }
 
+    /**
+     * Constructs a new PlayerUpdateRequest.
+     */
     public PlayerUpdateRequest(String playerId, double x, double y, double dx, double dy, double directionAngle) {
         this.type = "PLAYER_UPDATE_REQUEST";
         this.playerId = playerId;

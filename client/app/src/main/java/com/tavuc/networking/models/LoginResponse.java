@@ -9,9 +9,15 @@ public class LoginResponse extends BaseMessage {
     public String playerId;
     public String username;
 
+    /**
+     * Constructs a new LoginResponse.
+     */
     public LoginResponse() {
     }
 
+    /**
+     * Constructs a new LoginResponse.
+     */
     public LoginResponse(boolean success, String message, String playerId, String username) {
         this.type = "LOGIN_RESPONSE";
         this.success = success;

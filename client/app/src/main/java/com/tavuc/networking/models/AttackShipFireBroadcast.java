@@ -11,6 +11,9 @@ public class AttackShipFireBroadcast extends BaseMessage {
     public int toX;
     public int toY;
 
+    /**
+     * Constructs a new AttackShipFireBroadcast.
+     */
     public AttackShipFireBroadcast() {
         super();
     }

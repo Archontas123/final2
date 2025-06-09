@@ -10,5 +10,8 @@ public class ProjectileUpdateBroadcast extends BaseMessage {
     public float velocityX;
     public float velocityY;
 
+    /**
+     * Constructs a new ProjectileUpdateBroadcast.
+     */
     public ProjectileUpdateBroadcast() {}
 }

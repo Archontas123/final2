@@ -18,6 +18,9 @@ public class AttackShipUpdateBroadcast extends BaseMessage {
     public float attackPointY;
     public String targetPlayerId;
 
+    /**
+     * Constructs a new AttackShipUpdateBroadcast.
+     */
     public AttackShipUpdateBroadcast() {
         super();
     }

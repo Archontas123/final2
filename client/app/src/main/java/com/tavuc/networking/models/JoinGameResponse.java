@@ -12,9 +12,15 @@ public class JoinGameResponse extends BaseMessage {
     public String planetName;
     public List<PlayerInitialData> playersInGame;
 
+    /**
+     * Constructs a new JoinGameResponse.
+     */
     public JoinGameResponse() {
     }
 
+    /**
+     * Constructs a new JoinGameResponse.
+     */
     public JoinGameResponse(boolean success, String message, String gameId, String planetName, List<PlayerInitialData> playersInGame) {
         this.type = "JOIN_GAME_RESPONSE";
         this.success = success;

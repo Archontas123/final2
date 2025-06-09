@@ -4,6 +4,9 @@ package com.tavuc.networking.models;
  */
 
 public class ListGamesRequest extends BaseMessage {
+    /**
+     * Constructs a new ListGamesRequest.
+     */
     public ListGamesRequest() {
         this.type = "LIST_GAMES_REQUEST";
     }
