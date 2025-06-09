@@ -149,6 +149,9 @@ public class ClientSession implements Runnable {
                 case "PLAYER_ATTACK_REQUEST":
                     handlePlayerAttackRequest(jsonMessage);
                     break;
+                case "PLAYER_SHOOT_REQUEST":
+                    handlePlayerShootRequest(jsonMessage);
+                    break;
                 case "FIRE_REQUEST":
                     handleFireRequest(jsonMessage);
                     break;
@@ -350,6 +353,19 @@ public class ClientSession implements Runnable {
         } catch (NumberFormatException e) {
             sendMessage(gson.toJson(new ErrorMessage("Invalid target ID.")));
         }
+    }
+
+    private void handlePlayerShootRequest(String jsonMessage) {
+        PlayerShootRequest req = gson.fromJson(jsonMessage, PlayerShootRequest.class);
+        if (currentGameService == null) {
+            sendMessage(gson.toJson(new ErrorMessage("Not in a game.")));
+            return;
+        }
+        if (player == null || !String.valueOf(player.getId()).equals(req.playerId)) {
+            sendMessage(gson.toJson(new ErrorMessage("Shooter ID mismatch or not authenticated.")));
+            return;
+        }
+        currentGameService.handlePlayerShoot(player.getId(), req.x, req.y, req.directionAngle);
     }
 
 
