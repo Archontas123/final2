@@ -7,6 +7,9 @@ public class EntityRemovedBroadcast extends BaseMessage {
     public String entityId;
     public String entityType;
 
+    /**
+     * Constructs a new EntityRemovedBroadcast.
+     */
     public EntityRemovedBroadcast() {
         super();
     }

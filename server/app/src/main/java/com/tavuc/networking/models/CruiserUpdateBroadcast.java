@@ -16,6 +16,9 @@ public class CruiserUpdateBroadcast extends BaseMessage {
     public float maxShieldHealth;
     public String aiState;
 
+    /**
+     * Constructs a new CruiserUpdateBroadcast.
+     */
     public CruiserUpdateBroadcast(String entityId, int x, int y, float velocityX, float velocityY,
                                   float orientation, float health, float maxHealth,
                                   float shieldHealth, float maxShieldHealth, String aiState) {

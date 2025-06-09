@@ -17,6 +17,9 @@ public class AttackShipUpdateBroadcast extends BaseMessage {
     public float attackPointX;
     public float attackPointY;
 
+    /**
+     * Constructs a new AttackShipUpdateBroadcast.
+     */
     public AttackShipUpdateBroadcast(String entityId, String parentCruiserId, int x, int y,
                                      float velocityX, float velocityY, float orientation,
                                      float health, float maxHealth, String aiState,

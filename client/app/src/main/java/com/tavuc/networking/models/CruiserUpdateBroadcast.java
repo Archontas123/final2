@@ -16,6 +16,9 @@ public class CruiserUpdateBroadcast extends BaseMessage {
     public float maxShieldHealth;
     public String aiState;
 
+    /**
+     * Constructs a new CruiserUpdateBroadcast.
+     */
     public CruiserUpdateBroadcast() {
         super();
     }

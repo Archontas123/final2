@@ -8,10 +8,16 @@ public class PlayerAttackRequest extends BaseMessage {
     public String targetId;
     public double damage;
 
+    /**
+     * Constructs a new PlayerAttackRequest.
+     */
     public PlayerAttackRequest() {
         this.type = "PLAYER_ATTACK_REQUEST";
     }
 
+    /**
+     * Constructs a new PlayerAttackRequest.
+     */
     public PlayerAttackRequest(String attackerId, String targetId, double damage) {
         this();
         this.attackerId = attackerId;

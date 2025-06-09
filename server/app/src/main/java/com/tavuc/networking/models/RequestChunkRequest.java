@@ -8,6 +8,9 @@ public class RequestChunkRequest extends BaseMessage {
     public int chunkX;
     public int chunkY;
 
+    /**
+     * Constructs a new RequestChunkRequest.
+     */
     public RequestChunkRequest(String gameId, int chunkX, int chunkY) {
         this.type = "REQUEST_CHUNK_REQUEST";
         this.gameId = gameId;

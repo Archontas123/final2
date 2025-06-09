@@ -12,12 +12,18 @@ public class FireRequest extends BaseMessage {
     public double shipDx;
     public double shipDy;
 
+    /**
+     * Constructs a new FireRequest.
+     */
     public FireRequest() {
         super();
         this.type = "FIRE_REQUEST";
     }
 
 
+    /**
+     * Constructs a new FireRequest.
+     */
     public FireRequest(String playerId, double shipX, double shipY, double shipAngle, double shipDx, double shipDy) {
         this();
         this.playerId = playerId;

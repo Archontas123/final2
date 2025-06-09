@@ -12,6 +12,9 @@ public class PlayerMovedBroadcast extends BaseMessage {
     public double directionAngle;
 
 
+    /**
+     * Constructs a new PlayerMovedBroadcast.
+     */
     public PlayerMovedBroadcast() {
         this.type = "PLAYER_MOVED_BROADCAST";
     }
