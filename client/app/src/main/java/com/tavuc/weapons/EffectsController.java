@@ -27,6 +27,18 @@ public class EffectsController {
                 p = new ForceEffectParticle(x, y);
                 light = new DynamicLight(x, y, 60f, 0.8f);
             }
+            case "slam_effect" -> {
+                p = new ForceEffectParticle(x, y, new java.awt.Color(255, 80, 80));
+                light = new DynamicLight(x, y, 60f, 0.8f);
+            }
+            case "push_effect" -> {
+                p = new ForceEffectParticle(x, y, new java.awt.Color(80, 255, 80));
+                light = new DynamicLight(x, y, 60f, 0.8f);
+            }
+            case "choke_effect" -> {
+                p = new ForceEffectParticle(x, y, new java.awt.Color(150, 50, 200));
+                light = new DynamicLight(x, y, 60f, 0.8f);
+            }
             // Additional effects can be added here
         }
         if (p != null) {

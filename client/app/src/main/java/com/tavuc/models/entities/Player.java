@@ -71,6 +71,8 @@ public class Player extends Entity {
         this.lastSentDirection = 0.0;
         this.coins = 0;
 
+        // Expand melee/force ability radius
+        this.attackRange *= 4;
 
         updatePlayerShapes();
     }
@@ -270,6 +272,15 @@ public class Player extends Entity {
      */
     @Override
     public void update() {
+        updateFreezeTimer();
+        if (isFrozen()) {
+            this.dx = 0;
+            this.dy = 0;
+            move();
+            updatePlayerShapes();
+            updateDamageEffect();
+            return;
+        }
         if (InputManager.getInstance().isTileMovement()) {
             updateTileMovement();
         } else {

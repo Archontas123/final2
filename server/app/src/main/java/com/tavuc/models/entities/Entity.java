@@ -12,6 +12,8 @@ public class Entity extends GameObject {
     private Rectangle hurtbox;
     private double dx;
     private double dy;
+    /** Time remaining that the entity is frozen. */
+    private double freezeTimer = 0.0;
     private double health;
     private double acceleration;
 
@@ -108,6 +110,18 @@ public class Entity extends GameObject {
         }
     }
 
+    /** Freeze the entity for the specified duration in seconds. */
+    public void freeze(double duration) {
+        if (duration > freezeTimer) {
+            freezeTimer = duration;
+        }
+    }
+
+    /** Returns whether this entity is currently frozen. */
+    public boolean isFrozen() {
+        return freezeTimer > 0;
+    }
+
     /**
      * Gets the acceleration of the player.
      * @return the acceleration
@@ -124,12 +138,24 @@ public class Entity extends GameObject {
         this.acceleration = acceleration;
     }
 
+    /** Updates the freeze timer. */
+    private void updateFreezeTimer() {
+        if (freezeTimer > 0) {
+            freezeTimer = Math.max(0, freezeTimer - 0.016);
+        }
+    }
+
     /**
      * Updates the player state based on dx and dy.
      * This method should be called by the server to reflect changes from client or server-side logic.
      */
     @Override
     public void update() {
+        updateFreezeTimer();
+        if (isFrozen()) {
+            updateHurtbox();
+            return;
+        }
         int newX = getX();
         int newY = getY();
 

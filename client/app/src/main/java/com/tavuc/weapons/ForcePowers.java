@@ -92,6 +92,7 @@ public class ForcePowers extends Weapon {
 
         updateTargets(wielder);
 
+        String effect = "force_effect";
         switch (ability) {
             case FORCE_CHOKE -> {
                 if (currentTarget == null) return;
@@ -102,6 +103,7 @@ public class ForcePowers extends Weapon {
                            (currentTarget instanceof Enemy e ? e.getId() : -1);
                 if (tid == -1) return;
                 Client.sendForceAbility(wielder.getPlayerId(), tid, ability.name());
+                effect = "choke_effect";
             }
             case FORCE_PUSH -> {
                 if (currentTarget == null) return;
@@ -112,15 +114,17 @@ public class ForcePowers extends Weapon {
                            (currentTarget instanceof Enemy e ? e.getId() : -1);
                 if (tid == -1) return;
                 Client.sendForceAbility(wielder.getPlayerId(), tid, ability.name());
+                effect = "push_effect";
             }
             case FORCE_SLAM -> {
                 // AoE ability does not require a specific target
                 Client.sendForceAbility(wielder.getPlayerId(), -1, ability.name());
+                effect = "slam_effect";
             }
         }
 
         sounds.play("force_use");
-        effects.spawn("force_effect", wielder.getX() + wielder.getWidth() / 2.0,
+        effects.spawn(effect, wielder.getX() + wielder.getWidth() / 2.0,
                       wielder.getY() + wielder.getHeight() / 2.0);
         cd.start((long) (stats.getCooldown() * 1000));
     }
