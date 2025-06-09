@@ -6,21 +6,26 @@ import java.awt.geom.Ellipse2D;
 
 /** Expanding ring when using a force ability. */
 public class ForceEffectParticle extends Particle {
-    private double size = 10;
+    private double size;
     private float alpha = 1f;
     private final Color color;
 
     public ForceEffectParticle(double x, double y) {
-        this(x, y, new Color(100, 140, 255));
+        this(x, y, new Color(100, 140, 255), 10);
     }
 
     public ForceEffectParticle(double x, double y, Color color) {
+        this(x, y, color, 10);
+    }
+
+    public ForceEffectParticle(double x, double y, Color color, double startSize) {
         this.x = x;
         this.y = y;
         this.vx = 0;
         this.vy = 0;
         this.life = 0.5;
         this.color = color;
+        this.size = startSize;
     }
 
     @Override

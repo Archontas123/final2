@@ -20,6 +20,7 @@ import com.tavuc.networking.ClientSession;
 import com.tavuc.networking.models.PlayerJoinedBroadcast;
 import com.tavuc.networking.models.PlayerLeftBroadcast;
 import com.tavuc.networking.models.PlayerMovedBroadcast;
+import com.tavuc.networking.models.PlayerImpulseBroadcast;
 import com.tavuc.networking.models.PlayerDamagedBroadcast;
 import com.tavuc.networking.models.PlayerKilledBroadcast;
 import com.tavuc.networking.models.CoinUpdateBroadcast;
@@ -30,7 +31,7 @@ import com.tavuc.networking.models.EnemyUpdateBroadcast;
 import com.tavuc.networking.models.EnemyRemovedBroadcast;
 import com.tavuc.models.items.CoinDrop;
 import com.tavuc.models.entities.enemies.Enemy;
-import com.tavuc.models.space.BaseShip;   // Added import
+import com.tavuc.models.space.BaseShip;
 import com.tavuc.ai.WaveManager;
 import com.tavuc.ai.WaveConfiguration;
 import com.tavuc.ai.EnemySpawnData;
@@ -305,8 +306,11 @@ public class GameManager {
                     double dy = p.getY() - attacker.getY();
                     double dist = Math.hypot(dx, dy);
                     if (dist <= range && dist != 0) {
-                        p.setDx(dx / dist * 5);
-                        p.setDy(dy / dist * 5);
+                        double kx = dx / dist * 5;
+                        double ky = dy / dist * 5;
+                        p.setDx(kx);
+                        p.setDy(ky);
+                        broadcastToGame(new PlayerImpulseBroadcast(p.getIdAsString(), kx, ky, 0));
                         applyAbilityDamage(attacker, p, 2.0);
                     }
                 }
@@ -333,8 +337,11 @@ public class GameManager {
                     double ty = p.getY() - attacker.getY();
                     double d = Math.hypot(tx, ty);
                     if (d <= range && d != 0) {
-                        p.setDx(tx / d * 5);
-                        p.setDy(ty / d * 5);
+                        double kx = tx / d * 2.5;
+                        double ky = ty / d * 2.5;
+                        p.setDx(kx);
+                        p.setDy(ky);
+                        broadcastToGame(new PlayerImpulseBroadcast(p.getIdAsString(), kx, ky, 0));
                     }
                 }
                 for (Enemy e : activeEnemies) {
@@ -342,8 +349,8 @@ public class GameManager {
                     double ty = e.getY() - attacker.getY();
                     double d = Math.hypot(tx, ty);
                     if (d <= range && d != 0) {
-                        e.setDx(tx / d * 5);
-                        e.setDy(ty / d * 5);
+                        e.setDx(tx / d * 2.5);
+                        e.setDy(ty / d * 2.5);
                     }
                 }
             }
@@ -354,10 +361,13 @@ public class GameManager {
                 if (Math.hypot(dx, dy) > range) return;
                 if (targetPlayer != null) {
                     targetPlayer.freeze(1.0);
-                    applyAbilityDamage(attacker, targetPlayer, 1.5);
+                    broadcastToGame(new PlayerImpulseBroadcast(targetPlayer.getIdAsString(), 0, 0, 1.0));
+                    double damage = targetPlayer.getHealth() / 2.0;
+                    applyAbilityDamage(attacker, targetPlayer, damage);
                 } else {
                     targetEnemy.freeze(1.0);
-                    applyAbilityDamage(attacker, targetEnemy, 1.5);
+                    double damage = targetEnemy.getHealth() / 2.0;
+                    applyAbilityDamage(attacker, targetEnemy, damage);
                 }
             }
             default -> {
