@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the ShipDestroyedBroadcast networking message.
+ */
 
 public class ShipDestroyedBroadcast extends BaseMessage {
     public String playerId;

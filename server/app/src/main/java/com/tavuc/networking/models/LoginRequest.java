@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the LoginRequest networking message.
+ */
 
 public class LoginRequest extends BaseMessage {
     public String username;

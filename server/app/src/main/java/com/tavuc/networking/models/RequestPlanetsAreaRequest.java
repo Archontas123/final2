@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RequestPlanetsAreaRequest networking message.
+ */
 
 public class RequestPlanetsAreaRequest extends BaseMessage {
     public double centerX;

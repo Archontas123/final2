@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the GetPlayersResponse networking message.
+ */
 
 import java.util.List;
 

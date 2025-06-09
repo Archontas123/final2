@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RegisterRequest networking message.
+ */
 
 public class RegisterRequest extends BaseMessage {
     public String username;

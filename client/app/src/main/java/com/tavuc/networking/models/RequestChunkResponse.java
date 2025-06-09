@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RequestChunkResponse networking message.
+ */
 
 import java.util.List;
 

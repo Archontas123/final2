@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the AttackShipFireBroadcast networking message.
+ */
 
 public class AttackShipFireBroadcast extends BaseMessage {
     public String attackerId;
@@ -9,6 +12,6 @@ public class AttackShipFireBroadcast extends BaseMessage {
     public int toY;
 
     public AttackShipFireBroadcast() {
-        super(); 
+        super();
     }
 }

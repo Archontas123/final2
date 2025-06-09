@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the JoinGameResponse networking message.
+ */
 
 import java.util.List;
 
