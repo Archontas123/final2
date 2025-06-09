@@ -10,16 +10,31 @@ import com.tavuc.ecs.systems.ShipCombatSystem;
 
 /**
  * Represents the space environment containing planets, ships, and combat elements.
- * This class manages all space entities and their interactions.
  */
 public class Space {
+    /**
+     * List of all planets in space
+     */
     private List<Planet> planets;
+    /**
+     * List of all ships in space
+     */
     private List<Ship> ships;
+    /**
+     * List of all active projectiles
+     */
     private List<Projectile> projectiles;
+    /**
+     * List of all current explosions
+     */
     private List<Explosion> explosions;
+    /**
+     * The combat system
+     */
     private ShipCombatSystem combatSystem;
-    
-    // Flag to track if combat system should be active
+    /**
+     * If the combat System is enabled or not (for debugging purposes)
+     */
     private boolean combatEnabled = true;
 
     /**
@@ -160,9 +175,8 @@ public class Space {
     public void update(double deltaTime) {
         // Update planets
         for (Planet planet : new ArrayList<>(planets)) {
-            if (planet.hasUpdate()) {
-                planet.update(deltaTime);
-            }
+            planet.update(deltaTime);
+            
         }
         
         // Update ships and check for destroyed ships

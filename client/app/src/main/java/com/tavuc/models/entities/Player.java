@@ -5,44 +5,82 @@ import java.awt.Graphics2D;
 import java.awt.geom.Ellipse2D;
 
 
+/**
+ * Represents a player character in the game world. 
+ */
 public class Player extends Entity {
 
+    /**
+     * The unique identifier for this player.
+     */
     private int playerId;
+    /**
+     * The display name for this player.
+     */
     private String username;
+    /**
+     * The current acceleration input, typically 1.0 for moving and 0.0 for stopping.
+     */
     private double accelleration;
+    /**
+     * The current movement speed of the player.
+     */
     private double speed;
+    /**
+     * The direction the player is facing, in radians.
+     */
     private double direction;
+    /**
+     * The last direction value sent to the server, for network synchronization.
+     */
     private double lastSentDirection;
+    /**
+     * The x and y components of the desired movement vector.
+     */
     private double moveVecX = 0.0;
     private double moveVecY = 0.0;
-    // Attack radius for melee actions - increased to complement dash mechanic
+    /**
+     * The range of the player's melee attack.
+     */
     private double attackRange = 60.0;
-    // Toggle drawing of hitboxes and attack ranges for debugging
+    /**
+     * A flag to enable or disable the drawing of debug shapes like hitboxes.
+     */
     private static final boolean DEBUG_DRAW_AREAS = false;
+    /**
+     * Geometric shapes used for rendering the player's body and hands.
+     */
     private Ellipse2D.Double playerBody;
     private Ellipse2D.Double playerLeftHand;
     private Ellipse2D.Double playerRightHand;
+    /**
+     * The last known position and velocity sent to the server, used for state synchronization.
+     */
     private int lastSentX; 
     private int lastSentY; 
     private double lastSentDx;
     private double lastSentDy;
+    /**
+     * Constants defining the player's physical and movement properties.
+     */
     private static final int PLAYER_BASE_WIDTH = 120;
     private static final int PLAYER_BASE_HEIGHT = 120;
     private static final int HAND_SIZE = 60;
     private static final double MAX_SPEED = 5.0;
     private static final double ACCELERATION_RATE = 0.5;
     private static final double DECELERATION_RATE = 0.3;
-    // Visual damage flash strength (1.0 = fully visible, 0 = no effect)
+    /**
+     * A value from 0.0 to 1.0 controlling the intensity of the red "damage flash" effect.
+     */
     private float damageEffect = 0f;
 
 
     /**
-     * Constructor for Player
-     * @param playerId the unique ID of the player
-     * @param username the username of the player
+     * Constructs a new Player instance.
+     * @param playerId The unique identifier for the player.
+     * @param username The display name of the player.
      */
     public Player(int playerId, String username) {
-        // Health is measured in half-hearts (0-6)
         super(50, 50, PLAYER_BASE_WIDTH, PLAYER_BASE_HEIGHT, 0.0, 6);
         this.playerId = playerId;
         this.username = username;
@@ -60,12 +98,17 @@ public class Player extends Entity {
     }
 
     /**
-     * Triggers the damage flash effect without altering health.
+     * Triggers the visual damage effect, causing the player to flash red.
+     * This does not affect the player's health.
      */
     public void triggerDamageEffect() {
         damageEffect = 1.0f;
     }
 
+    /**
+     * Reduces the player's health by a given amount and triggers the damage flash effect.
+     * @param amount The amount of damage to take.
+     */
     @Override
     public void takeDamage(int amount) {
         super.takeDamage(amount);
@@ -73,7 +116,7 @@ public class Player extends Entity {
     }
 
     /**
-     * Updates and fades the damage flash each frame.
+     * Updates the damage flash effect each frame, causing it to fade over time.
      */
     public void updateDamageEffect() {
         if (damageEffect > 0f) {
@@ -81,6 +124,10 @@ public class Player extends Entity {
         }
     }
 
+    /**
+     * Gets the current intensity of the damage flash effect.
+     * @return A float from 0.0 to 1.0.
+     */
     public float getDamageEffect() {
         return damageEffect;
     }
@@ -88,6 +135,7 @@ public class Player extends Entity {
 
     /**
      * Gets the melee attack range for this player.
+     * @return The attack range in pixels.
      */
     public double getAttackRange() {
         return attackRange;
@@ -95,6 +143,7 @@ public class Player extends Entity {
 
     /**
      * Sets the melee attack range for this player.
+     * @param attackRange The new attack range in pixels.
      */
     public void setAttackRange(double attackRange) {
         this.attackRange = attackRange;
@@ -103,8 +152,8 @@ public class Player extends Entity {
 
 
     /**
-     * Gets the player ID.
-     * @return the player ID
+     * Gets the player's unique ID.
+     * @return The player ID.
      */
     public int getPlayerId() {
         return playerId;
@@ -112,7 +161,7 @@ public class Player extends Entity {
 
     /**
      * Gets the username of the player.
-     * @return the username of the player
+     * @return The player's username.
      */
     public String getUsername() {
         return username;
@@ -120,34 +169,47 @@ public class Player extends Entity {
 
 
     /**
-     * Gets the acceleration input for the player.
-     * @return the acceleration input
+     * Gets the current acceleration input for the player.
+     * @return The acceleration input value.
      */
     public double getAccelleration() {
         return accelleration;
     }
 
     /**
-     * Gets the direction angle of the player in radians.
-     * @return the direction angle in radians
+     * Gets the direction the player is facing.
+     * @return The direction angle in radians.
      */
     public double getDirection() {
         return direction;
     }
 
-    /** Sets the desired movement vector components. */
+    /** 
+     * Sets the desired movement vector components. This vector determines the
+     * direction of movement when the player has speed.
+     * @param x The x-component of the movement vector.
+     * @param y The y-component of the movement vector.
+     */
     public void setMoveVector(double x, double y) {
         this.moveVecX = x;
         this.moveVecY = y;
     }
 
+    /**
+     * Gets the x-component of the movement vector.
+     * @return The x-component of the movement vector.
+     */
     public double getMoveVectorX() { return moveVecX; }
 
+    /**
+     * Gets the y-component of the movement vector.
+     * @return The y-component of the movement vector.
+     */
     public double getMoveVectorY() { return moveVecY; }
 
     /**
-     * Sets the x position of the player and updates the player shapes.
-     * @param x the new x position
+     * Sets the x-coordinate of the player and updates the renderable shapes.
+     * @param x The new x-coordinate.
      */
     @Override
     public void setX(double x) {
@@ -156,8 +218,8 @@ public class Player extends Entity {
     }
 
     /**
-     * Sets the y position of the player and updates the player shapes.
-     * @param y the new y position
+     * Sets the y-coordinate of the player and updates the renderable shapes.
+     * @param y The new y-coordinate.
      */
     @Override
     public void setY(double y) {
@@ -166,21 +228,18 @@ public class Player extends Entity {
     }
     
     /**
-     * Sets the health of the player. Overrides Entity's setHealth to handle
-     * the server's half-heart health scale directly.
-     * @param health the health of the player in half-heart units
+     * Sets the health of the player. This override handles the server's half-heart
+     * health scale by flooring the value to an integer.
+     * @param health The health value, typically in half-heart units.
      */
     public void setHealth(double health) {
-        // Server sends fractional half-heart values (e.g. 5.5). If we round
-        // to the nearest integer the health bar would only update every other
-        // hit. Cast down instead so each half-heart of damage is reflected
-        // immediately on the client.
+
         super.setHealth((int) Math.floor(health));
     }
 
     /**
-     * Gets the health of the player as a double. Overrides Entity's getHealth.
-     * @return the health of the player
+     * Gets the health of the player.
+     * @return The current health value as an integer.
      */
     @Override
     public int getHealth() { 
@@ -190,15 +249,15 @@ public class Player extends Entity {
 
     /**
      * Sets the acceleration input for the player.
-     * @param accelleration the acceleration input
+     * @param accelleration The new acceleration input value.
      */
     public void setAcceleration(double accelleration) {
         this.accelleration = accelleration;
     }
 
     /**
-     * Sets the direction angle of the player in radians.
-     * @param direction the direction angle in radians
+     * Sets the direction the player is facing.
+     * @param direction The new direction angle in radians.
      */
     public void setDirection(double direction) {
         this.direction = direction;
@@ -206,8 +265,8 @@ public class Player extends Entity {
 
 
     /**
-     * Updates the shapes representing the player for rendering.
-     * This includes the body and hands of the player.
+     * Updates the geometric shapes used for rendering the player's body and hands
+     * based on the player's current position and size.
      */
     private void updatePlayerShapes() {
         if (playerBody == null) playerBody = new Ellipse2D.Double();
@@ -220,9 +279,7 @@ public class Player extends Entity {
     }
 
     /**
-     * Updates the player's state.
-     * This method handles acceleration, deceleration, and movement based on the current speed and direction angle.
-     * It also updates the player's position based on the calculated dx and dy.
+     * Updates the player's state for a single frame. 
      */
     @Override
     public void update() {
@@ -260,10 +317,11 @@ public class Player extends Entity {
     }
 
     /**
-     * Draws the player on the screen.
-     * @param g2d the Graphics2D context to draw on
-     * @param offsetX the world's x offset for camera view
-     * @param offsetY the world's y offset for camera view
+     * Draws the player on the screen, including the body, hands, username,
+     * facing direction indicator, and any active visual effects.
+     * @param g2d The Graphics2D context to draw on.
+     * @param offsetX The camera's horizontal offset in the world.
+     * @param offsetY The camera's vertical offset in the world.
      */
     @Override
     public void draw(Graphics2D g2d, double offsetX, double offsetY) {
@@ -283,21 +341,7 @@ public class Player extends Entity {
         g2d.setColor(Color.WHITE);
         g2d.drawString(username, (float)screenX, (float)screenY - 5);
 
-        // Draw facing direction arrow
-        double centerX = screenX + this.width / 2.0;
-        double centerY = screenY + this.height / 2.0;
-        int arrowLength = this.width / 2;
-        int endX = (int)(centerX + Math.cos(direction) * arrowLength);
-        int endY = (int)(centerY + Math.sin(direction) * arrowLength);
-        g2d.setColor(Color.YELLOW);
-        g2d.drawLine((int)centerX, (int)centerY, endX, endY);
-        int ah = 6;
-        int hx1 = (int)(endX - Math.cos(direction - Math.PI/6) * ah);
-        int hy1 = (int)(endY - Math.sin(direction - Math.PI/6) * ah);
-        int hx2 = (int)(endX - Math.cos(direction + Math.PI/6) * ah);
-        int hy2 = (int)(endY - Math.sin(direction + Math.PI/6) * ah);
-        g2d.drawLine(endX, endY, hx1, hy1);
-        g2d.drawLine(endX, endY, hx2, hy2);
+       
 
         if (damageEffect > 0f) {
             g2d.setColor(new Color(1f, 0f, 0f, damageEffect));
@@ -305,113 +349,83 @@ public class Player extends Entity {
             g2d.fill(playerLeftHand);
             g2d.fill(playerRightHand);
         }
-
-
-
-        if (DEBUG_DRAW_AREAS) {
-            if (getHitbox() != null) {
-                g2d.setColor(Color.RED);
-                g2d.drawRect(
-                        (int)(getHitbox().x - offsetX),
-                        (int)(getHitbox().y - offsetY),
-                        getHitbox().width,
-                        getHitbox().height
-                );
-            }
-            if (getHurtbox() != null) {
-                g2d.setColor(Color.GREEN);
-                g2d.drawRect(
-                        (int)(getHurtbox().x - offsetX),
-                        (int)(getHurtbox().y - offsetY),
-                        getHurtbox().width,
-                        getHurtbox().height
-                );
-            }
-            g2d.setColor(Color.YELLOW);
-            g2d.drawOval(
-                    (int)(screenX - attackRange),
-                    (int)(screenY - attackRange),
-                    (int)(this.width + attackRange * 2),
-                    (int)(this.height + attackRange * 2)
-            );
-        }
     }
 
     /**
-     * Gets the last sent x position.
-     * @return the last sent x position
+     * Gets the last x-coordinate that was sent to the server.
+     * @return The last sent x-coordinate.
      */
     public int getLastSentX() { 
         return lastSentX; 
     }
 
     /**
-     * Gets the last sent y position.
-     * @return the last sent y position
+     * Gets the last y-coordinate that was sent to the server.
+     * @return The last sent y-coordinate.
      */
     public int getLastSentY() { 
         return lastSentY; 
     }
 
     /**
-     * Gets the last sent dx.
-     * @return the last sent dx
+     * Gets the last horizontal velocity that was sent to the server.
+     * @return The last sent dx value.
      */
     public double getLastSentDx() { 
         return lastSentDx; 
     }
 
     /**
-     * Gets the last sent dy.
-     * @return the last sent dy
+     * Gets the last vertical velocity that was sent to the server.
+     * @return The last sent dy value.
      */
     public double getLastSentDy() { 
         return lastSentDy; 
     }
 
     /**
-     * Gets the last sent direction angle.
-     * @return the last sent direction angle
+     * Gets the last direction angle that was sent to the server.
+     * @return The last sent direction angle in radians.
      */
     public double getlastSentDirection() { 
         return lastSentDirection; 
     }
 
     /**
-     * Sets the last sent x position.
-     * @param x the new last sent x position
+     * Sets the last x-coordinate that was sent to the server.
+     * @param x The x-coordinate to store.
      */
     public void setLastSentX(int x) { 
         this.lastSentX = x; 
     } 
 
     /**
-     * Sets the last sent y position.
-     * @param y the new last sent y position
+     * Sets the last y-coordinate that was sent to the server.
+     * @param y The y-coordinate to store.
      */
     public void setLastSentY(int y) { 
         this.lastSentY = y; 
     } 
 
     /**
-     * Sets the last sent dx.
-     * @param dx the new last sent dx
+     * Sets the last horizontal velocity that was sent to the server.
+     * @param dx The dx value to store.
      */
     public void setLastSentDx(double dx) { 
         this.lastSentDx = dx; 
     }
 
     /**
-     * Sets the last sent dy.
-     * @param dy the new last sent dy
+     * Sets the last vertical velocity that was sent to the server.
+     * @param dy The dy value to store.
      */
     public void setLastSentDy(double dy) { 
         this.lastSentDy = dy; 
     }
 
     /**
-     * Sets the last sent direction angle.
-     * @param angle the new last sent direction angle
+     * Sets the last direction angle that was sent to the server.
+     * @param angle The direction angle in radians to store.
      */
     public void setlastSentDirection(double angle) { 
         this.lastSentDirection = angle; 

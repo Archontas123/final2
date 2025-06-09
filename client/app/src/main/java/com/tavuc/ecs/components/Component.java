@@ -1,4 +1,6 @@
 package com.tavuc.ecs.components;
 
-public interface Component {
-}
+/**
+ * Interface for Components
+ */
+public interface Component {}

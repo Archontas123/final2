@@ -15,6 +15,7 @@ public class PlayerMovedBroadcast extends BaseMessage {
     /**
      * Constructs a new PlayerMovedBroadcast.
      */
+
     public PlayerMovedBroadcast() {
         this.type = "PLAYER_MOVED_BROADCAST";
     }

@@ -1,4 +1,3 @@
-
 package com.tavuc.models.space;
 
 import java.awt.Color;
@@ -8,38 +7,52 @@ import java.awt.BasicStroke;
 import java.awt.geom.Path2D;
 
 /**
- * Represents a projectile fired by a ship.
- * Handles movement, damage, and collision detection.
+ * Represents a projectile fired by a ship in the game. 
  */
 public class Projectile {
+    /** The unique identifier for this projectile. */
     private String id;
+    /** The current x-coordinate of the projectile in the world. */
     private double x;
+    /** The current y-coordinate of the projectile in the world. */
     private double y;
+    /** The velocity of the projectile along the x-axis. */
     private double velocityX;
+    /** The velocity of the projectile along the y-axis. */
     private double velocityY;
+    /** The amount of damage this projectile inflicts upon collision. */
     private double damage;
+    /** The ID of the entity that fired this projectile. */
     private String ownerId;
+    /** A flag indicating if the projectile is active. Inactive projectiles are typically removed. */
     private boolean active;
+    /** The total time, in seconds, that this projectile has been active. */
     private double lifetime;
     
-    // Debug variables
+    /** A flag to enable or disable debug rendering for projectiles. */
     private static final boolean DEBUG_MODE = true;
+    /** The color used for rendering the debug trail. */
     private static final Color DEBUG_TRAIL_COLOR = new Color(255, 0, 0, 100);
+    /** The maximum number of points to store for the debug trail. */
     private static final int MAX_TRAIL_POINTS = 20;
+    /** An array storing the historical x-coordinates for the debug trail. */
     private double[] trailX = new double[MAX_TRAIL_POINTS];
+    /** An array storing the historical y-coordinates for the debug trail. */
     private double[] trailY = new double[MAX_TRAIL_POINTS];
+    /** The current index in the circular buffer for the trail points. */
     private int trailIndex = 0;
+    /** A flag indicating if the trail buffer has been fully populated at least once. */
     private boolean trailInitialized = false;
 
     /**
-     * Constructor for Projectile.
-     *
-     * @param x The initial x-coordinate
-     * @param y The initial y-coordinate
-     * @param velocityX The x-component of velocity
-     * @param velocityY The y-component of velocity
-     * @param damage The damage this projectile deals
-     * @param ownerId The ID of the player who fired this projectile
+     * Constructs a new Projectile instance.
+     * @param id The unique identifier for this projectile.
+     * @param x The initial x-coordinate in the world.
+     * @param y The initial y-coordinate in the world.
+     * @param velocityX The initial velocity on the x-axis.
+     * @param velocityY The initial velocity on the y-axis.
+     * @param damage The amount of damage this projectile deals on impact.
+     * @param ownerId The unique ID of the entity that fired this projectile.
      */
     public Projectile(String id, double x, double y, double velocityX, double velocityY, double damage, String ownerId) {
         this.id = id;
@@ -52,7 +65,6 @@ public class Projectile {
         this.active = true;
         this.lifetime = 0.0;
         
-        // Initialize trail with current position
         if (DEBUG_MODE) {
             for (int i = 0; i < MAX_TRAIL_POINTS; i++) {
                 trailX[i] = x;
@@ -62,16 +74,14 @@ public class Projectile {
     }
 
     /**
-     * Updates the projectile's position based on its velocity.
-     *
-     * @param delta Time passed since last update in seconds
+     * Updates the projectile's state for a single frame. 
+     * @param delta The time elapsed since the last update, in seconds.
      */
     public void tick(double delta) {
         this.x += velocityX * delta;
         this.y += velocityY * delta;
         this.lifetime += delta;
         
-        // Update trail
         if (DEBUG_MODE) {
             trailIndex = (trailIndex + 1) % MAX_TRAIL_POINTS;
             trailX[trailIndex] = x;
@@ -83,11 +93,10 @@ public class Projectile {
     }
     
     /**
-     * Draws the projectile and its debug trail.
-     *
-     * @param g2d The graphics context
-     * @param offsetX The camera X offset
-     * @param offsetY The camera Y offset
+     * Renders the projectile on the screen. 
+     * @param g2d The {@link Graphics2D} context to draw on.
+     * @param offsetX The horizontal offset of the camera.
+     * @param offsetY The vertical offset of the camera.
      */
     public void draw(Graphics2D g2d, double offsetX, double offsetY) {
         if (!active) return;
@@ -95,12 +104,10 @@ public class Projectile {
         double screenX = x - offsetX;
         double screenY = y - offsetY;
         
-        // Draw debug trail
         if (DEBUG_MODE) {
             g2d.setColor(DEBUG_TRAIL_COLOR);
             g2d.setStroke(new BasicStroke(2.0f));
             
-            // Draw motion trail
             if (trailInitialized) {
                 for (int i = 0; i < MAX_TRAIL_POINTS - 1; i++) {
                     int idx1 = (trailIndex + i + 1) % MAX_TRAIL_POINTS;
@@ -118,17 +125,13 @@ public class Projectile {
             }
         }
         
-        // Draw projectile core with a glow effect
         double angle = Math.atan2(velocityY, velocityX);
         
-        // Draw projectile glow
         g2d.setColor(new Color(255, 100, 30, 60));
         g2d.fillOval((int)(screenX - 6), (int)(screenY - 6), 12, 12);
         
-        // Draw projectile main body
         g2d.setColor(new Color(255, 200, 50));
         
-        // Create elongated projectile shape based on velocity
         Path2D.Double projectileShape = new Path2D.Double();
         projectileShape.moveTo(screenX + Math.cos(angle) * 5, screenY + Math.sin(angle) * 5);
         projectileShape.lineTo(screenX + Math.cos(angle + Math.PI/2) * 2, screenY + Math.sin(angle + Math.PI/2) * 2);
@@ -138,133 +141,126 @@ public class Projectile {
         
         g2d.fill(projectileShape);
         
-        // Draw bright core
         g2d.setColor(Color.WHITE);
         g2d.fillOval((int)(screenX - 1), (int)(screenY - 1), 3, 3);
     }
 
     /**
-     * Gets the current x-coordinate.
-     *
-     * @return The x-coordinate
+     * Gets the current x-coordinate of the projectile.
+     * @return The x-coordinate.
      */
     public double getX() {
         return x;
     }
 
     /**
-     * Gets the current y-coordinate.
-     *
-     * @return The y-coordinate
+     * Gets the current y-coordinate of the projectile.
+     * @return The y-coordinate.
      */
     public double getY() {
         return y;
     }
 
+    /**
+     * Gets the unique ID of the projectile.
+     * @return The projectile's ID string.
+     */
     public String getId() {
         return id;
     }
 
     /**
-     * Gets the damage this projectile deals.
-     *
-     * @return The damage amount
+     * Gets the amount of damage this projectile deals.
+     * @return The damage value.
      */
     public double getDamage() {
         return damage;
     }
 
     /**
-     * Gets the ID of the player who fired this projectile.
-     *
-     * @return The owner ID
+     * Gets the ID of the entity that fired this projectile.
+     * @return The owner's ID string.
      */
     public String getOwnerId() {
         return ownerId;
     }
 
     /**
-     * Checks if this projectile is active.
-     * Inactive projectiles will be removed from the game.
-     *
-     * @return True if active, false otherwise
+     * Checks if this projectile is currently active. 
+     * @return {@code true} if the projectile is active, {@code false} otherwise.
      */
     public boolean isActive() {
         return active;
     }
 
     /**
-     * Sets whether this projectile is active.
-     *
-     * @param active True to set active, false to deactivate
+     * Sets the active state of this projectile.
+     * @param active {@code true} to make the projectile active, {@code false} to deactivate it.
      */
     public void setActive(boolean active) {
         this.active = active;
     }
     
     /**
-     * Gets the x-component of velocity.
-     *
-     * @return The x-velocity
+     * Gets the x-component of the projectile's velocity.
+     * @return The velocity on the x-axis.
      */
     public double getVelocityX() {
         return velocityX;
     }
     
     /**
-     * Gets the y-component of velocity.
-     *
-     * @return The y-velocity
+     * Gets the y-component of the projectile's velocity.
+     * @return The velocity on the y-axis.
      */
     public double getVelocityY() {
         return velocityY;
     }
     
     /**
-     * Gets the lifetime of this projectile in seconds.
-     *
-     * @return The lifetime in seconds
+     * Gets the total time this projectile has been active.
+     * @return The lifetime in seconds.
      */
     public double getLifetime() {
         return lifetime;
     }
     
     /**
-     * Sets the x-coordinate.
-     *
-     * @param x The new x-coordinate
+     * Sets the x-coordinate of the projectile.
+     * @param x The new x-coordinate.
      */
     public void setX(double x) {
         this.x = x;
     }
     
     /**
-     * Sets the y-coordinate.
-     *
-     * @param y The new y-coordinate
+     * Sets the y-coordinate of the projectile.
+     * @param y The new y-coordinate.
      */
     public void setY(double y) {
         this.y = y;
     }
     
     /**
-     * Sets the x-component of velocity.
-     *
-     * @param velocityX The new x-velocity
+     * Sets the x-component of the projectile's velocity.
+     * @param velocityX The new velocity on the x-axis.
      */
     public void setVelocityX(double velocityX) {
         this.velocityX = velocityX;
     }
     
     /**
-     * Sets the y-component of velocity.
-     *
-     * @param velocityY The new y-velocity
+     * Sets the y-component of the projectile's velocity.
+     * @param velocityY The new velocity on the y-axis.
      */
     public void setVelocityY(double velocityY) {
         this.velocityY = velocityY;
     }
 
+    /**
+     * Returns a string representation of the projectile's state.
+     * @return A string detailing the projectile's properties.
+     */
     @Override
     public String toString() {
         return "Projectile{" +

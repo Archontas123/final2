@@ -24,6 +24,7 @@ public class FireRequest extends BaseMessage {
     /**
      * Constructs a new FireRequest.
      */
+
     public FireRequest(String playerId, double shipX, double shipY, double shipAngle, double shipDx, double shipDy) {
         this();
         this.playerId = playerId;

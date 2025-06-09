@@ -30,6 +30,7 @@ public class PlayerJoinedBroadcast extends BaseMessage {
     /**
      * Constructs a new PlayerJoinedBroadcast.
      */
+
     public PlayerJoinedBroadcast() {
         this.type = "PLAYER_JOINED_BROADCAST";
     }
