@@ -14,6 +14,9 @@ import com.tavuc.networking.models.PlayerJoinedBroadcast; // Added import
 import com.tavuc.networking.models.PlayerMovedBroadcast; // Added import
 import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
 import com.tavuc.networking.models.CoinDropRemovedBroadcast;
+import com.tavuc.networking.models.EnemySpawnedBroadcast;
+import com.tavuc.networking.models.EnemyUpdateBroadcast;
+import com.tavuc.networking.models.EnemyRemovedBroadcast;
 import com.tavuc.models.planets.Chunk;
 import com.tavuc.models.planets.ColorPallete;
 import com.tavuc.models.planets.ColorType;
@@ -53,6 +56,56 @@ public class WorldManager {
             enemies.put(e.getId(), e);
             if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
         }
+    }
+
+    /** Handle enemy spawned broadcast. */
+    public void handleEnemySpawned(EnemySpawnedBroadcast event) {
+        if (event == null) return;
+        int id;
+        try {
+            id = Integer.parseInt(event.enemyId);
+        } catch (NumberFormatException ex) {
+            return;
+        }
+        com.tavuc.models.entities.enemies.Enemy enemy = switch (event.enemyType) {
+            case "BasicTrooper" -> new com.tavuc.models.entities.enemies.BasicTrooper(id, event.x, event.y, this, com.tavuc.models.entities.enemies.TrooperWeapon.BLASTER, 0);
+            case "BasicMech" -> new com.tavuc.models.entities.enemies.BasicMech(id, event.x, event.y, this);
+            default -> null;
+        };
+        if (enemy != null) {
+            enemy.setHealth((int) event.health);
+            addEnemy(enemy);
+        }
+    }
+
+    /** Handle enemy update broadcast. */
+    public void handleEnemyUpdate(EnemyUpdateBroadcast event) {
+        if (event == null) return;
+        int id;
+        try {
+            id = Integer.parseInt(event.enemyId);
+        } catch (NumberFormatException ex) {
+            return;
+        }
+        com.tavuc.models.entities.enemies.Enemy enemy = enemies.get(id);
+        if (enemy != null) {
+            enemy.setX(event.x);
+            enemy.setY(event.y);
+            enemy.setDx(event.dx);
+            enemy.setDy(event.dy);
+            enemy.setDirection(event.direction);
+            enemy.setHealth((int) event.health);
+            if (Client.currentGamePanel != null) Client.currentGamePanel.repaint();
+        }
+    }
+
+    /** Handle enemy removal broadcast. */
+    public void handleEnemyRemoved(EnemyRemovedBroadcast event) {
+        if (event == null) return;
+        try {
+            int id = Integer.parseInt(event.enemyId);
+            removeEnemy(id);
+        } catch (NumberFormatException ignore) {}
     }
 
     public void removeEnemy(int id) {

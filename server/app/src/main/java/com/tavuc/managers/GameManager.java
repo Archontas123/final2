@@ -25,6 +25,9 @@ import com.tavuc.networking.models.PlayerKilledBroadcast;
 import com.tavuc.networking.models.CoinUpdateBroadcast;
 import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
 import com.tavuc.networking.models.CoinDropRemovedBroadcast;
+import com.tavuc.networking.models.EnemySpawnedBroadcast;
+import com.tavuc.networking.models.EnemyUpdateBroadcast;
+import com.tavuc.networking.models.EnemyRemovedBroadcast;
 import com.tavuc.models.items.CoinDrop;
 import com.tavuc.models.entities.enemies.Enemy;
 import com.tavuc.models.space.BaseShip;   // Added import
@@ -50,6 +53,7 @@ public class GameManager {
     // Coin drop tracking
     private final ConcurrentMap<String, CoinDrop> coinDrops = new ConcurrentHashMap<>();
     private int nextCoinDropId = 1;
+
 
     // Wave and enemy tracking
     private WaveManager waveManager;
@@ -471,18 +475,34 @@ public class GameManager {
                     if (e.getHealth() <= 0) {
                         it.remove();
                         handleEnemyKilled(e, -1);
+                        broadcastToGame(new EnemyRemovedBroadcast(String.valueOf(e.getId())));
                     }
                 }
 
                 // Spawn next wave if needed
                 if ((activeEnemies.isEmpty() || waveManager.isCurrentWaveTimedOut()) && waveManager.hasMoreWaves()) {
                     Player target = players.get(0);
-                    activeEnemies.addAll(waveManager.spawnNextWave(blockedTiles, target));
+                    List<Enemy> spawned = waveManager.spawnNextWave(blockedTiles, target);
+                    activeEnemies.addAll(spawned);
+                    for (Enemy e : spawned) {
+                        broadcastToGame(new EnemySpawnedBroadcast(
+                                String.valueOf(e.getId()),
+                                e.getClass().getSimpleName(),
+                                e.getX(), e.getY(),
+                                (int)e.getHealth(),
+                                e.getWidth(), e.getHeight()));
+                    }
                 }
 
                 // Update active enemies
                 for (Enemy enemy : activeEnemies) {
                     enemy.update();
+                    broadcastToGame(new EnemyUpdateBroadcast(
+                            String.valueOf(enemy.getId()),
+                            enemy.getX(), enemy.getY(),
+                            enemy.getDx(), enemy.getDy(),
+                            enemy.getDirection(),
+                            enemy.getHealth()));
                 }
             }
 

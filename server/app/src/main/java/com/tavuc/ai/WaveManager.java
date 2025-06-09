@@ -14,6 +14,7 @@ public class WaveManager {
     private List<WaveConfiguration> waves = new ArrayList<>();
     private int index = 0;
     private Instant waveStart;
+    private int nextId = 1;
 
     public void setWaves(List<WaveConfiguration> waves) {
         this.waves = waves;
@@ -34,10 +35,11 @@ public class WaveManager {
                 int[] pos = positions.get(i);
                 int x = pos[0];
                 int y = pos[1];
+                int id = nextId++;
                 if (data.type() == EnemyType.TROOPER) {
-                    spawned.add(new BasicTrooper(i, "t", x, y, TrooperWeapon.BLASTER, blocked, target, i));
+                    spawned.add(new BasicTrooper(id, "t", x, y, TrooperWeapon.BLASTER, blocked, target, i));
                 } else if (data.type() == EnemyType.MECH) {
-                    spawned.add(new BasicMech(i, "m", x, y, blocked, target));
+                    spawned.add(new BasicMech(id, "m", x, y, blocked, target));
                 }
             }
         }
