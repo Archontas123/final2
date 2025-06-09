@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the LoginResponse networking message.
+ */
 
 public class LoginResponse extends BaseMessage {
     public boolean success;

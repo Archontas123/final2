@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerAttackRequest networking message.
+ */
 
 public class PlayerAttackRequest extends BaseMessage {
     public String attackerId;

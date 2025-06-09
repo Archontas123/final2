@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RequestPaletteResponse networking message.
+ */
 
 public class RequestPaletteResponse extends BaseMessage {
     public String primarySurfaceRGB;

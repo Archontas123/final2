@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the LeaveGameResponse networking message.
+ */
 
 public class LeaveGameResponse extends BaseMessage {
     public boolean success;

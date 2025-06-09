@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerJoinedBroadcast networking message.
+ */
 
 public class PlayerJoinedBroadcast extends BaseMessage {
     public String playerId;

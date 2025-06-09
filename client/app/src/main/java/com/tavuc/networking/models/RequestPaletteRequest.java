@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RequestPaletteRequest networking message.
+ */
 
 public class RequestPaletteRequest extends BaseMessage {
     public String gameId;

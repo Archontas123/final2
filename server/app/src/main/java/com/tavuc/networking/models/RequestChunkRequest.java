@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RequestChunkRequest networking message.
+ */
 
 public class RequestChunkRequest extends BaseMessage {
     public String gameId;

@@ -1,8 +1,11 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the AttackShipUpdateBroadcast networking message.
+ */
 
 public class AttackShipUpdateBroadcast extends BaseMessage {
     public String entityId;
-    public String parentCruiserId; 
+    public String parentCruiserId;
     public int x;
     public int y;
     public float velocityX;
@@ -11,15 +14,15 @@ public class AttackShipUpdateBroadcast extends BaseMessage {
     public float health;
     public float maxHealth;
     public String aiState;
-    public float attackPointX; 
+    public float attackPointX;
     public float attackPointY;
 
     public AttackShipUpdateBroadcast(String entityId, String parentCruiserId, int x, int y,
                                      float velocityX, float velocityY, float orientation,
                                      float health, float maxHealth, String aiState,
                                      float attackPointX, float attackPointY) {
-        super(); 
-        this.type = "ATTACK_SHIP_UPDATE_BROADCAST"; 
+        super();
+        this.type = "ATTACK_SHIP_UPDATE_BROADCAST";
         this.entityId = entityId;
         this.parentCruiserId = parentCruiserId;
         this.x = x;

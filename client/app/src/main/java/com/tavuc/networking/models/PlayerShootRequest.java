@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerShootRequest networking message.
+ */
 
 public class PlayerShootRequest extends BaseMessage {
     public String playerId;

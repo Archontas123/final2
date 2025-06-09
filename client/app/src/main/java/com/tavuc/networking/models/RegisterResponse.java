@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RegisterResponse networking message.
+ */
 
 public class RegisterResponse extends BaseMessage {
     public boolean success;
