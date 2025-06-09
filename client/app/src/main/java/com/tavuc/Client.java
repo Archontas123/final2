@@ -58,7 +58,6 @@ import com.tavuc.networking.models.ShipDamagedBroadcast;
 import com.tavuc.networking.models.ShipDestroyedBroadcast;
 import com.tavuc.networking.models.ShipUpdateRequest;
 import com.tavuc.ui.panels.GamePanel;
-import com.tavuc.ui.panels.ISpacePanel;
 import com.tavuc.ui.panels.SpacePanel;
 import com.tavuc.ui.screens.GameScreen;
 import com.tavuc.ui.screens.SpaceScreen;

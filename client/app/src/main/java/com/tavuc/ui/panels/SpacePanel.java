@@ -5,7 +5,6 @@ import javax.swing.*;
 import com.tavuc.Client;
 import com.tavuc.managers.SpaceManager;
 import com.tavuc.managers.InputManager;
-import com.tavuc.models.space.Moon;
 import com.tavuc.models.space.Planet;
 import com.tavuc.models.space.Ship;
 import com.tavuc.models.space.Projectile;
@@ -39,7 +38,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import com.tavuc.ui.components.DamagePopup;
 
-public class SpacePanel extends GPanel implements KeyListener, MouseListener, ActionListener, ISpacePanel {
+public class SpacePanel extends GPanel implements KeyListener, MouseListener, ActionListener {
 
     // Star field data
     private static class StarData {

@@ -16,14 +16,12 @@ import com.tavuc.managers.InputManager;
 import com.tavuc.models.space.Planet;
 import com.tavuc.models.space.Ship;
 import com.tavuc.ui.components.MinimapComponent;
-import com.tavuc.ui.components.MovementKeysComponent;
 import com.tavuc.ui.components.StatusBarsComponent;
 import com.tavuc.ui.components.DialogComponent;
 
 public class SpaceScreenUILayer extends JPanel {
 
     private MinimapComponent minimapComponent;
-    private MovementKeysComponent movementKeysComponent;
     private StatusBarsComponent statusBarsComponent;
     private DialogComponent dialogComponent;
 
@@ -43,8 +41,7 @@ public class SpaceScreenUILayer extends JPanel {
         dialogComponent = new DialogComponent();
         add(dialogComponent);
 
-        movementKeysComponent = new MovementKeysComponent(inputManager);
-        add(movementKeysComponent);
+
     }
 
     @Override
@@ -79,10 +76,6 @@ public class SpaceScreenUILayer extends JPanel {
             dialogComponent.setBounds(UI_PADDING, panelHeight - dialogSize.height - UI_PADDING, dialogSize.width, dialogSize.height);
         }
 
-        if (movementKeysComponent != null) {
-            Dimension movementKeysSize = movementKeysComponent.getPreferredSize();
-            movementKeysComponent.setBounds(panelWidth - movementKeysSize.width - UI_PADDING, panelHeight - movementKeysSize.height - UI_PADDING, movementKeysSize.width, movementKeysSize.height);
-        }
     }
 
     public void updateCoordinates(double x, double y) {
@@ -97,11 +90,7 @@ public class SpaceScreenUILayer extends JPanel {
         }
     }
 
-    public void updateMovementKeys(boolean wPressed, boolean aPressed, boolean sPressed, boolean dPressed) {
-        if (movementKeysComponent != null) {
-            movementKeysComponent.updateKeyStates(wPressed, aPressed, sPressed, dPressed);
-        }
-    }
+
 
     public void updateStatusBars(int health, int shield) {
         if (statusBarsComponent != null) {

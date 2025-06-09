@@ -124,7 +124,6 @@ public class SpaceScreen extends GScreen {
         if (uiLayerPanel != null) {
             uiLayerPanel.updateCoordinates(playerX, playerY);
             uiLayerPanel.updateMinimapData(planets, ships, playerShip);
-            uiLayerPanel.updateMovementKeys(wPressed, aPressed, sPressed, dPressed);
             uiLayerPanel.updateStatusBars(healthPercent, shieldPercent);
             if (dialogText != null) {
                 uiLayerPanel.updateDialog(dialogText);

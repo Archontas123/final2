@@ -18,31 +18,53 @@ import java.util.ArrayList;
 import com.tavuc.models.space.Planet;
 import com.tavuc.models.space.Ship;
 
+/**
+ * A custom UI component that renders a circular, stylized minimap. 
+ */
 public class MinimapComponent extends JPanel {
+    /** The current world x and y coordinates of the player, displayed as text. */
     private int currentX, currentY;
 
     // Hollow Knight inspired colors - dark, atmospheric with subtle blues
+    /** The color for the main border of the minimap. */
     private static final Color BORDER_COLOR = new Color(180, 190, 210, 80);
+    /** The color for the soft glow effect around the border. */
     private static final Color BORDER_GLOW = new Color(120, 170, 220, 40);
+    /** The primary accent color for glowing elements like the player icon and planets. */
     private static final Color ACCENT_COLOR = new Color(100, 180, 220);
+    /** The color for the coordinate text display. */
     private static final Color TEXT_COLOR = new Color(200, 210, 230, 200);
+    /** The base background color for the map area. */
     private static final Color MINIMAP_BG_COLOR = new Color(10, 15, 25, 180);
+    /** The default color for planet icons on the minimap. */
     private static final Color MINIMAP_PLANET_COLOR = new Color(140, 160, 180);
+    /** The color for enemy ship icons on the minimap. */
     private static final Color MINIMAP_ENEMY_COLOR = new Color(180, 60, 40);
+    /** The color used for the "fog of war" effect at the edges of the map. */
     private static final Color FOG_COLOR = new Color(20, 30, 50, 120);
     
-    // Elegant serif font for that hand-drawn feel
+    /** The font used for displaying the player's coordinates. */
     private static final Font COORDS_FONT = new Font("Georgia", Font.ITALIC, 11);
 
+    /** The diameter of the circular minimap area. */
     private static final int MINIMAP_SIZE = 160;
+    /** The padding around the minimap within the component. */
     private static final int PADDING = 15;
+    /** The thickness of the main border stroke. */
     private static final int BORDER_THICKNESS = 2;
 
+    /** The scaling factor to convert world coordinates to minimap coordinates. */
     private static final double MINIMAP_SCALE = 0.05;
+    /** A list of planets to be rendered on the minimap. */
     private List<Planet> planetsToDraw = new ArrayList<>();
+    /** A list of other ships to be rendered on the minimap. */
     private List<Ship> shipsToDraw = new ArrayList<>();
+    /** A reference to the player's ship, used to center the minimap view. */
     private Ship playerShipLocation;
 
+    /**
+     * Constructs a new MinimapComponent, setting its default size and properties.
+     */
     public MinimapComponent() {
         setFocusable(false);
         setOpaque(false);
@@ -51,6 +73,10 @@ public class MinimapComponent extends JPanel {
         setPreferredSize(new Dimension(totalSize, totalSize));
     }
 
+    /**
+     * The main rendering method for the component. 
+     * @param g The Graphics context to paint on.
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
@@ -58,27 +84,21 @@ public class MinimapComponent extends JPanel {
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
 
-        // Draw ornate border with glow effect
         drawOrnateMapBorder(g2d);
         
-        // Create circular clip for map content
         Ellipse2D.Float mapClip = new Ellipse2D.Float(PADDING, PADDING, MINIMAP_SIZE, MINIMAP_SIZE);
         g2d.setClip(mapClip);
 
-        // Draw map background with subtle gradient
         drawMapBackground(g2d);
 
-        // Draw fog of war effect at edges
         drawFogOfWar(g2d);
 
-        // Map content
         double viewCenterX = (playerShipLocation != null) ? playerShipLocation.getX() : 0;
         double viewCenterY = (playerShipLocation != null) ? playerShipLocation.getY() : 0;
         
         int mapCenterX = PADDING + MINIMAP_SIZE / 2;
         int mapCenterY = PADDING + MINIMAP_SIZE / 2;
 
-        // Draw planets with glow effects
         for (Planet planet : planetsToDraw) {
             double planetMinimapX = (planet.getGalaxyX() - viewCenterX) * MINIMAP_SCALE + mapCenterX;
             double planetMinimapY = (planet.getGalaxyY() - viewCenterY) * MINIMAP_SCALE + mapCenterY;
@@ -88,7 +108,6 @@ public class MinimapComponent extends JPanel {
             }
         }
 
-        // Draw enemy ships
         for (Ship ship : shipsToDraw) {
             if (ship == playerShipLocation) continue;
             double shipMinimapX = (ship.getX() - viewCenterX) * MINIMAP_SCALE + mapCenterX;
@@ -99,20 +118,20 @@ public class MinimapComponent extends JPanel {
             }
         }
         
-        // Reset clip for player icon
         g2d.setClip(null);
         
-        // Draw player icon with special effect
         drawPlayerIcon(g2d, mapCenterX, mapCenterY);
 
-        // Draw coordinates
         drawCoordinates(g2d);
         
         g2d.dispose();
     }
 
+    /**
+     * Draws the ornate circular border of the minimap, including a multi-layered glow effect.
+     * @param g2d The Graphics2D context to draw on.
+     */
     private void drawOrnateMapBorder(Graphics2D g2d) {
-        // Outer glow
         for (int i = 5; i > 0; i--) {
             g2d.setColor(new Color(BORDER_GLOW.getRed(), BORDER_GLOW.getGreen(), 
                                   BORDER_GLOW.getBlue(), BORDER_GLOW.getAlpha() / i));
@@ -120,14 +139,16 @@ public class MinimapComponent extends JPanel {
             g2d.drawOval(PADDING - i, PADDING - i, MINIMAP_SIZE + i * 2, MINIMAP_SIZE + i * 2);
         }
         
-        // Main border
         g2d.setColor(BORDER_COLOR);
         g2d.setStroke(new BasicStroke(BORDER_THICKNESS, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
         g2d.drawOval(PADDING, PADDING, MINIMAP_SIZE, MINIMAP_SIZE);
     }
 
+    /**
+     * Draws the background of the map area using a radial gradient to create a sense of depth.
+     * @param g2d The Graphics2D context to draw on.
+     */
     private void drawMapBackground(Graphics2D g2d) {
-        // Create radial gradient for depth
         Point2D center = new Point2D.Float(PADDING + MINIMAP_SIZE/2, PADDING + MINIMAP_SIZE/2);
         float radius = MINIMAP_SIZE/2;
         float[] dist = {0.0f, 0.7f, 1.0f};
@@ -142,8 +163,11 @@ public class MinimapComponent extends JPanel {
         g2d.fillOval(PADDING, PADDING, MINIMAP_SIZE, MINIMAP_SIZE);
     }
 
+    /**
+     * Draws a "fog of war" effect over the map, making the edges darker and less visible.
+     * @param g2d The Graphics2D context to draw on.
+     */
     private void drawFogOfWar(Graphics2D g2d) {
-        // Create fog effect at edges
         Point2D center = new Point2D.Float(PADDING + MINIMAP_SIZE/2, PADDING + MINIMAP_SIZE/2);
         float radius = MINIMAP_SIZE/2;
         float[] dist = {0.0f, 0.6f, 1.0f};
@@ -158,16 +182,21 @@ public class MinimapComponent extends JPanel {
         g2d.fillOval(PADDING, PADDING, MINIMAP_SIZE, MINIMAP_SIZE);
     }
 
+    /**
+     * Draws a single planet icon on the minimap with a surrounding glow.
+     * @param g2d The Graphics2D context to draw on.
+     * @param x The x-coordinate on the minimap to draw the planet.
+     * @param y The y-coordinate on the minimap to draw the planet.
+     * @param planet The Planet object, used to determine size and color.
+     */
     private void drawPlanetWithGlow(Graphics2D g2d, double x, double y, Planet planet) {
         int planetSize = Math.max(4, (int)(planet.getSize() * MINIMAP_SCALE * 0.2));
         
-        // Planet glow
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
         g2d.setColor(ACCENT_COLOR);
         g2d.fillOval((int)(x - planetSize), (int)(y - planetSize), 
                      planetSize * 2, planetSize * 2);
         
-        // Planet body
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         Color planetColor = planet.getColor() != null ? planet.getColor() : MINIMAP_PLANET_COLOR;
         g2d.setColor(planetColor);
@@ -175,8 +204,13 @@ public class MinimapComponent extends JPanel {
                      planetSize, planetSize);
     }
 
+    /**
+     * Draws an icon representing an enemy or other non-player ship.
+     * @param g2d The Graphics2D context to draw on.
+     * @param x The x-coordinate on the minimap to draw the ship.
+     * @param y The y-coordinate on the minimap to draw the ship.
+     */
     private void drawEnemyShip(Graphics2D g2d, double x, double y) {
-        // Enemy ship as a small diamond shape
         Path2D.Double enemy = new Path2D.Double();
         enemy.moveTo(x, y - 3);
         enemy.lineTo(x + 3, y);
@@ -189,17 +223,20 @@ public class MinimapComponent extends JPanel {
         g2d.fill(enemy);
     }
 
+    /**
+     * Draws the player's icon in the center of the minimap with a pulsing glow effect.
+     * @param g2d The Graphics2D context to draw on.
+     * @param centerX The center x-coordinate of the minimap.
+     * @param centerY The center y-coordinate of the minimap.
+     */
     private void drawPlayerIcon(Graphics2D g2d, int centerX, int centerY) {
-        // Player icon with pulsing effect
         long time = System.currentTimeMillis();
         float pulse = (float)(Math.sin(time * 0.003) * 0.2 + 0.8);
         
-        // Outer glow
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.5f * pulse));
         g2d.setColor(ACCENT_COLOR);
         g2d.fillOval(centerX - 8, centerY - 8, 16, 16);
         
-        // Player vessel shape (inspired by Hollow Knight's vessel)
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         Path2D.Double vessel = new Path2D.Double();
         vessel.moveTo(centerX, centerY - 6);
@@ -214,6 +251,10 @@ public class MinimapComponent extends JPanel {
         g2d.draw(vessel);
     }
 
+    /**
+     * Draws the player's current world coordinates as text below the minimap.
+     * @param g2d The Graphics2D context to draw on.
+     */
     private void drawCoordinates(Graphics2D g2d) {
         g2d.setFont(COORDS_FONT);
         g2d.setColor(TEXT_COLOR);
@@ -223,13 +264,19 @@ public class MinimapComponent extends JPanel {
         int x = PADDING + (MINIMAP_SIZE - textWidth) / 2;
         int y = PADDING + MINIMAP_SIZE + 12;
         
-        // Text shadow for readability
         g2d.setColor(new Color(0, 0, 0, 100));
         g2d.drawString(coordsText, x + 1, y + 1);
         g2d.setColor(TEXT_COLOR);
         g2d.drawString(coordsText, x, y);
     }
 
+    /**
+     * Checks if a given point on the minimap is within the visible circular area.
+     * @param x The x-coordinate of the point on the minimap.
+     * @param y The y-coordinate of the point on the minimap.
+     * @param margin A buffer zone to prevent icons from being clipped at the very edge.
+     * @return {@code true} if the point is within the map bounds, {@code false} otherwise.
+     */
     private boolean isInMapBounds(double x, double y, int margin) {
         double dx = x - (PADDING + MINIMAP_SIZE/2);
         double dy = y - (PADDING + MINIMAP_SIZE/2);
@@ -237,12 +284,23 @@ public class MinimapComponent extends JPanel {
         return distance <= (MINIMAP_SIZE/2 - margin);
     }
 
+    /**
+     * Updates the coordinates displayed below the minimap.
+     * @param x The new x-coordinate to display.
+     * @param y The new y-coordinate to display.
+     */
     public void updateCoordinates(int x, int y) {
         this.currentX = x;
         this.currentY = y;
         repaint();
     }
 
+    /**
+     * Updates the minimap with the latest game state data to be rendered.
+     * @param planets A list of all planets to potentially draw.
+     * @param ships A list of all other ships to potentially draw.
+     * @param playerShip A reference to the player's ship for centering the view.
+     */
     public void updateMinimapData(List<Planet> planets, List<Ship> ships, Ship playerShip) {
         this.planetsToDraw = planets != null ? new ArrayList<>(planets) : new ArrayList<>();
         this.shipsToDraw = ships != null ? new ArrayList<>(ships) : new ArrayList<>();

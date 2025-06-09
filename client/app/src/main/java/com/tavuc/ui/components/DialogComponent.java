@@ -18,27 +18,48 @@ import java.awt.geom.Path2D;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
 
+/**
+ * A custom UI component that displays a stylized dialog box.
+ */
 public class DialogComponent extends JPanel {
+    /** The text area where the dialog content is displayed. */
     private JTextArea dialogTextArea;
+    /** The panel where the character portrait is custom-drawn. */
     private JPanel characterPanel;
+    /** A pre-rendered image for the character portrait's glow effect. */
     private BufferedImage characterGlow;
 
     // Hollow Knight inspired colors
+    /** The color for borders and decorative flourishes. */
     private static final Color BORDER_COLOR = new Color(180, 190, 210, 100);
+    /** The primary color for the dialog text. */
     private static final Color TEXT_COLOR = new Color(220, 230, 240);
+    /** The accent color used in the character portrait. */
     private static final Color ACCENT_COLOR = new Color(100, 180, 220);
+    /** The base background color for the dialog box. */
     private static final Color BG_COLOR = new Color(10, 15, 25, 200);
+    /** The color of the glow effects. */
     private static final Color GLOW_COLOR = new Color(120, 200, 255, 60);
     
+    /** The font used for the main dialog text. */
     private static final Font DIALOG_FONT = new Font("Georgia", Font.ITALIC, 13);
+    /** The font used for the character icon (currently a placeholder). */
     private static final Font ICON_FONT = new Font("Georgia", Font.BOLD, 32);
 
+    /** The size (width and height) of the character portrait area. */
     private static final int CHARACTER_SIZE = 70;
+    /** The width of the dialog text box area. */
     private static final int DIALOG_WIDTH = 320;
+    /** The height of the dialog text box area. */
     private static final int DIALOG_HEIGHT = 90;
+    /** The padding around the main content panel. */
     private static final int PADDING = 15;
+    /** The horizontal gap between the character portrait and the text box. */
     private static final int HORIZONTAL_GAP = 12;
 
+    /**
+     * Constructs a new DialogComponent.
+     */
     public DialogComponent() {
         setFocusable(false);
         setLayout(new BorderLayout(0, 0));
@@ -48,7 +69,6 @@ public class DialogComponent extends JPanel {
         int totalHeight = Math.max(CHARACTER_SIZE, DIALOG_HEIGHT) + 2 * PADDING;
         setPreferredSize(new Dimension(totalWidth, totalHeight));
 
-        // Character portrait panel
         characterPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -65,7 +85,6 @@ public class DialogComponent extends JPanel {
         characterPanel.setOpaque(false);
         characterPanel.setFocusable(false);
 
-        // Dialog text area with custom styling
         dialogTextArea = new JTextArea("...");
         dialogTextArea.setEditable(false);
         dialogTextArea.setFocusable(false);
@@ -77,7 +96,6 @@ public class DialogComponent extends JPanel {
         dialogTextArea.setOpaque(false);
         dialogTextArea.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
 
-        // Custom panel for dialog background
         JPanel dialogPanel = new JPanel(new BorderLayout()) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -93,7 +111,6 @@ public class DialogComponent extends JPanel {
         dialogPanel.add(dialogTextArea, BorderLayout.CENTER);
         dialogPanel.setPreferredSize(new Dimension(DIALOG_WIDTH, DIALOG_HEIGHT));
 
-        // Content panel
         JPanel contentPanel = new JPanel(new BorderLayout(HORIZONTAL_GAP, 0));
         contentPanel.setOpaque(false);
         contentPanel.setBorder(BorderFactory.createEmptyBorder(PADDING, PADDING, PADDING, PADDING));
@@ -102,30 +119,30 @@ public class DialogComponent extends JPanel {
 
         add(contentPanel, BorderLayout.CENTER);
         
-        // Initialize character glow effect
         createCharacterGlow();
     }
 
+    /**
+     * Draws the entire character portrait, including a pulsing glow, background,
+     * a central "vessel" shape, and decorative elements.
+     * @param g2d The Graphics2D context to draw on.
+     */
     private void drawCharacterPortrait(Graphics2D g2d) {
         int centerX = CHARACTER_SIZE / 2;
         int centerY = CHARACTER_SIZE / 2;
         
-        // Animated glow effect
         long time = System.currentTimeMillis();
         float pulse = (float)(Math.sin(time * 0.002) * 0.2 + 0.8);
         
-        // Draw glow
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.6f * pulse));
         g2d.drawImage(characterGlow, 0, 0, null);
         g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
         
-        // Outer mystical circle
         g2d.setColor(new Color(ACCENT_COLOR.getRed(), ACCENT_COLOR.getGreen(), 
                               ACCENT_COLOR.getBlue(), (int)(80 * pulse)));
         g2d.setStroke(new BasicStroke(2));
         g2d.drawOval(5, 5, CHARACTER_SIZE - 10, CHARACTER_SIZE - 10);
         
-        // Inner frame with gradient
         LinearGradientPaint frameGradient = new LinearGradientPaint(
             0, 0, 0, CHARACTER_SIZE,
             new float[]{0f, 0.5f, 1f},
@@ -138,17 +155,21 @@ public class DialogComponent extends JPanel {
         g2d.setPaint(frameGradient);
         g2d.fillOval(10, 10, CHARACTER_SIZE - 20, CHARACTER_SIZE - 20);
         
-        // Character silhouette (vessel-like shape)
         drawVesselShape(g2d, centerX, centerY, 20);
         
-        // Decorative corners
         drawPortraitDecorations(g2d);
     }
 
+    /**
+     * Draws a stylized, vessel-like shape in the center of the portrait area.
+     * @param g2d The Graphics2D context to draw on.
+     * @param cx The center x-coordinate.
+     * @param cy The center y-coordinate.
+     * @param size The approximate size of the shape.
+     */
     private void drawVesselShape(Graphics2D g2d, int cx, int cy, int size) {
         Path2D.Double vessel = new Path2D.Double();
         
-        // Create a hollow knight inspired vessel shape
         vessel.moveTo(cx, cy - size);
         vessel.curveTo(cx + size * 0.6, cy - size * 0.8,
                       cx + size * 0.8, cy - size * 0.2,
@@ -161,7 +182,6 @@ public class DialogComponent extends JPanel {
                       cx, cy - size);
         vessel.closePath();
         
-        // Fill with gradient
         RadialGradientPaint vesselGradient = new RadialGradientPaint(
             cx, cy, size,
             new float[]{0f, 0.6f, 1f},
@@ -174,17 +194,19 @@ public class DialogComponent extends JPanel {
         g2d.setPaint(vesselGradient);
         g2d.fill(vessel);
         
-        // Add highlight
         g2d.setColor(new Color(255, 255, 255, 100));
         g2d.setStroke(new BasicStroke(1));
         g2d.draw(vessel);
     }
 
+    /**
+     * Draws decorative flourishes in the corners of the character portrait panel.
+     * @param g2d The Graphics2D context to draw on.
+     */
     private void drawPortraitDecorations(Graphics2D g2d) {
         g2d.setColor(BORDER_COLOR);
         g2d.setStroke(new BasicStroke(1.5f));
         
-        // Corner flourishes
         int[][] corners = {{0, 0}, {CHARACTER_SIZE, 0}, {0, CHARACTER_SIZE}, {CHARACTER_SIZE, CHARACTER_SIZE}};
         int[] xDir = {1, -1, 1, -1};
         int[] yDir = {1, 1, -1, -1};
@@ -201,15 +223,18 @@ public class DialogComponent extends JPanel {
         }
     }
 
+    /**
+     * Draws the custom background for the dialog text area, including a shadow,
+     * gradient fill, ornate border, and inner glow.
+     * @param g2d The Graphics2D context to draw on.
+     */
     private void drawDialogBackground(Graphics2D g2d) {
         int w = getWidth();
         int h = getHeight();
         
-        // Shadow
         g2d.setColor(new Color(0, 0, 0, 80));
         g2d.fillRoundRect(2, 2, w - 4, h - 4, 15, 15);
         
-        // Main background with gradient
         LinearGradientPaint bgGradient = new LinearGradientPaint(
             0, 0, 0, h,
             new float[]{0f, 0.5f, 1f},
@@ -222,21 +247,24 @@ public class DialogComponent extends JPanel {
         g2d.setPaint(bgGradient);
         g2d.fillRoundRect(0, 0, w, h, 15, 15);
         
-        // Ornate border
         g2d.setColor(BORDER_COLOR);
         g2d.setStroke(new BasicStroke(1.5f));
         g2d.drawRoundRect(0, 0, w - 1, h - 1, 15, 15);
         
-        // Inner glow
         g2d.setColor(new Color(GLOW_COLOR.getRed(), GLOW_COLOR.getGreen(), 
                               GLOW_COLOR.getBlue(), 40));
         g2d.setStroke(new BasicStroke(2));
         g2d.drawRoundRect(2, 2, w - 5, h - 5, 13, 13);
         
-        // Speech indicator (small triangle)
         drawSpeechIndicator(g2d, 15, h - 10);
     }
 
+    /**
+     * Draws a small, animated triangular indicator at the bottom of the dialog box.
+     * @param g2d The Graphics2D context to draw on.
+     * @param x The x-coordinate for the indicator's position.
+     * @param y The y-coordinate for the indicator's position.
+     */
     private void drawSpeechIndicator(Graphics2D g2d, int x, int y) {
         long time = System.currentTimeMillis();
         float alpha = (float)(Math.sin(time * 0.003) * 0.3 + 0.7);
@@ -252,12 +280,15 @@ public class DialogComponent extends JPanel {
         g2d.fill(indicator);
     }
 
+    /**
+     * Pre-renders the radial glow effect for the character portrait into a
+     * BufferedImage for improved performance.
+     */
     private void createCharacterGlow() {
         characterGlow = new BufferedImage(CHARACTER_SIZE, CHARACTER_SIZE, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = characterGlow.createGraphics();
         g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         
-        // Create radial glow
         RadialGradientPaint glowGradient = new RadialGradientPaint(
             CHARACTER_SIZE / 2f, CHARACTER_SIZE / 2f, CHARACTER_SIZE / 2f,
             new float[]{0f, 0.5f, 1f},
@@ -272,19 +303,24 @@ public class DialogComponent extends JPanel {
         g2d.dispose();
     }
 
+    /**
+     * Overridden to continuously request repaints, which drives the component's
+     * time-based animations.
+     * @param g The Graphics context to paint on.
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
-        // Trigger repaint for animations
         repaint(50);
     }
 
+    /**
+     * Sets the text to be displayed in the dialog box.
+     * @param text The new dialog text.
+     */
     public void setDialogText(String text) {
         dialogTextArea.setText(text);
     }
 
-    public void setIcon(/* Some Icon representation */) {
-        // Update character portrait when implemented
-        characterPanel.repaint();
-    }
+
 }
