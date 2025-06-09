@@ -8,6 +8,9 @@ public class RegisterResponse extends BaseMessage {
     public String message;
     public String playerId;
 
+    /**
+     * Constructs a new RegisterResponse.
+     */
     public RegisterResponse(boolean success, String message, String playerId) {
         this.type = "REGISTER_RESPONSE";
         this.success = success;

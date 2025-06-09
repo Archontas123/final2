@@ -9,9 +9,15 @@ public class TileData {
     public String tileType;
     public String colorTypeName;
 
+    /**
+     * Constructs a new TileData.
+     */
     public TileData() {
     }
 
+    /**
+     * Constructs a new TileData.
+     */
     public TileData(int x, int y, String tileType, String colorTypeName) {
         this.x = x;
         this.y = y;

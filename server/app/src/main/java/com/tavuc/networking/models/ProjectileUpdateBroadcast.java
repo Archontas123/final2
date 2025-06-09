@@ -10,6 +10,9 @@ public class ProjectileUpdateBroadcast extends BaseMessage {
     public float velocityX;
     public float velocityY;
 
+    /**
+     * Constructs a new ProjectileUpdateBroadcast.
+     */
     public ProjectileUpdateBroadcast(String projectileId, float x, float y, float velocityX, float velocityY) {
         super();
         this.type = "PROJECTILE_UPDATE_BROADCAST";

@@ -16,6 +16,9 @@ public class ProjectileSpawnedBroadcast extends BaseMessage {
     public float damage;
     public String firedBy;
 
+    /**
+     * Constructs a new ProjectileSpawnedBroadcast.
+     */
     public ProjectileSpawnedBroadcast(String projectileId, float x, float y, int width, int height,
                                       float orientation, float speed,
                                       float velocityX, float velocityY,

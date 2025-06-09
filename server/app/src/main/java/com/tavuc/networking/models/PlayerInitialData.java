@@ -12,9 +12,15 @@ public class PlayerInitialData {
     public double dy;
     public double directionAngle;
 
+    /**
+     * Constructs a new PlayerInitialData.
+     */
     public PlayerInitialData() {
     }
 
+    /**
+     * Constructs a new PlayerInitialData.
+     */
     public PlayerInitialData(String playerId, String username, double x, double y, double dx, double dy, double directionAngle) {
         this.playerId = playerId;
         this.username = username;

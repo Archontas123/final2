@@ -12,6 +12,9 @@ public class PlayerJoinedBroadcast extends BaseMessage {
     public double dy;
     public double directionAngle;
 
+    /**
+     * Constructs a new PlayerJoinedBroadcast.
+     */
     public PlayerJoinedBroadcast(String playerId, String username, double x, double y, double dx, double dy, double directionAngle) {
         this.type = "PLAYER_JOINED_BROADCAST";
         this.playerId = playerId;
@@ -23,6 +26,10 @@ public class PlayerJoinedBroadcast extends BaseMessage {
         this.directionAngle = directionAngle;
     }
 
+
+    /**
+     * Constructs a new PlayerJoinedBroadcast.
+     */
 
     public PlayerJoinedBroadcast() {
         this.type = "PLAYER_JOINED_BROADCAST";

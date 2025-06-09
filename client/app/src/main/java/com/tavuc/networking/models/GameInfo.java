@@ -8,9 +8,15 @@ public class GameInfo {
     public String planetName;
     public int playerCount;
 
+    /**
+     * Constructs a new GameInfo.
+     */
     public GameInfo() {
     }
 
+    /**
+     * Constructs a new GameInfo.
+     */
     public GameInfo(String gameId, String planetName, int playerCount) {
         this.gameId = gameId;
         this.planetName = planetName;

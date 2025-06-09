@@ -8,9 +8,15 @@ public class LeaveGameResponse extends BaseMessage {
     public String message;
     public String gameId;
 
+    /**
+     * Constructs a new LeaveGameResponse.
+     */
     public LeaveGameResponse() {
     }
 
+    /**
+     * Constructs a new LeaveGameResponse.
+     */
     public LeaveGameResponse(boolean success, String message, String gameId) {
         this.type = "LEAVE_GAME_RESPONSE";
         this.success = success;

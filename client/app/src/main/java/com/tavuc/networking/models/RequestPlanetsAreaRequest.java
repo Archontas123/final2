@@ -8,6 +8,9 @@ public class RequestPlanetsAreaRequest extends BaseMessage {
     public double centerY;
     public double radius;
 
+    /**
+     * Constructs a new RequestPlanetsAreaRequest.
+     */
     public RequestPlanetsAreaRequest(double centerX, double centerY, double radius) {
         this.type = "REQUEST_PLANETS_AREA_REQUEST";
         this.centerX = centerX;
