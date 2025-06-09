@@ -25,6 +25,9 @@ import com.tavuc.networking.models.PlayerKilledBroadcast;
 import com.tavuc.networking.models.CoinUpdateBroadcast;
 import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
 import com.tavuc.networking.models.CoinDropRemovedBroadcast;
+import com.tavuc.networking.models.EnemySpawnedBroadcast;
+import com.tavuc.networking.models.EnemyUpdateBroadcast;
+import com.tavuc.networking.models.EnemyRemovedBroadcast;
 import com.tavuc.models.items.CoinDrop;
 import com.tavuc.models.entities.enemies.Enemy;
 import com.tavuc.models.space.BaseShip;   // Added import
@@ -50,6 +53,7 @@ public class GameManager {
     // Coin drop tracking
     private final ConcurrentMap<String, CoinDrop> coinDrops = new ConcurrentHashMap<>();
     private int nextCoinDropId = 1;
+
 
     // Wave and enemy tracking
     private WaveManager waveManager;
@@ -192,17 +196,19 @@ public class GameManager {
             return;
         }
 
-        // Update the player's absolute position based on the values supplied by
-        // the client. Previously only the velocity (dx/dy) was recorded which
-        // caused the server to integrate movement independently and quickly lead
-        // to desynchronised positions between clients. By explicitly updating
-        // the player's coordinates here we ensure the server state mirrors the
-        // client's authoritative position for the current tick.
-        playerToUpdate.setPosition(x, y);
+        if (!playerToUpdate.isFrozen()) {
+            // Update the player's absolute position based on the values supplied by
+            // the client. Previously only the velocity (dx/dy) was recorded which
+            // caused the server to integrate movement independently and quickly lead
+            // to desynchronised positions between clients. By explicitly updating
+            // the player's coordinates here we ensure the server state mirrors the
+            // client's authoritative position for the current tick.
+            playerToUpdate.setPosition(x, y);
 
-        playerToUpdate.setDx(dx);
-        playerToUpdate.setDy(dy);
-        playerToUpdate.setDirectionAngle(directionAngle);
+            playerToUpdate.setDx(dx);
+            playerToUpdate.setDy(dy);
+            playerToUpdate.setDirectionAngle(directionAngle);
+        }
     }
 
     /**
@@ -297,43 +303,62 @@ public class GameManager {
                     if (p == attacker) continue;
                     double dx = p.getX() - attacker.getX();
                     double dy = p.getY() - attacker.getY();
-                    if (Math.hypot(dx, dy) <= range) {
-                        applyAbilityDamage(attacker, p, 1.0);
+                    double dist = Math.hypot(dx, dy);
+                    if (dist <= range && dist != 0) {
+                        p.setDx(dx / dist * 5);
+                        p.setDy(dy / dist * 5);
+                        applyAbilityDamage(attacker, p, 2.0);
                     }
                 }
                 for (Enemy e : activeEnemies) {
                     double dx = e.getX() - attacker.getX();
                     double dy = e.getY() - attacker.getY();
-                    if (Math.hypot(dx, dy) <= range) {
-                        applyAbilityDamage(attacker, e, 1.0);
+                    double dist = Math.hypot(dx, dy);
+                    if (dist <= range && dist != 0) {
+                        e.setDx(dx / dist * 5);
+                        e.setDy(dy / dist * 5);
+                        applyAbilityDamage(attacker, e, 2.0);
                     }
                 }
             }
             case "FORCE_PUSH" -> {
                 if (targetPlayer == null && targetEnemy == null) return;
-                double dx = (targetPlayer != null ? targetPlayer.getX() : targetEnemy.getX()) - attacker.getX();
-                double dy = (targetPlayer != null ? targetPlayer.getY() : targetEnemy.getY()) - attacker.getY();
+                Entity primary = targetPlayer != null ? targetPlayer : targetEnemy;
+                double dx = primary.getX() - attacker.getX();
+                double dy = primary.getY() - attacker.getY();
                 double dist = Math.hypot(dx, dy);
                 if (dist > range) return;
-                if (dist != 0) {
-                    if (targetPlayer != null) {
-                        targetPlayer.setDx(dx / dist * 5);
-                        targetPlayer.setDy(dy / dist * 5);
-                    } else {
-                        targetEnemy.setDx(dx / dist * 5);
-                        targetEnemy.setDy(dy / dist * 5);
+                for (Player p : playerSessions.keySet()) {
+                    double tx = p.getX() - attacker.getX();
+                    double ty = p.getY() - attacker.getY();
+                    double d = Math.hypot(tx, ty);
+                    if (d <= range && d != 0) {
+                        p.setDx(tx / d * 5);
+                        p.setDy(ty / d * 5);
                     }
                 }
-                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 0.5);
-                else applyAbilityDamage(attacker, targetEnemy, 0.5);
+                for (Enemy e : activeEnemies) {
+                    double tx = e.getX() - attacker.getX();
+                    double ty = e.getY() - attacker.getY();
+                    double d = Math.hypot(tx, ty);
+                    if (d <= range && d != 0) {
+                        e.setDx(tx / d * 5);
+                        e.setDy(ty / d * 5);
+                    }
+                }
             }
             case "FORCE_CHOKE" -> {
                 if (targetPlayer == null && targetEnemy == null) return;
                 double dx = (targetPlayer != null ? targetPlayer.getX() : targetEnemy.getX()) - attacker.getX();
                 double dy = (targetPlayer != null ? targetPlayer.getY() : targetEnemy.getY()) - attacker.getY();
                 if (Math.hypot(dx, dy) > range) return;
-                if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 1.5);
-                else applyAbilityDamage(attacker, targetEnemy, 1.5);
+                if (targetPlayer != null) {
+                    targetPlayer.freeze(1.0);
+                    applyAbilityDamage(attacker, targetPlayer, 1.5);
+                } else {
+                    targetEnemy.freeze(1.0);
+                    applyAbilityDamage(attacker, targetEnemy, 1.5);
+                }
             }
             default -> {
                 if (targetPlayer != null) applyAbilityDamage(attacker, targetPlayer, 1.0);
@@ -450,18 +475,34 @@ public class GameManager {
                     if (e.getHealth() <= 0) {
                         it.remove();
                         handleEnemyKilled(e, -1);
+                        broadcastToGame(new EnemyRemovedBroadcast(String.valueOf(e.getId())));
                     }
                 }
 
                 // Spawn next wave if needed
                 if ((activeEnemies.isEmpty() || waveManager.isCurrentWaveTimedOut()) && waveManager.hasMoreWaves()) {
                     Player target = players.get(0);
-                    activeEnemies.addAll(waveManager.spawnNextWave(blockedTiles, target));
+                    List<Enemy> spawned = waveManager.spawnNextWave(blockedTiles, target);
+                    activeEnemies.addAll(spawned);
+                    for (Enemy e : spawned) {
+                        broadcastToGame(new EnemySpawnedBroadcast(
+                                String.valueOf(e.getId()),
+                                e.getClass().getSimpleName(),
+                                e.getX(), e.getY(),
+                                (int)e.getHealth(),
+                                e.getWidth(), e.getHeight()));
+                    }
                 }
 
                 // Update active enemies
                 for (Enemy enemy : activeEnemies) {
                     enemy.update();
+                    broadcastToGame(new EnemyUpdateBroadcast(
+                            String.valueOf(enemy.getId()),
+                            enemy.getX(), enemy.getY(),
+                            enemy.getDx(), enemy.getDy(),
+                            enemy.getDirection(),
+                            enemy.getHealth()));
                 }
             }
 

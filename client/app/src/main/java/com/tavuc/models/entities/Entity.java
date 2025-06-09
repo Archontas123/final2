@@ -13,6 +13,8 @@ public abstract class Entity extends GameObject {
     protected int health;
     protected int maxHealth;
     protected Rectangle hurtbox;
+    /** Time remaining that the entity is frozen and unable to move. */
+    protected double freezeTimer = 0.0;
 
     /**
      * Constructor for Entity
@@ -143,11 +145,35 @@ public abstract class Entity extends GameObject {
         setHealth(health + amount);
     }
 
+    /** Freeze the entity for the given duration in seconds. */
+    public void freeze(double duration) {
+        if (duration > freezeTimer) {
+            freezeTimer = duration;
+        }
+    }
+
+    /** Returns true if the entity is currently frozen. */
+    public boolean isFrozen() {
+        return freezeTimer > 0;
+    }
+
+    /** Updates the freeze timer each frame. */
+    protected void updateFreezeTimer() {
+        if (freezeTimer > 0) {
+            freezeTimer = Math.max(0, freezeTimer - 0.016);
+        }
+    }
+
     /**
      * Moves the entity based on its dx and dy values.
      * Updates the hitbox & hurtbox after moving.
      */
     public void move() {
+        updateFreezeTimer();
+        if (isFrozen()) {
+            return;
+        }
+
         double newX = x + dx;
         double newY = y + dy;
 

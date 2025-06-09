@@ -48,6 +48,9 @@ import com.tavuc.networking.models.RegisterRequest;
 import com.tavuc.networking.models.RegisterResponse;
 import com.tavuc.networking.models.CoinDropSpawnedBroadcast;
 import com.tavuc.networking.models.CoinDropRemovedBroadcast;
+import com.tavuc.networking.models.EnemySpawnedBroadcast;
+import com.tavuc.networking.models.EnemyUpdateBroadcast;
+import com.tavuc.networking.models.EnemyRemovedBroadcast;
 import com.tavuc.networking.models.RequestChunkRequest;
 import com.tavuc.networking.models.RequestChunkResponse;
 import com.tavuc.networking.models.RequestPaletteRequest;
@@ -692,6 +695,24 @@ public class Client {
                                 if (currentSpacePanel != null) {
                                     ProjectileRemovedBroadcast event = gson.fromJson(processedJson, ProjectileRemovedBroadcast.class);
                                     SwingUtilities.invokeLater(() -> currentSpacePanel.handleProjectileRemoved(event));
+                                }
+                                break;
+                            case "ENEMY_SPAWNED_BROADCAST":
+                                if (worldManager != null) {
+                                    EnemySpawnedBroadcast event = gson.fromJson(processedJson, EnemySpawnedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.handleEnemySpawned(event));
+                                }
+                                break;
+                            case "ENEMY_UPDATE_BROADCAST":
+                                if (worldManager != null) {
+                                    EnemyUpdateBroadcast event = gson.fromJson(processedJson, EnemyUpdateBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.handleEnemyUpdate(event));
+                                }
+                                break;
+                            case "ENEMY_REMOVED_BROADCAST":
+                                if (worldManager != null) {
+                                    EnemyRemovedBroadcast event = gson.fromJson(processedJson, EnemyRemovedBroadcast.class);
+                                    SwingUtilities.invokeLater(() -> worldManager.handleEnemyRemoved(event));
                                 }
                                 break;
                             case "COIN_DROP_SPAWNED_BROADCAST":
