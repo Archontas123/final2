@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerUpdateRequest networking message.
+ */
 
 public class PlayerUpdateRequest extends BaseMessage {
     public String playerId;
@@ -8,6 +11,9 @@ public class PlayerUpdateRequest extends BaseMessage {
     public double dy;
     public double directionAngle;
 
+    /**
+     * Constructs a new PlayerUpdateRequest.
+     */
     public PlayerUpdateRequest(String playerId, double x, double y, double dx, double dy, double directionAngle) {
         this.type = "PLAYER_UPDATE_REQUEST";
         this.playerId = playerId;

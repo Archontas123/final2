@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerUpdateBroadcast networking message.
+ */
 
 public class PlayerUpdateBroadcast extends BaseMessage {
     public String playerId;
@@ -8,9 +11,15 @@ public class PlayerUpdateBroadcast extends BaseMessage {
     public double dy;
     public double directionAngle;
 
+    /**
+     * Constructs a new PlayerUpdateBroadcast.
+     */
     public PlayerUpdateBroadcast() {
     }
 
+    /**
+     * Constructs a new PlayerUpdateBroadcast.
+     */
     public PlayerUpdateBroadcast(String playerId, double x, double y, double dx, double dy, double directionAngle) {
         this.type = "PLAYER_UPDATE_BROADCAST";
         this.playerId = playerId;

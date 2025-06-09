@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the RequestPaletteResponse networking message.
+ */
 
 public class RequestPaletteResponse extends BaseMessage {
     public String primarySurfaceRGB;
@@ -8,9 +11,15 @@ public class RequestPaletteResponse extends BaseMessage {
     public String hueShiftRGB;
     public String rockRGB;
 
+    /**
+     * Constructs a new RequestPaletteResponse.
+     */
     public RequestPaletteResponse() {
     }
 
+    /**
+     * Constructs a new RequestPaletteResponse.
+     */
     public RequestPaletteResponse(String primarySurfaceRGB, String primaryLiquidRGB, String secondarySurfaceRGB, String tertiarySurfaceRGB, String hueShiftRGB, String rockRGB) {
         this.type = "REQUEST_PALETTE_RESPONSE";
         this.primarySurfaceRGB = primarySurfaceRGB;

@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlanetInfo networking message.
+ */
 
 public class PlanetInfo {
     public String gameId;
@@ -6,12 +9,18 @@ public class PlanetInfo {
     public double x;
     public double y;
     public double size;
-    public String type; 
-    public int hueShiftColor; 
+    public String type;
+    public int hueShiftColor;
 
+    /**
+     * Constructs a new PlanetInfo.
+     */
     public PlanetInfo() {
     }
 
+    /**
+     * Constructs a new PlanetInfo.
+     */
     public PlanetInfo(String gameId, String planetName, double x, double y, double size, String type, int hueShiftColor) {
         this.gameId = gameId;
         this.planetName = planetName;

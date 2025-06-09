@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the CruiserUpdateBroadcast networking message.
+ */
 
 public class CruiserUpdateBroadcast extends BaseMessage {
     public String entityId;
@@ -13,6 +16,9 @@ public class CruiserUpdateBroadcast extends BaseMessage {
     public float maxShieldHealth;
     public String aiState;
 
+    /**
+     * Constructs a new CruiserUpdateBroadcast.
+     */
     public CruiserUpdateBroadcast() {
         super();
     }

@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the ShipUpdateRequest networking message.
+ */
 
 public class ShipUpdateRequest extends BaseMessage {
     public String playerId;
@@ -9,6 +12,9 @@ public class ShipUpdateRequest extends BaseMessage {
     public double dy;
     public boolean thrusting;
 
+    /**
+     * Constructs a new ShipUpdateRequest.
+     */
     public ShipUpdateRequest(String playerId, double x, double y, double angle, double dx, double dy, boolean thrusting) {
         this.type = "SHIP_UPDATE_REQUEST";
         this.playerId = playerId;

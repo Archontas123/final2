@@ -1,21 +1,29 @@
-// server/app/src/main/java/com/tavuc/networking/models/FireRequest.java
 
 package com.tavuc.networking.models;
+/**
+ * Represents the FireRequest networking message.
+ */
 
 public class FireRequest extends BaseMessage {
-    public String playerId; // Add player ID field
-    public double shipX;    // Ship position fields for more accurate projectile spawning
+    public String playerId;
+    public double shipX;
     public double shipY;
     public double shipAngle;
     public double shipDx;
     public double shipDy;
 
+    /**
+     * Constructs a new FireRequest.
+     */
     public FireRequest() {
-        super(); 
-        this.type = "FIRE_REQUEST"; // Change to uppercase with underscore to match server expectations
+        super();
+        this.type = "FIRE_REQUEST";
     }
-    
-    // Add constructor with player data
+
+
+    /**
+     * Constructs a new FireRequest.
+     */
     public FireRequest(String playerId, double shipX, double shipY, double shipAngle, double shipDx, double shipDy) {
         this();
         this.playerId = playerId;

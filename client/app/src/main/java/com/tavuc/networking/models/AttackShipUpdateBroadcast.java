@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the AttackShipUpdateBroadcast networking message.
+ */
 
 public class AttackShipUpdateBroadcast extends BaseMessage {
     public String entityId;
@@ -13,8 +16,11 @@ public class AttackShipUpdateBroadcast extends BaseMessage {
     public String aiState;
     public float attackPointX;
     public float attackPointY;
-    public String targetPlayerId; 
+    public String targetPlayerId;
 
+    /**
+     * Constructs a new AttackShipUpdateBroadcast.
+     */
     public AttackShipUpdateBroadcast() {
         super();
     }
