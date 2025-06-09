@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the ShipUpdateRequest networking message.
+ */
 
 public class ShipUpdateRequest extends BaseMessage {
     public String playerId;

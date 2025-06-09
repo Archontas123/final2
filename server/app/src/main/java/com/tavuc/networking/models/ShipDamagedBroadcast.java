@@ -1,5 +1,7 @@
-
 package com.tavuc.networking.models;
+/**
+ * Represents the ShipDamagedBroadcast networking message.
+ */
 
 
 public class ShipDamagedBroadcast extends BaseMessage {
@@ -13,7 +15,7 @@ public class ShipDamagedBroadcast extends BaseMessage {
         this.type = "SHIP_DAMAGED_BROADCAST";
     }
 
-    public ShipDamagedBroadcast(String playerId, float damageAmount, float currentHealth, 
+    public ShipDamagedBroadcast(String playerId, float damageAmount, float currentHealth,
                                 float maxHealth, String damageDealerId) {
         this.type = "SHIP_DAMAGED_BROADCAST";
         this.playerId = playerId;

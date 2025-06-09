@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the ProjectileSpawnedBroadcast networking message.
+ */
 
 public class ProjectileSpawnedBroadcast extends BaseMessage {
     public String projectileId;

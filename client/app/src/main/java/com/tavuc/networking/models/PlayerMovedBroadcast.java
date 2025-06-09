@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerMovedBroadcast networking message.
+ */
 
 public class PlayerMovedBroadcast extends BaseMessage {
     public String playerId;
@@ -8,7 +11,7 @@ public class PlayerMovedBroadcast extends BaseMessage {
     public double dy;
     public double directionAngle;
 
-    // Gson will use this constructor
+
     public PlayerMovedBroadcast() {
         this.type = "PLAYER_MOVED_BROADCAST";
     }

@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerJoinedBroadcast networking message.
+ */
 
 public class PlayerJoinedBroadcast extends BaseMessage {
     public String playerId;
@@ -20,7 +23,7 @@ public class PlayerJoinedBroadcast extends BaseMessage {
         this.directionAngle = directionAngle;
     }
 
-    // Gson can also use a no-arg constructor if needed, or public fields directly
+
     public PlayerJoinedBroadcast() {
         this.type = "PLAYER_JOINED_BROADCAST";
     }

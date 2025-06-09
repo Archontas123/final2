@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the PlayerInitialData networking message.
+ */
 
 public class PlayerInitialData {
     public String playerId;

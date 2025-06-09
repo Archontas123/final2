@@ -28,7 +28,9 @@ import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 import javax.swing.SwingUtilities;
@@ -40,6 +42,10 @@ import java.io.InputStream;
 import java.io.IOException;
 
 import com.tavuc.ui.components.DamagePopup;
+import com.tavuc.models.space.Projectile;
+import com.tavuc.networking.models.ProjectileSpawnedBroadcast;
+import com.tavuc.networking.models.ProjectileUpdateBroadcast;
+import com.tavuc.networking.models.ProjectileRemovedBroadcast;
 
 
 
@@ -61,6 +67,10 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
     private boolean renderOtherPlayers = true; // Flag to control rendering
     // Track time of last melee attack to avoid spamming the server
     private long lastAttackTime = 0;
+    private long lastShootTime = 0;
+
+    private final java.util.List<Projectile> projectiles = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final java.util.Queue<String> predictedProjectiles = new java.util.concurrent.ConcurrentLinkedQueue<>();
 
     private java.awt.image.BufferedImage playerSprite;
     private java.awt.image.BufferedImage[] healthbarSprites = new java.awt.image.BufferedImage[7];
@@ -279,6 +289,10 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             }
         }
 
+        for (Projectile p : projectiles) {
+            p.draw(g2d, 0, 0);
+        }
+
         // Draw floating damage numbers while world transform is active
         Iterator<DamagePopup> iter = damagePopups.iterator();
         while (iter.hasNext()) {
@@ -411,6 +425,10 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             player.setlastSentDirection(player.getDirection());
         }
 
+        for (Projectile p : projectiles) {
+            p.tick(1.0/60.0);
+        }
+
         if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_Q)) {
             long now = System.currentTimeMillis();
             if (now - lastAttackTime > 500) {
@@ -420,6 +438,10 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
             } else {
                 System.out.println("[GamePanel] Attack on cooldown");
             }
+        }
+
+        if (inputManager.isKeyPressed(java.awt.event.KeyEvent.VK_SPACE)) {
+            attemptPlayerShoot();
         }
 
         repaint();
@@ -542,6 +564,53 @@ public class GamePanel extends GPanel implements ActionListener, MouseMotionList
         if (closest != null && closestDist <= range) {
             Client.sendPlayerAttack(player.getPlayerId(), closest.getPlayerId());
         }
+    }
+
+    private void attemptPlayerShoot() {
+        if (player == null) return;
+        long now = System.currentTimeMillis();
+        if (now - lastShootTime < 300) return;
+        lastShootTime = now;
+
+        double spawnX = player.getX() + player.getWidth()/2.0;
+        double spawnY = player.getY() + player.getHeight()/2.0;
+        double angle = player.getDirection();
+
+        double vx = Math.cos(angle) * 120.0;
+        double vy = Math.sin(angle) * 120.0;
+        String projId = "local_" + java.util.UUID.randomUUID();
+        Projectile proj = new Projectile(projId, spawnX, spawnY, vx, vy, 0.5, String.valueOf(player.getPlayerId()));
+        projectiles.add(proj);
+        predictedProjectiles.add(projId);
+
+        Client.sendPlayerShoot(player.getPlayerId(), spawnX, spawnY, angle);
+    }
+
+    public void handleProjectileSpawned(ProjectileSpawnedBroadcast event) {
+        Projectile p = new Projectile(event.projectileId, event.x, event.y, event.velocityX, event.velocityY, event.damage, event.firedBy);
+        projectiles.add(p);
+        if (String.valueOf(playerId).equals(event.firedBy)) {
+            String localId = predictedProjectiles.poll();
+            if (localId != null) {
+                projectiles.removeIf(pr -> pr.getId().equals(localId));
+            }
+        }
+    }
+
+    public void handleProjectileUpdate(ProjectileUpdateBroadcast event) {
+        for (Projectile p : projectiles) {
+            if (p.getId().equals(event.projectileId)) {
+                p.setX(event.x);
+                p.setY(event.y);
+                p.setVelocityX(event.velocityX);
+                p.setVelocityY(event.velocityY);
+                break;
+            }
+        }
+    }
+
+    public void handleProjectileRemoved(ProjectileRemovedBroadcast event) {
+        projectiles.removeIf(p -> p.getId().equals(event.projectileId));
     }
 
     private void loadSprites() {

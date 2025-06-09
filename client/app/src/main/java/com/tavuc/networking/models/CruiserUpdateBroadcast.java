@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the CruiserUpdateBroadcast networking message.
+ */
 
 public class CruiserUpdateBroadcast extends BaseMessage {
     public String entityId;

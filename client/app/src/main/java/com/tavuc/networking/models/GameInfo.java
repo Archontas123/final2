@@ -1,4 +1,7 @@
 package com.tavuc.networking.models;
+/**
+ * Represents the GameInfo networking message.
+ */
 
 public class GameInfo {
     public String gameId;
